@@ -2,6 +2,7 @@ package haexporterplugin.notifiers;
 
 import haexporterplugin.HAExporterConfig;
 import haexporterplugin.utils.HomeAssistUtils;
+import haexporterplugin.utils.MessageBuilder;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 
@@ -18,4 +19,7 @@ public abstract class BaseNotifier {
 
     @Inject
     protected HomeAssistUtils homeAssistUtils;
+
+    @Inject
+    protected MessageBuilder messageBuilder;
 }

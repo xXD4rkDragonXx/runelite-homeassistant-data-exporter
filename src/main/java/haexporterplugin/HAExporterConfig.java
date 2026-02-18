@@ -2,6 +2,9 @@ package haexporterplugin;
 
 import net.runelite.client.config.*;
 
+import java.awt.*;
+import java.lang.reflect.Array;
+
 @ConfigGroup("HAExporter")
 public interface HAExporterConfig extends Config
 {
@@ -63,12 +66,25 @@ public interface HAExporterConfig extends Config
 	default boolean validateToken()
 	{ return false; }
 
+	/* ============================
+       Hidden Config Items
+       ============================ */
 	@ConfigItem(
-		keyName = "webhook",
-		name = "webhook URL",
-		description = "webhook to send the data",
-		position = 1
+			keyName = "homeassistantConnections",
+			name = "Home Assistant Connections",
+			description = "Stores all configured connections",
+			hidden = true
 	)
-	default String webhook() {return null;}
+	default String homeassistantConnections()
+	{
+		return "[]"; // start empty as JSON array
+	}
 
+	@ConfigItem(
+			keyName = "homeassistantConnections",
+			name = "Home Assistant Connections",
+			description = "Stores all configured connections",
+			hidden = true
+	)
+	void setHomeassistantConnections(String value);
 }

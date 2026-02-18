@@ -1,8 +1,5 @@
 package haexporterplugin.notifiers;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import haexporterplugin.utils.HomeAssistUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Experience;
 import net.runelite.api.Skill;
@@ -93,8 +90,9 @@ public class LevelNotifier extends BaseNotifier {
         this.tickCount = 0;
         log.debug(currentXp.toString());
         log.debug(currentLevels.toString());
-        Gson gson = new Gson();
-        String json = gson.toJson(currentXp);
+        messageBuilder.setData("exp", currentXp);
+        messageBuilder.setData("levels", currentLevels);
+        String json = messageBuilder.build();
         homeAssistUtils.sendMessage(json);
     }
 }
