@@ -5,6 +5,7 @@ import com.google.gson.reflect.TypeToken;
 import haexporterplugin.data.HAConnection;
 import haexporterplugin.data.TokenCallback;
 import haexporterplugin.utils.HomeAssistUtils;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.PluginPanel;
 
 import javax.inject.Inject;
@@ -15,7 +16,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
-
+@Slf4j
 public class HAExporterPanel extends PluginPanel
 {
     protected @Inject HAExporterConfig config;
@@ -33,9 +34,13 @@ public class HAExporterPanel extends PluginPanel
     {
         setLayout(new BorderLayout());
         add(mainPanel, BorderLayout.CENTER);
+    }
 
+    public void initialize()
+    {
         showHomeView();
     }
+
 
     /* ============================
        HOME VIEW
@@ -45,19 +50,21 @@ public class HAExporterPanel extends PluginPanel
     {
         mainPanel.removeAll();
 
-        JPanel container = new JPanel();
-        container.setLayout(new BorderLayout());
+        JPanel container = new JPanel(new BorderLayout());
 
         container.add(buildStatsPanel(), BorderLayout.NORTH);
 
+        JPanel centerPanel = new JPanel();
+        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+
         JButton connectButton = new JButton("Connect New Device");
+        connectButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         connectButton.addActionListener(e -> showConnectionCodeInput());
 
-        JPanel centerPanel = new JPanel(new GridBagLayout());
         centerPanel.add(connectButton);
+        centerPanel.add(Box.createVerticalStrut(15));
 
-        // TODO: Show Connected devices, gotten from the config
-        // TODO: Add Remove button to all devices
+        centerPanel.add(buildConnectionsPanel());
 
         container.add(centerPanel, BorderLayout.CENTER);
 
@@ -66,6 +73,93 @@ public class HAExporterPanel extends PluginPanel
         revalidate();
         repaint();
     }
+
+    private JPanel buildConnectionsPanel()
+    {
+        JPanel wrapper = new JPanel();
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
+        wrapper.setBorder(BorderFactory.createTitledBorder("Connected Devices"));
+
+        List<HAConnection> connections = getStoredConnections();
+        log.debug(Integer.toString(connections.size()));
+
+        if (connections.isEmpty())
+        {
+            JLabel none = new JLabel("No devices connected.");
+            none.setAlignmentX(Component.CENTER_ALIGNMENT);
+            wrapper.add(none);
+            return wrapper;
+        }
+
+        for (HAConnection connection : connections)
+        {
+            JPanel row = new JPanel(new BorderLayout());
+            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+
+            log.debug("{} {}", connection.baseUrl, connection.token);
+            log.debug(String.valueOf(connections.indexOf(connection)));
+
+            JLabel label = new JLabel(connection.getBaseUrl());
+            JButton removeButton = new JButton("Remove");
+
+            removeButton.addActionListener(e ->
+            {
+                removeConnection(connection);
+            });
+
+            row.add(label, BorderLayout.CENTER);
+            row.add(removeButton, BorderLayout.EAST);
+
+            wrapper.add(row);
+            wrapper.add(Box.createVerticalStrut(5));
+        }
+
+        return wrapper;
+    }
+
+    private void removeConnection(HAConnection connection)
+    {
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                "Remove this device?",
+                "Confirm",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (result != JOptionPane.YES_OPTION)
+            return;
+
+        List<HAConnection> connections = getStoredConnections();
+        connections.removeIf(c ->
+                c.getBaseUrl().equals(connection.getBaseUrl())
+                        && c.getToken().equals(connection.getToken())
+        );
+
+        Gson gson = new Gson();
+        config.setHomeassistantConnections(gson.toJson(connections));
+
+        showHomeView(); // refresh UI
+    }
+
+
+    private List<HAConnection> getStoredConnections()
+    {
+        Gson gson = new Gson();
+        Type listType = new TypeToken<List<HAConnection>>() {}.getType();
+
+        try
+        {
+            List<HAConnection> connections =
+                    gson.fromJson(config.homeassistantConnections(), listType);
+
+            return connections != null ? connections : new ArrayList<>();
+        }
+        catch (Exception e)
+        {
+            return new ArrayList<>();
+        }
+    }
+
 
     private JPanel buildStatsPanel()
     {

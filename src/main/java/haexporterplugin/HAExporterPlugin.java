@@ -43,14 +43,13 @@ public class HAExporterPlugin extends Plugin
 
 	@Inject
 	private ItemManager itemManager;
-	private HAExporterPanel panel;
-	private NavigationButton navButton;
+    private NavigationButton navButton;
 	private @Inject LevelNotifier levelNotifier;
 
 	@Override
 	protected void startUp() throws Exception
 	{
-		panel = injector.getInstance(HAExporterPanel.class);
+        HAExporterPanel panel = injector.getInstance(HAExporterPanel.class);
 		navButton = NavigationButton.builder()
 			.tooltip("HA Exporter")
 			.icon(ImageUtil.loadImageResource(getClass(), "/ha-exporter-icon.png"))
@@ -58,6 +57,8 @@ public class HAExporterPlugin extends Plugin
 			.panel(panel)
 			.build();
 		clientToolbar.addNavigation(navButton);
+
+		panel.initialize();
 
 		log.debug("Example started!");
 	}

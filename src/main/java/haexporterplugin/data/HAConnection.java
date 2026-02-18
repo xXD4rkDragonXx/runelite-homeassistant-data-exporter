@@ -1,12 +1,18 @@
 package haexporterplugin.data;
 
+import lombok.Getter;
+
 public class HAConnection {
-    public String url;
+    @Getter
+    public String baseUrl;
+    @Getter
     public String token;
 
-    public HAConnection(String url, String token)
+    public HAConnection(String baseUrl, String token)
     {
-        this.url = url;
+        this.baseUrl = baseUrl;
         this.token = token;
     }
+
+
 }
