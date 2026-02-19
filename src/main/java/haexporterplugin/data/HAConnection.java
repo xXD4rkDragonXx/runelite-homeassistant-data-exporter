@@ -13,6 +13,4 @@ public class HAConnection {
         this.baseUrl = baseUrl;
         this.token = token;
     }
-
-
 }

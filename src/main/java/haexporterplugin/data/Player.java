@@ -5,15 +5,15 @@ import lombok.Setter;
 import net.runelite.api.coords.WorldPoint;
 
 @Getter
+@Setter
 public class Player {
-    @Setter
     private String name;
-    @Setter
     private String accountType;
-    @Setter
     private String world;
-    @Setter
     private WorldPoint location;
+    private HealthData health;
+    private PrayerData prayer;
+    private SpellbookData spellbook;
     private Stats stats;
     private Inventory inventory;
     private Equipment equipment;

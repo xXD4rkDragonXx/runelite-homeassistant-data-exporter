@@ -22,8 +22,7 @@ public class LevelNotifier extends BaseNotifier {
     private static final String COMBAT_NAME = "Combat";
     private final Map<String, Integer> currentLevels = new HashMap<>();
     private final Map<Skill, Integer> currentXp = new EnumMap<>(Skill.class);
-    private int tickCount = 0;
-    static final int INIT_GAME_TICKS = 16; // ~10s
+    static final int INIT_GAME_TICKS = 1; // ~10s
     private Set<WorldType> specialWorldType = null;
 
     private void initLevels() {
@@ -39,7 +38,6 @@ public class LevelNotifier extends BaseNotifier {
             this.specialWorldType = getSpecialWorldTypes();
             log.debug("Initialized current skill levels: {}", currentLevels);
         }
-        this.tickCount = 0;
     }
 
     private int getLevel(int xp) {
@@ -78,21 +76,12 @@ public class LevelNotifier extends BaseNotifier {
 
     public void onTick(){
         // Don't do anything if not on send tick
-        this.tickCount++;
-        log.debug(String.valueOf(tickCount));
+        int tickCount = tickUtils.getTickCount();
 
-        if ((this.tickCount > INIT_GAME_TICKS || this.tickCount >= config.sendRate()) && currentLevels.size() < SKILL_COUNT) {
+        if ((tickCount > INIT_GAME_TICKS || tickCount >= config.sendRate()) && currentLevels.size() < SKILL_COUNT) {
             initLevels();
             return;
         }
-
-        if (this.tickCount % config.sendRate() != 0){
-            return;
-        }
-
-        this.tickCount = 0;
-        log.debug(currentXp.toString());
-        log.debug(currentLevels.toString());
         
         // Build SkillInfo map for all skills
         Map<String, SkillInfo> skillsMap = new LinkedHashMap<>();
@@ -109,8 +98,5 @@ public class LevelNotifier extends BaseNotifier {
         // Create Stats object with skills map
         Stats stats = new Stats(skillsMap);
         messageBuilder.setData("stats", stats);
-        
-        String json = messageBuilder.build();
-        homeAssistUtils.sendMessage(json);
     }
 }

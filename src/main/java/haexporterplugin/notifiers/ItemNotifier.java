@@ -18,17 +18,7 @@ public class ItemNotifier extends BaseNotifier
 {
     private @Inject ItemManager itemManager;
 
-    private int tickCount = 0;
-    static final int CHECK_INTERVAL = 20; // Check every 20 ticks
-
     public void onTick(){
-        this.tickCount++;
-
-        // Only check inventory/equipment periodically to avoid excessive processing
-        if (this.tickCount % CHECK_INTERVAL != 0) {
-            return;
-        }
-
         updateInventory();
     }
 
@@ -94,6 +84,7 @@ public class ItemNotifier extends BaseNotifier
     private ItemData createItemData(ItemComposition ic, int quantity){
         return new ItemData(
             ic.getName(),
+            ic.getId(),
             itemManager.getItemPrice(ic.getId()),
             ic.getHaPrice(),
             quantity

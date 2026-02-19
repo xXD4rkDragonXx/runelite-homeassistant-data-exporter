@@ -3,10 +3,14 @@ package haexporterplugin;
 import com.google.inject.Provides;
 import javax.inject.Inject;
 
+import haexporterplugin.data.HealthData;
+import haexporterplugin.data.PrayerData;
+import haexporterplugin.data.SpellbookData;
 import haexporterplugin.notifiers.ItemNotifier;
 import haexporterplugin.notifiers.LevelNotifier;
 import haexporterplugin.notifiers.LocationNotifier;
 import haexporterplugin.utils.MessageBuilder;
+import haexporterplugin.utils.TickUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.GameStateChanged;
@@ -43,6 +47,7 @@ public class HAExporterPlugin extends Plugin
 	@Inject
 	private ItemManager itemManager;
     private NavigationButton navButton;
+	private @Inject TickUtils tickUtils;
 	private @Inject LevelNotifier levelNotifier;
 	private @Inject ItemNotifier itemNotifier;
 	private @Inject LocationNotifier locationNotifier;
@@ -97,18 +102,35 @@ public class HAExporterPlugin extends Plugin
 		log.debug(String.valueOf(exp));
 		log.debug(String.valueOf(statChanged.getXp()));
 		log.debug(statChanged.toString());
+
+		if (statChanged.getSkill() == Skill.HITPOINTS){
+			HealthData health = new HealthData(statChanged.getBoostedLevel(), client.getRealSkillLevel(Skill.HITPOINTS));
+			messageBuilder.setData("health", health);
+			tickUtils.sendNow();
+		}
+		if (statChanged.getSkill() == Skill.PRAYER){
+			PrayerData prayer = new PrayerData(statChanged.getBoostedLevel(), client.getRealSkillLevel(Skill.PRAYER));
+			messageBuilder.setData("prayer", prayer);
+			tickUtils.sendNow();
+		}
 	}
 
 	@Subscribe
 	public void onGameTick(GameTick gameTick){
+		tickUtils.onTick();
+
 		if (!initialized){
 			initialize();
 		}
+
+		updateSpellbook();
 
 		levelNotifier.onTick();
 		itemNotifier.onTick();
 		locationNotifier.onTick();
 //		log.debug(config.homeassistantConnections());
+
+		tickUtils.sendOnSendRate();
 	}
 
 	@Provides
@@ -128,7 +150,19 @@ public class HAExporterPlugin extends Plugin
             assert name != null;
             messageBuilder.setData("name", name);
 
+			// Get and set Health & Prayer
+			HealthData health = new HealthData(client.getBoostedSkillLevel(Skill.HITPOINTS), client.getRealSkillLevel(Skill.HITPOINTS));
+			PrayerData prayer = new PrayerData(client.getBoostedSkillLevel(Skill.PRAYER), client.getRealSkillLevel(Skill.PRAYER));
+			messageBuilder.setData("health", health);
+			messageBuilder.setData("prayer", prayer);
+
 			initialized = true;
 		}
+	}
+
+	private void updateSpellbook(){
+		int spellbookId = client.getVarbitValue(4070);
+		SpellbookData spellbook = new SpellbookData(spellbookId);
+		messageBuilder.setData("spellbook", spellbook);
 	}
 }
