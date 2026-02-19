@@ -5,14 +5,13 @@ import javax.inject.Inject;
 
 import haexporterplugin.notifiers.ItemNotifier;
 import haexporterplugin.notifiers.LevelNotifier;
+import haexporterplugin.notifiers.LocationNotifier;
 import haexporterplugin.utils.MessageBuilder;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.StatChanged;
-import net.runelite.api.gameval.InventoryID;
-import net.runelite.api.gameval.VarbitID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
@@ -21,8 +20,6 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
-
-import java.util.Arrays;
 
 @Slf4j
 @PluginDescriptor(
@@ -48,6 +45,7 @@ public class HAExporterPlugin extends Plugin
     private NavigationButton navButton;
 	private @Inject LevelNotifier levelNotifier;
 	private @Inject ItemNotifier itemNotifier;
+	private @Inject LocationNotifier locationNotifier;
 	private boolean initialized = false;
 
 	@Override
@@ -109,23 +107,8 @@ public class HAExporterPlugin extends Plugin
 
 		levelNotifier.onTick();
 		itemNotifier.onTick();
+		locationNotifier.onTick();
 //		log.debug(config.homeassistantConnections());
-//		var itemContainers = client.getItemContainers();
-//		log.debug("Inventory Content: {}", Arrays.toString(client.getItemContainer(InventoryID.INV).getItems()));
-//		log.debug("Equipped Gear: {}", Arrays.toString(client.getItemContainer(InventoryID.WORN).getItems()));
-//		for (var item : client.getItemContainer(InventoryID.INV).getItems()){
-//			ItemComposition ic = itemManager.getItemComposition(item.getId());
-//			log.debug("Item Data: {}, {}, {}", ic.getName(), itemManager.getItemPrice(ic.getId()), getItemImageUrl(ic.getId()));
-//		}
-//		for (var item : client.getItemContainer(InventoryID.WORN).getItems()){
-//			ItemComposition ic = itemManager.getItemComposition(item.getId());
-//			log.debug("Item Data: {}, {}, {}", ic.getName(), itemManager.getItemPrice(ic.getId()), getItemImageUrl(ic.getId()));
-//		}
-	}
-
-	final String ITEM_CACHE_BASE_URL = "https://static.runelite.net/cache/item/";
-	public String getItemImageUrl(int itemId) {
-		return ITEM_CACHE_BASE_URL + "icon/" + itemId + ".png";
 	}
 
 	@Provides

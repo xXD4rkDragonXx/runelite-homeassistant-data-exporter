@@ -5,6 +5,7 @@ import haexporterplugin.data.Root;
 import haexporterplugin.data.Player;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.coords.WorldPoint;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -39,7 +40,7 @@ public class MessageBuilder {
             case "name" -> player.setName((String) data);
             case "accounttype" -> player.setAccountType((String) data);
             case "world" -> player.setWorld((String) data);
-            case "location" -> player.setLocation((int[]) data);
+            case "location" -> player.setLocation((WorldPoint) data);
             case "stats" -> player.setStats(data);
             case "inventory" -> player.setInventory(data);
             case "equipment" -> player.setEquipment(data);

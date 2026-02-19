@@ -6,13 +6,6 @@ import net.runelite.client.config.*;
 public interface HAExporterConfig extends Config
 {
 	@ConfigSection(
-		name = "Home Assistant",
-		description = "Settings for connecting to Home Assistant",
-		position = 100
-	)
-	String homeassistantSection = "Home Assistant Settings";
-
-	@ConfigSection(
 		name = "Advanced",
 		description = "Settings for notifying about Advanced features",
 		position = 900,
