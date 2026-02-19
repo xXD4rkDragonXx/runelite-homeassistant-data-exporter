@@ -1,12 +1,13 @@
 package haexporterplugin.utils;
 
 import com.google.gson.Gson;
+import haexporterplugin.data.Root;
+import haexporterplugin.data.Player;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @Slf4j
 @Singleton
@@ -15,21 +16,45 @@ public class MessageBuilder {
     @Inject
     private Gson gson;
 
-    Map<String, Object> categories = new LinkedHashMap<>();
+    @Getter
+    private Root root;
+
+    public MessageBuilder() {
+        this.root = new Root();
+    }
+
+    public Player getPlayer() {
+        if (root.getPlayer() == null) {
+            root.setPlayer(new Player());
+        }
+        return root.getPlayer();
+    }
 
     public void setData(String category, Object data)
     {
         log.debug("Adding data in {}: {}", category, data.toString());
-        categories.put(category, data);
+        Player player = getPlayer();
+        
+        switch(category.toLowerCase()) {
+            case "name" -> player.setName((String) data);
+            case "accounttype" -> player.setAccountType((String) data);
+            case "world" -> player.setWorld((String) data);
+            case "location" -> player.setLocation((int[]) data);
+            case "stats" -> player.setStats(data);
+            case "inventory" -> player.setInventory(data);
+            case "equipment" -> player.setEquipment(data);
+            default -> log.warn("Unknown category: {}", category);
+        }
     }
 
     public String build()
     {
         log.debug("Converting data");
-        return gson.toJson(categories);
+        log.debug(gson.toJson(root));
+        return gson.toJson(root);
     }
 
     public void resetData(){
-        categories.clear();
+        this.root = new Root();
     }
 }

@@ -2,9 +2,6 @@ package haexporterplugin;
 
 import net.runelite.client.config.*;
 
-import java.awt.*;
-import java.lang.reflect.Array;
-
 @ConfigGroup("HAExporter")
 public interface HAExporterConfig extends Config
 {
@@ -34,37 +31,6 @@ public interface HAExporterConfig extends Config
 		section = advancedSection
 	)
 	default int sendRate() {return 100;}
-
-	@ConfigItem(
-			keyName = "homeassistant_url",
-			name = "Homeassistant Base URL",
-			description = "example: http://homeassistant.local:8123",
-			section = homeassistantSection,
-			position = 101
-	)
-	default String homeassistantUrl()
-	{ return ""; }
-
-	@ConfigItem(
-			keyName = "homeassistant_token",
-			name = "Homeassistant Access token",
-			description = "Your home assistant access token",
-			section = homeassistantSection,
-			secret = true,
-			position = 102
-	)
-	default String homeassistantToken()
-	{ return ""; }
-
-	@ConfigItem(
-			keyName = "validate_token",
-			name = "Validate Home Assistant Token",
-			description = "Turn on to validate your homeassistant setup, will provide details in game messages. ",
-			section = homeassistantSection,
-			position = 103
-	)
-	default boolean validateToken()
-	{ return false; }
 
 	/* ============================
        Hidden Config Items

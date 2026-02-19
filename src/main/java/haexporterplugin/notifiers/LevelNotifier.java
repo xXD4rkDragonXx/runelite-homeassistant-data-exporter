@@ -1,7 +1,10 @@
 package haexporterplugin.notifiers;
 
+import haexporterplugin.data.SkillInfo;
+import haexporterplugin.data.Stats;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Experience;
+
 import net.runelite.api.Skill;
 import net.runelite.api.WorldType;
 
@@ -90,8 +93,23 @@ public class LevelNotifier extends BaseNotifier {
         this.tickCount = 0;
         log.debug(currentXp.toString());
         log.debug(currentLevels.toString());
-        messageBuilder.setData("exp", currentXp);
-        messageBuilder.setData("levels", currentLevels);
+        
+        // Build SkillInfo map for all skills
+        Map<String, SkillInfo> skillsMap = new LinkedHashMap<>();
+        for (Skill runeLiteSkill : Skill.values()) {
+            String skillName = runeLiteSkill.getName();
+            Integer xp = currentXp.get(runeLiteSkill);
+            Integer level = currentLevels.get(skillName);
+            
+            if (xp != null && level != null) {
+                skillsMap.put(skillName, new SkillInfo(xp, level));
+            }
+        }
+        
+        // Create Stats object with skills map
+        Stats stats = new Stats(skillsMap);
+        messageBuilder.setData("stats", stats);
+        
         String json = messageBuilder.build();
         homeAssistUtils.sendMessage(json);
     }

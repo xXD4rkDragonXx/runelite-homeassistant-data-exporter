@@ -1,13 +1,20 @@
 package haexporterplugin.data;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.Map;
 
+@Setter
+@Getter
 public class Stats {
-    Map<String, Integer> xp;
-    Map<String, Integer> levels;
+    private Map<String, SkillInfo> skills;
 
-    public Stats(Map<String, Integer> xp, Map<String, Integer> levels) {
-        this.xp = xp;
-        this.levels = levels;
+    public Stats() {
     }
+
+    public Stats(Map<String, SkillInfo> skills) {
+        this.skills = skills;
+    }
+
 }

@@ -10,7 +10,6 @@ import net.runelite.api.*;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.StatChanged;
-import net.runelite.api.gameval.InventoryID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
@@ -19,8 +18,6 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
-
-import java.util.Arrays;
 
 @Slf4j
 @PluginDescriptor(
@@ -45,6 +42,7 @@ public class HAExporterPlugin extends Plugin
 	private ItemManager itemManager;
     private NavigationButton navButton;
 	private @Inject LevelNotifier levelNotifier;
+	private boolean initialized = false;
 
 	@Override
 	protected void startUp() throws Exception
@@ -90,9 +88,13 @@ public class HAExporterPlugin extends Plugin
 
 	@Subscribe
 	public void onGameTick(GameTick gameTick){
-		//levelNotifier.onTick();
-		log.debug(config.homeassistantConnections());
-		var itemContainers = client.getItemContainers();
+		if (!initialized){
+			initialize();
+		}
+
+		levelNotifier.onTick();
+//		log.debug(config.homeassistantConnections());
+//		var itemContainers = client.getItemContainers();
 //		log.debug("Inventory Content: {}", Arrays.toString(client.getItemContainer(InventoryID.INV).getItems()));
 //		log.debug("Equipped Gear: {}", Arrays.toString(client.getItemContainer(InventoryID.WORN).getItems()));
 //		for (var item : client.getItemContainer(InventoryID.INV).getItems()){
@@ -114,5 +116,18 @@ public class HAExporterPlugin extends Plugin
 	HAExporterConfig provideConfig(ConfigManager configManager)
 	{
 		return configManager.getConfig(HAExporterConfig.class);
+	}
+
+	private void initialize(){
+		if (client.getLocalPlayer() != null){
+			String name = client.getLocalPlayer().getName();
+			log.debug("USERNAME AFTER INIT: {}", name);
+
+			messageBuilder.setData("world", String.valueOf(client.getWorld()));
+            assert name != null;
+            messageBuilder.setData("name", name);
+
+			initialized = true;
+		}
 	}
 }

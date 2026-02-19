@@ -1,9 +1,9 @@
 package haexporterplugin;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import haexporterplugin.data.HAConnection;
 import haexporterplugin.data.TokenCallback;
+import haexporterplugin.utils.ConfigUtils;
 import haexporterplugin.utils.HomeAssistUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.PluginPanel;
@@ -12,8 +12,6 @@ import javax.inject.Inject;
 import javax.swing.*;
 import javax.swing.text.*;
 import java.awt.*;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -21,6 +19,7 @@ public class HAExporterPanel extends PluginPanel
 {
     protected @Inject HAExporterConfig config;
     protected @Inject HomeAssistUtils homeAssistUtils;
+    protected @Inject ConfigUtils configUtils;
 
     private final JPanel mainPanel = new JPanel(new BorderLayout());
 
@@ -80,7 +79,7 @@ public class HAExporterPanel extends PluginPanel
         wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
         wrapper.setBorder(BorderFactory.createTitledBorder("Connected Devices"));
 
-        List<HAConnection> connections = getStoredConnections();
+        List<HAConnection> connections = configUtils.getStoredConnections();
         log.debug(Integer.toString(connections.size()));
 
         if (connections.isEmpty())
@@ -103,9 +102,7 @@ public class HAExporterPanel extends PluginPanel
             JButton removeButton = new JButton("Remove");
 
             removeButton.addActionListener(e ->
-            {
-                removeConnection(connection);
-            });
+                    removeConnection(connection));
 
             row.add(label, BorderLayout.CENTER);
             row.add(removeButton, BorderLayout.EAST);
@@ -129,7 +126,7 @@ public class HAExporterPanel extends PluginPanel
         if (result != JOptionPane.YES_OPTION)
             return;
 
-        List<HAConnection> connections = getStoredConnections();
+        List<HAConnection> connections = configUtils.getStoredConnections();
         connections.removeIf(c ->
                 c.getBaseUrl().equals(connection.getBaseUrl())
                         && c.getToken().equals(connection.getToken())
@@ -139,25 +136,6 @@ public class HAExporterPanel extends PluginPanel
         config.setHomeassistantConnections(gson.toJson(connections));
 
         showHomeView(); // refresh UI
-    }
-
-
-    private List<HAConnection> getStoredConnections()
-    {
-        Gson gson = new Gson();
-        Type listType = new TypeToken<List<HAConnection>>() {}.getType();
-
-        try
-        {
-            List<HAConnection> connections =
-                    gson.fromJson(config.homeassistantConnections(), listType);
-
-            return connections != null ? connections : new ArrayList<>();
-        }
-        catch (Exception e)
-        {
-            return new ArrayList<>();
-        }
     }
 
 
@@ -293,7 +271,6 @@ public class HAExporterPanel extends PluginPanel
                         String data = (String) support.getTransferable()
                                 .getTransferData(java.awt.datatransfer.DataFlavor.stringFlavor);
 
-                        if (data == null) return false;
                         data = data.replaceAll("\\D", "");
                         if (data.isEmpty()) return false;
 
@@ -409,24 +386,7 @@ public class HAExporterPanel extends PluginPanel
 
     private void handleSuccessfulConnection(String baseUrl, String token)
     {
-        Gson gson = new Gson();
-        Type listType = new TypeToken<List<HAConnection>>() {}.getType();
-
-        List<HAConnection> connections;
-
-        try
-        {
-            connections = gson.fromJson(config.homeassistantConnections(), listType);
-            if (connections == null)
-                connections = new ArrayList<>();
-        }
-        catch (Exception ex)
-        {
-            connections = new ArrayList<>();
-        }
-
-        connections.add(new HAConnection(baseUrl, token));
-        config.setHomeassistantConnections(gson.toJson(connections));
+        configUtils.addStoredConnection(baseUrl, token);
 
         JOptionPane.showMessageDialog(
                 this,

@@ -3,9 +3,11 @@ package haexporterplugin.utils;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import haexporterplugin.HAExporterConfig;
+import haexporterplugin.data.HAConnection;
 import haexporterplugin.data.TokenCallback;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import okhttp3.internal.annotations.EverythingIsNonNull;
 
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
@@ -20,39 +22,44 @@ public class HomeAssistUtils {
     protected HAExporterConfig config;
 
     @Inject
+    private ConfigUtils configUtils;
+
+    @Inject
     private OkHttpClient okHttpClient;
 
+    private @Inject Gson gson;
+
     public void sendMessage(String jsonPayload) {
-        String homeAssistantUrl = config.homeassistantUrl();
-        String accessToken = config.homeassistantToken();
+        List<HAConnection> connections = configUtils.getStoredConnections();
 
-        if (homeAssistantUrl.isEmpty() || accessToken.isEmpty()) {
-            log.warn("Home Assistant URL or Access Token not configured.");
-            return;
+        for (HAConnection connection : connections){
+            String dataEndpoint = "/api/osrs-data/events";
+            String apiUrl = connection.getBaseUrl() + dataEndpoint;
+
+            RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), jsonPayload);
+            log.debug("Sending payload to home assistant, {}: {}", apiUrl, jsonPayload);
+            Request request = new Request.Builder()
+                    .url(Objects.requireNonNull(HttpUrl.parse(apiUrl)))
+                    .header("X-Osrs-Token", connection.token)
+                    .header("Content-Type", "application/json")
+                    .post(requestBody)
+                    .build();
+
+            okHttpClient.newCall(request).enqueue(new Callback() {
+                @Override
+                @EverythingIsNonNull
+                public void onFailure(Call call, IOException e) {
+                    log.error("Error submitting the entity to homeassistant ", e);
+                }
+
+                @Override
+                @EverythingIsNonNull
+                public void onResponse(Call call, Response response) {
+                    log.info("Successfully created/updated entity {}.", jsonPayload);
+                    response.close();
+                }
+            });
         }
-
-        String apiUrl = homeAssistantUrl + "/api";
-        RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), jsonPayload);
-        log.debug("Sending payload to home assistant, {}: {}", apiUrl, jsonPayload);
-        Request request = new Request.Builder()
-                .url(Objects.requireNonNull(HttpUrl.parse(apiUrl)))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .post(requestBody)
-                .build();
-
-        okHttpClient.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                log.error("Error submitting the entity to homeassistant ", e);
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                log.info("Successfully created/updated entity {}.", jsonPayload);
-                response.close();
-            }
-        });
     }
 
     public void getToken(String baseUrl, String code, TokenCallback callback) {
@@ -61,10 +68,9 @@ public class HomeAssistUtils {
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("code", code);
 
-        Gson gson = new Gson();
         String jsonPayload = gson.toJson(jsonObject);
 
-        RequestBody requestBody = RequestBody.create(MediaType.get("application/json; charset=utf-8"), jsonPayload        );
+        RequestBody requestBody = RequestBody.create(MediaType.get("application/json; charset=utf-8"), jsonPayload);
 
         Request request = new Request.Builder()
                 .url(apiUrl)
