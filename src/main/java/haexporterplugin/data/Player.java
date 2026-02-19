@@ -12,7 +12,7 @@ public class Player {
     private String world;
     private WorldPoint location;
     private HealthData health;
-    private PrayerData prayer;
+    private PrayerData prayerPoints;
     private SpellbookData spellbook;
     private Stats stats;
     private Inventory inventory;

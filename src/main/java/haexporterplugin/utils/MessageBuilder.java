@@ -39,7 +39,7 @@ public class MessageBuilder {
             case "name" -> player.setName((String) data);
             case "accounttype" -> player.setAccountType((String) data);
             case "health" -> player.setHealth((HealthData) data);
-            case "prayer" -> player.setPrayer((PrayerData) data);
+            case "prayer" -> player.setPrayerPoints((PrayerData) data);
             case "spellbook" -> player.setSpellbook((SpellbookData) data);
             case "world" -> player.setWorld((String) data);
             case "location" -> player.setLocation((WorldPoint) data);
