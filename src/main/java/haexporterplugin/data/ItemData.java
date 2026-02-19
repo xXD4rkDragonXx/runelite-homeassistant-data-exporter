@@ -1,7 +1,29 @@
 package haexporterplugin.data;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
 public class ItemData {
-    String name;
-    String gePrice;
-    String HAPrice;
+    @Getter
+    private String name;
+    @Getter
+    private int gePrice;
+    @Getter
+    private int haPrice;
+    @Getter
+    private int quantity;
+    @Getter
+    private String equipmentSlot;
+
+    public ItemData() {
+        this.quantity = 1;
+    }
+
+    public ItemData(String name, int gePrice, int haPrice, int quantity) {
+        this.name = name;
+        this.gePrice = gePrice;
+        this.haPrice = haPrice;
+        this.quantity = quantity;
+    }
 }

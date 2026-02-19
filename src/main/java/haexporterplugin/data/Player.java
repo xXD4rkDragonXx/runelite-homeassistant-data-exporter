@@ -1,9 +1,15 @@
 package haexporterplugin.data;
 
+import lombok.Setter;
+
 public class Player {
+    @Setter
     private String name;
+    @Setter
     private String accountType;
+    @Setter
     private String world;
+    @Setter
     private int[] location;
     private Stats stats;
     private Inventory inventory;
@@ -16,32 +22,16 @@ public class Player {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public String getAccountType() {
         return accountType;
-    }
-
-    public void setAccountType(String accountType) {
-        this.accountType = accountType;
     }
 
     public String getWorld() {
         return world;
     }
 
-    public void setWorld(String world) {
-        this.world = world;
-    }
-
     public int[] getLocation() {
         return location;
-    }
-
-    public void setLocation(int[] location) {
-        this.location = location;
     }
 
     public Stats getStats() {
@@ -60,11 +50,19 @@ public class Player {
         this.inventory = (Inventory) inventory;
     }
 
+    public void setInventoryDirect(Inventory inventory) {
+        this.inventory = inventory;
+    }
+
     public Equipment getEquipment() {
         return equipment;
     }
 
     public void setEquipment(Object equipment) {
         this.equipment = (Equipment) equipment;
+    }
+
+    public void setEquipmentDirect(Equipment equipment) {
+        this.equipment = equipment;
     }
 }
