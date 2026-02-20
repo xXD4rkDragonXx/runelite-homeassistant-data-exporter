@@ -6,6 +6,7 @@ import javax.inject.Inject;
 import haexporterplugin.data.HealthData;
 import haexporterplugin.data.PrayerData;
 import haexporterplugin.data.SpellbookData;
+import haexporterplugin.notifiers.DeathNotifier;
 import haexporterplugin.notifiers.ItemNotifier;
 import haexporterplugin.notifiers.LevelNotifier;
 import haexporterplugin.notifiers.LocationNotifier;
@@ -13,6 +14,7 @@ import haexporterplugin.utils.MessageBuilder;
 import haexporterplugin.utils.TickUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
+import net.runelite.api.events.ActorDeath;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.StatChanged;
@@ -51,6 +53,7 @@ public class HAExporterPlugin extends Plugin
 	private @Inject LevelNotifier levelNotifier;
 	private @Inject ItemNotifier itemNotifier;
 	private @Inject LocationNotifier locationNotifier;
+	private @Inject DeathNotifier deathNotifier;
 	private boolean initialized = false;
 
 	@Override
@@ -113,6 +116,11 @@ public class HAExporterPlugin extends Plugin
 			messageBuilder.setData("prayer", prayer);
 			tickUtils.sendNow();
 		}
+	}
+
+	@Subscribe
+	public void onActorDeath(ActorDeath actor) {
+		deathNotifier.onActorDeath(actor);
 	}
 
 	@Subscribe

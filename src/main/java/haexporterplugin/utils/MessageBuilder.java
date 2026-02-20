@@ -32,6 +32,7 @@ public class MessageBuilder {
 
     public void setData(String category, Object data)
     {
+        // TODO: Remove Logging before V1
 //        log.debug("Adding data in {}: {}", category, data.toString());
         Player player = getPlayer();
         
@@ -48,6 +49,16 @@ public class MessageBuilder {
             case "equipment" -> player.setEquipment(data);
             default -> log.warn("Unknown category: {}", category);
         }
+    }
+
+    public void addEvent(Object event)
+    {
+        root.addEvent(event);
+    }
+
+    public void resetEvents()
+    {
+        root.resetEvents();
     }
 
     public String build()
