@@ -14,7 +14,6 @@ import java.util.List;
 @Slf4j
 public class ItemNotifier extends BaseNotifier
 {
-    private @Inject ItemUtils itemUtils;
     private @Inject Client client;
     private @Inject ItemManager itemManager;
 
@@ -25,8 +24,8 @@ public class ItemNotifier extends BaseNotifier
     private void updateInventory(){
         try {
             // Get current inventory items
-            List<ItemData> inventoryItems = itemUtils.getInventoryItems(client, itemManager);
-            List<ItemData> equipmentItems = itemUtils.getEquippedItems(client, itemManager);
+            List<ItemData> inventoryItems = ItemUtils.getInventoryItems(client, itemManager);
+            List<ItemData> equipmentItems = ItemUtils.getEquippedItems(client, itemManager);
 
             // Update messageBuilder with new inventory and equipment
             messageBuilder.setData("inventory", new Inventory(inventoryItems));
