@@ -22,6 +22,13 @@ public class DeathEvent implements HAExporterEvent{
 
     WorldPoint location;
 
-    public DeathEvent(Integer losePrice, boolean pk, String s, String killerName, Integer integer, List<ItemData> keptStacks, List<ItemData> lostStacks, WorldPoint worldLocation) {
+    public DeathEvent(Integer valueLost, boolean isPvp, String pkerName, String killerName, Integer killerNpcId, List<ItemData> keptItems, List<ItemData> lostItems, WorldPoint location) {
+        this.valueLost = valueLost;
+        this.isPvp = isPvp;
+        this.killerName = killerName;
+        this.killerNpcId = killerNpcId;
+        this.keptItems = keptItems;
+        this.lostItems = lostItems;
+        this.location = location;
     }
 }
