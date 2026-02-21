@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import haexporterplugin.data.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.GameState;
 import net.runelite.api.coords.WorldPoint;
 
 import javax.inject.Inject;
@@ -60,9 +61,21 @@ public class MessageBuilder {
         root.addEvent(eventMap);
     }
 
+    public void addEvent(String category, String event)
+    {
+        Map<String, String> eventMap = new HashMap<>();
+        eventMap.put(category, event);
+        root.addEvent(eventMap);
+    }
+
     public void resetEvents()
     {
         root.resetEvents();
+    }
+
+    public void setState(GameState state){
+        log.debug("Settings state: {}", state);
+        root.setState(state);
     }
 
     public String build()

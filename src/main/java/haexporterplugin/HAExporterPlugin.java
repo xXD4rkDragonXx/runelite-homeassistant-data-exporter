@@ -17,6 +17,7 @@ import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ClientShutdown;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -71,13 +72,22 @@ public class HAExporterPlugin extends Plugin
 	@Override
 	protected void shutDown() throws Exception
 	{
+		messageBuilder.addEvent("ClientShutdown", "Disabled");
+		tickUtils.sendNow();
 		clientToolbar.removeNavigation(navButton);
-		log.debug("Example stopped!");
+	}
+
+	@Subscribe
+	public void onClientShutdown(ClientShutdown event)
+	{
+		messageBuilder.addEvent("ClientShutdown", "Shutdown");
+		tickUtils.sendNow();
 	}
 
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
+		messageBuilder.setState(gameStateChanged.getGameState());
 		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
 		{
 			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "HA Exporter Enabled", null);
@@ -88,6 +98,7 @@ public class HAExporterPlugin extends Plugin
 		}
 		if (gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
 		{
+			tickUtils.sendNow();
 			initialized = false;
 			messageBuilder.resetData();
 		}
