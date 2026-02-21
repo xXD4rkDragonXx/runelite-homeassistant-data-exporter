@@ -18,6 +18,7 @@ import net.runelite.api.events.*;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ClientShutdown;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
@@ -98,6 +99,7 @@ public class HAExporterPlugin extends Plugin
 		}
 		if (gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
 		{
+			messageBuilder.addEvent("ClientShutdown", "Logout");
 			tickUtils.sendNow();
 			initialized = false;
 			messageBuilder.resetData();
@@ -158,18 +160,25 @@ public class HAExporterPlugin extends Plugin
 	public void onGameTick(GameTick gameTick){
 		tickUtils.onTick();
 
-		if (!initialized){
-			initialize();
-		}
-
 		updateSpellbook();
 
 		levelNotifier.onTick();
 		itemNotifier.onTick();
 		locationNotifier.onTick();
+
+		if (!initialized){
+			initialize();
+		}
+
+
 //		log.debug(config.homeassistantConnections());
 
 		tickUtils.sendOnSendRate();
+	}
+
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event) {
+		messageBuilder.setTickDelay(config.sendRate());
 	}
 
 	@Provides
@@ -194,6 +203,9 @@ public class HAExporterPlugin extends Plugin
 			PrayerData prayer = new PrayerData(client.getBoostedSkillLevel(Skill.PRAYER), client.getRealSkillLevel(Skill.PRAYER));
 			messageBuilder.setData("health", health);
 			messageBuilder.setData("prayer", prayer);
+			messageBuilder.setTickDelay(config.sendRate());
+
+			tickUtils.sendNow();
 
 			initialized = true;
 		}

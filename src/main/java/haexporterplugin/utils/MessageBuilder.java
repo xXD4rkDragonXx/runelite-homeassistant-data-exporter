@@ -82,4 +82,8 @@ public class MessageBuilder {
     public void resetData(){
         this.root = new Root();
     }
+
+    public void setTickDelay(int tickDelay){
+        root.setTickDelay(tickDelay);
+    }
 }
