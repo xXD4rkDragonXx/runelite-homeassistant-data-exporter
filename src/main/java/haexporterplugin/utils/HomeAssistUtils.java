@@ -14,10 +14,18 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Singleton
 public class HomeAssistUtils {
+    private static final String DATA_ENDPOINT = "/api/osrs-data/events";
+    private static final String CONTENT_TYPE_JSON = "application/json; charset=utf-8";
+    private static final String TOKEN_HEADER = "X-Osrs-Token";
+    private static final String CONTENT_TYPE_HEADER = "Content-Type";
+    private static final String APPLICATION_JSON = "application/json";
+
     @Inject
     protected HAExporterConfig config;
 
@@ -30,36 +38,65 @@ public class HomeAssistUtils {
     private @Inject Gson gson;
 
     public void sendMessage(String jsonPayload) {
+        sendPayload(jsonPayload, null);
+    }
+
+    public void sendShutdownMessage(String jsonPayload){
+        CountDownLatch latch = new CountDownLatch(1);
+        sendPayload(jsonPayload, latch);
+
+        try
+        {
+            // Wait max 500ms, then continue shutdown
+            latch.await(500, TimeUnit.MILLISECONDS);
+        }
+        catch (InterruptedException ignored) {}
+    }
+
+    private void sendPayload(String jsonPayload, CountDownLatch latch) {
         List<HAConnection> connections = configUtils.getStoredConnections();
 
-        for (HAConnection connection : connections){
-            String dataEndpoint = "/api/osrs-data/events";
-            String apiUrl = connection.getBaseUrl() + dataEndpoint;
+        for (HAConnection connection : connections) {
+            String apiUrl = connection.getBaseUrl() + DATA_ENDPOINT;
+            Request request = buildRequest(apiUrl, jsonPayload, connection.token);
 
-            RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), jsonPayload);
-            log.debug("Sending payload to home assistant, {}: {}", apiUrl, jsonPayload);
-            Request request = new Request.Builder()
-                    .url(Objects.requireNonNull(HttpUrl.parse(apiUrl)))
-                    .header("X-Osrs-Token", connection.token)
-                    .header("Content-Type", "application/json")
-                    .post(requestBody)
-                    .build();
-
-            okHttpClient.newCall(request).enqueue(new Callback() {
-                @Override
-                @EverythingIsNonNull
-                public void onFailure(Call call, IOException e) {
-                    log.error("Error submitting the entity to homeassistant ", e);
-                }
-
-                @Override
-                @EverythingIsNonNull
-                public void onResponse(Call call, Response response) {
-                    log.info("Successfully created/updated entity {}.", jsonPayload);
-                    response.close();
-                }
-            });
+            okHttpClient.newCall(request).enqueue(createCallback(jsonPayload, latch));
         }
+    }
+
+    private Request buildRequest(String apiUrl, String jsonPayload, String token) {
+        RequestBody requestBody = RequestBody.create(MediaType.parse(CONTENT_TYPE_JSON), jsonPayload);
+        log.debug("Sending payload to home assistant, {}: {}", apiUrl, jsonPayload);
+
+        return new Request.Builder()
+                .url(Objects.requireNonNull(HttpUrl.parse(apiUrl)))
+                .header(TOKEN_HEADER, token)
+                .header(CONTENT_TYPE_HEADER, APPLICATION_JSON)
+                .post(requestBody)
+                .build();
+    }
+
+    private Callback createCallback(String jsonPayload, CountDownLatch latch) {
+        return new Callback() {
+            @Override
+            @EverythingIsNonNull
+            public void onFailure(Call call, IOException e) {
+                log.error("Error submitting the entity to homeassistant ", e);
+                if (latch != null) {
+                    latch.countDown();
+                }
+            }
+
+            @Override
+            @EverythingIsNonNull
+            public void onResponse(Call call, Response response) {
+                log.info("Successfully created/updated entity {}.", jsonPayload);
+                response.close();
+                if (latch != null) {
+                    latch.countDown();
+                }
+            }
+        };
     }
 
     public void getToken(String baseUrl, String code, TokenCallback callback) {

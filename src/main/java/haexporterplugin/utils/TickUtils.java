@@ -41,4 +41,9 @@ public class TickUtils {
         homeAssistUtils.sendMessage(json);
         messageBuilder.resetEvents();
     }
+
+    public void sendShutdown(){
+        String json = messageBuilder.build();
+        homeAssistUtils.sendShutdownMessage(json);
+    }
 }

@@ -82,7 +82,7 @@ public class HAExporterPlugin extends Plugin
 	{
 		if (!initialized) return;
 		messageBuilder.addEvent("ClientShutdown", "Shutdown");
-		tickUtils.sendNow();
+		tickUtils.sendShutdown();
 	}
 
 	@Subscribe
