@@ -4,10 +4,13 @@ import com.google.gson.Gson;
 import haexporterplugin.data.*;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.GameState;
 import net.runelite.api.coords.WorldPoint;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Slf4j
 @Singleton
@@ -32,6 +35,7 @@ public class MessageBuilder {
 
     public void setData(String category, Object data)
     {
+        // TODO: Remove Logging before V1
 //        log.debug("Adding data in {}: {}", category, data.toString());
         Player player = getPlayer();
         
@@ -48,6 +52,24 @@ public class MessageBuilder {
             case "equipment" -> player.setEquipment(data);
             default -> log.warn("Unknown category: {}", category);
         }
+    }
+
+    public void addEvent(String category, Object event)
+    {
+        Map<String, Object> eventMap = new LinkedHashMap<>();
+        eventMap.put("type", category);
+        eventMap.put("data", event);
+        root.addEvent(eventMap);
+    }
+
+    public void resetEvents()
+    {
+        root.resetEvents();
+    }
+
+    public void setState(GameState state){
+        log.debug("Settings state: {}", state);
+        root.setState(state);
     }
 
     public String build()

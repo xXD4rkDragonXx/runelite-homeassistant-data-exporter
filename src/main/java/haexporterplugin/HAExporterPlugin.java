@@ -6,6 +6,7 @@ import javax.inject.Inject;
 import haexporterplugin.data.HealthData;
 import haexporterplugin.data.PrayerData;
 import haexporterplugin.data.SpellbookData;
+import haexporterplugin.notifiers.DeathNotifier;
 import haexporterplugin.notifiers.ItemNotifier;
 import haexporterplugin.notifiers.LevelNotifier;
 import haexporterplugin.notifiers.LocationNotifier;
@@ -13,12 +14,10 @@ import haexporterplugin.utils.MessageBuilder;
 import haexporterplugin.utils.TickUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
-import net.runelite.api.events.GameStateChanged;
-import net.runelite.api.events.GameTick;
-import net.runelite.api.events.StatChanged;
+import net.runelite.api.events.*;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
-import net.runelite.client.game.ItemManager;
+import net.runelite.client.events.ClientShutdown;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
@@ -44,13 +43,12 @@ public class HAExporterPlugin extends Plugin
 	@Inject
 	private ClientToolbar clientToolbar;
 
-	@Inject
-	private ItemManager itemManager;
     private NavigationButton navButton;
 	private @Inject TickUtils tickUtils;
 	private @Inject LevelNotifier levelNotifier;
 	private @Inject ItemNotifier itemNotifier;
 	private @Inject LocationNotifier locationNotifier;
+	private @Inject DeathNotifier deathNotifier;
 	private boolean initialized = false;
 
 	@Override
@@ -73,13 +71,23 @@ public class HAExporterPlugin extends Plugin
 	@Override
 	protected void shutDown() throws Exception
 	{
+		messageBuilder.addEvent("ClientShutdown", "Disabled");
+		tickUtils.sendNow();
 		clientToolbar.removeNavigation(navButton);
-		log.debug("Example stopped!");
+	}
+
+	@Subscribe
+	public void onClientShutdown(ClientShutdown event)
+	{
+		if (!initialized) return;
+		messageBuilder.addEvent("ClientShutdown", "Shutdown");
+		tickUtils.sendNow();
 	}
 
 	@Subscribe
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
+		messageBuilder.setState(gameStateChanged.getGameState());
 		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
 		{
 			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "HA Exporter Enabled", null);
@@ -90,6 +98,7 @@ public class HAExporterPlugin extends Plugin
 		}
 		if (gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
 		{
+			tickUtils.sendNow();
 			initialized = false;
 			messageBuilder.resetData();
 		}
@@ -113,6 +122,36 @@ public class HAExporterPlugin extends Plugin
 			messageBuilder.setData("prayer", prayer);
 			tickUtils.sendNow();
 		}
+	}
+
+	@Subscribe(priority = 1) // run before the base loot tracker plugin
+	public void onChatMessage(ChatMessage message) {
+		String source = message.getName() != null && !message.getName().isEmpty() ? message.getName() : message.getSender();
+		switch (message.getType()){
+			case GAMEMESSAGE:
+				if ("runelite".equals(source)) {
+					// filter out plugin-sourced chat messages
+					return;
+				}
+				deathNotifier.onGameMessage(message.getMessage());
+				break;
+		}
+
+	}
+
+	@Subscribe
+	public void onScriptPreFired(ScriptPreFired event) {
+		deathNotifier.onScript(event);
+	}
+
+	@Subscribe
+	public void onActorDeath(ActorDeath actor) {
+		deathNotifier.onActorDeath(actor);
+	}
+
+	@Subscribe
+	public void onInteractingChanged(InteractingChanged event) {
+		deathNotifier.onInteraction(event);
 	}
 
 	@Subscribe

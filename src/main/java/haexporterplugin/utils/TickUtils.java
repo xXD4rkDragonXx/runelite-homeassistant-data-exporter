@@ -39,5 +39,6 @@ public class TickUtils {
         tickCount = 0;
         String json = messageBuilder.build();
         homeAssistUtils.sendMessage(json);
+        messageBuilder.resetEvents();
     }
 }
