@@ -8,6 +8,8 @@ import net.runelite.api.coords.WorldPoint;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Singleton
@@ -51,9 +53,11 @@ public class MessageBuilder {
         }
     }
 
-    public void addEvent(Object event)
+    public void addEvent(String category, Object event)
     {
-        root.addEvent(event);
+        Map<String, Object> eventMap = new HashMap<>();
+        eventMap.put(category, event);
+        root.addEvent(eventMap);
     }
 
     public void resetEvents()

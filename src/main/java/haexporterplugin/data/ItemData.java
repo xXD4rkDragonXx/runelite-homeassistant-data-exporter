@@ -29,4 +29,13 @@ public class ItemData {
         this.haPrice = haPrice;
         this.quantity = quantity;
     }
+
+    public ItemData(ItemData itemData) {
+        this.name = itemData.getName();
+        this.id = itemData.getId();
+        this.gePrice = itemData.getGePrice();
+        this.haPrice = itemData.getHaPrice();
+        this.quantity = itemData.getQuantity();
+        this.equipmentSlot = itemData.getEquipmentSlot();
+    }
 }

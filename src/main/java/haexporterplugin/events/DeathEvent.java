@@ -1,6 +1,7 @@
 package haexporterplugin.events;
 
 import haexporterplugin.data.ItemData;
+import haexporterplugin.enums.Danger;
 import net.runelite.api.coords.WorldPoint;
 
 
@@ -9,10 +10,10 @@ import java.util.Collection;
 import java.util.List;
 
 public class DeathEvent implements HAExporterEvent{
-    private long valueLost;
-    boolean isPvp;
+    private final Integer valueLost;
+    private final Danger danger;
     @Nullable
-    private String killerName;
+    private final String killerName;
     @Nullable
     Integer killerNpcId;
 
@@ -22,6 +23,13 @@ public class DeathEvent implements HAExporterEvent{
 
     WorldPoint location;
 
-    public DeathEvent(Integer losePrice, boolean pk, String s, String killerName, Integer integer, List<ItemData> keptStacks, List<ItemData> lostStacks, WorldPoint worldLocation) {
+    public DeathEvent(Integer valueLost, Danger danger, @Nullable String killerName, @Nullable Integer killerNpcId, List<ItemData> keptItems, List<ItemData> lostItems, WorldPoint location) {
+        this.valueLost = valueLost;
+        this.danger = danger;
+        this.killerName = killerName;
+        this.killerNpcId = killerNpcId;
+        this.keptItems = keptItems;
+        this.lostItems = lostItems;
+        this.location = location;
     }
 }

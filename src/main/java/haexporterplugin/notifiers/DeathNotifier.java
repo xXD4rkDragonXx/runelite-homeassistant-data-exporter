@@ -4,6 +4,7 @@ import com.google.common.annotations.VisibleForTesting;
 import haexporterplugin.data.ItemData;
 import haexporterplugin.enums.AccountType;
 import haexporterplugin.enums.Danger;
+import haexporterplugin.enums.ExceptionalDeath;
 import haexporterplugin.events.DeathEvent;
 import haexporterplugin.utils.ItemUtils;
 import haexporterplugin.utils.Utils;
@@ -14,7 +15,6 @@ import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
 import net.runelite.api.ParamID;
 import net.runelite.api.Player;
-import net.runelite.api.Prayer;
 import net.runelite.api.SkullIcon;
 import net.runelite.api.events.ActorDeath;
 import net.runelite.api.events.InteractingChanged;
@@ -31,12 +31,7 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -45,7 +40,7 @@ import java.util.stream.Collectors;
 
 /**
  * Code based on DeathNotifier in Dink Plugin
- * source: https://github.com/pajlads/DinkPlugin/blob/master/src/main/java/dinkplugin/notifiers/DeathNotifier.java
+ * source: <a href="https://github.com/pajlads/DinkPlugin/blob/master/src/main/java/dinkplugin/notifiers/DeathNotifier.java"></a>
  */
 
 @Slf4j
@@ -115,7 +110,7 @@ public class DeathNotifier extends BaseNotifier {
 
     public void onGameMessage(String message) {
         var player = client.getLocalPlayer();
-        if (message.equals(FORTIS_DOOM_MSG) && player.getHealthRatio() > 0 && WorldUtils.getLocation(client, player).getRegionID() == WorldUtils.FORTIS_REGION) {
+        if (message.equals(FORTIS_DOOM_MSG) && player.getHealthRatio() > 0 && Objects.requireNonNull(WorldUtils.getLocation(client, player)).getRegionID() == WorldUtils.FORTIS_REGION) {
             handleNotify(Danger.DANGEROUS);
             return;
         }
@@ -144,38 +139,37 @@ public class DeathNotifier extends BaseNotifier {
         }
     }
 
-    private void handleNotify(Danger danger) {
-        int regionId = WorldUtils.getLocation(client).getRegionID();
+    private void handleNotify(Danger dangerOverride) {
+        int regionId = Objects.requireNonNull(WorldUtils.getLocation(client)).getRegionID();
+        Danger danger = dangerOverride != null ? dangerOverride : WorldUtils.getDangerLevel(client, regionId, Set.of(ExceptionalDeath.values()));
 
         Collection<ItemData> items = ItemUtils.getInventoryItems(client, itemManager);
-        List<Pair<ItemData, Integer>> itemsByPrice = getPricedItems(itemManager, items);
+        List<ItemData> itemsByPrice = getPricedItems(items);
 
-        Pair<List<Pair<ItemData, Integer>>, List<Pair<ItemData, Integer>>> split;
+        Pair<List<ItemData>, List<ItemData>> split;
         if (danger == Danger.DANGEROUS) {
             int keepCount = getKeepCount();
             split = splitItemsByKept(itemsByPrice, keepCount);
         } else {
             split = Pair.of(itemsByPrice, Collections.emptyList());
         }
-        List<Pair<ItemData, Integer>> keptItems = split.getLeft();
-        List<Pair<ItemData, Integer>> lostItems = split.getRight();
+        List<ItemData> keptItems = split.getLeft();
+        List<ItemData> lostItems = split.getRight();
 
         Integer losePrice = lostItems.stream()
-                .mapToInt(pair -> pair.getValue() * pair.getKey().getQuantity())
+                .mapToInt(pair -> pair.getGePrice() * pair.getQuantity())
                 .sum();
 
         Actor killer = identifyKiller();
-        boolean pk = killer instanceof Player;
         boolean npc = killer instanceof NPC;
         String killerName = killer != null ? StringUtils.defaultIfEmpty(killer.getName(), "?") : null;
 
-        List<ItemData> lostStacks = getStacks(itemManager, lostItems, true);
-        List<ItemData> keptStacks = getStacks(itemManager, keptItems, false);
+        List<ItemData> lostStacks = getStacks(lostItems, true);
+        List<ItemData> keptStacks = getStacks(keptItems, false);
 
         DeathEvent deathEvent = new DeathEvent(
                 losePrice,
-                pk,
-                pk ? killerName : null,
+                danger,
                 killerName,
                 npc ? ((NPC) killer).getId() : null,
                 keptStacks,
@@ -183,7 +177,8 @@ public class DeathNotifier extends BaseNotifier {
                 client.getLocalPlayer().getWorldLocation()
         );
 
-        messageBuilder.addEvent(deathEvent);
+        messageBuilder.addEvent("death", deathEvent);
+        tickUtils.sendNow();
     }
 
     /**
@@ -195,7 +190,7 @@ public class DeathNotifier extends BaseNotifier {
 
         var skull = client.getLocalPlayer().getSkullIcon();
         int keepCount = skull == SkullIcon.NONE ? 3 : 0;
-        if (client.isPrayerActive(Prayer.PROTECT_ITEM))
+        if (client.getVarbitValue(VarbitID.PRAYER_PROTECTITEM) == 1)
             keepCount++;
         return keepCount;
     }
@@ -244,14 +239,15 @@ public class DeathNotifier extends BaseNotifier {
         if (!INTERACTING.test(localPlayer, actor))
             return false;
 
-        if (actor instanceof Player) {
-            Player other = (Player) actor;
+        if (actor instanceof Player other) {
             return pvpEnabled && !other.isClanMember() && !other.isFriend() && !other.isFriendsChatMember();
         }
 
         if (actor instanceof NPC) {
             NPCComposition npc = ((NPC) actor).getTransformedComposition();
-            return NPC_VALID.test(npc) && ArrayUtils.contains(npc.getActions(), ATTACK_OPTION);
+            if (!NPC_VALID.test(npc)) return false;
+            assert npc != null;
+            return ArrayUtils.contains(npc.getActions(), ATTACK_OPTION);
         }
 
         log.warn("Encountered unknown type of Actor; was neither Player nor NPC!");
@@ -259,84 +255,83 @@ public class DeathNotifier extends BaseNotifier {
     }
 
     /**
-     * @param itemManager {@link ItemManager}
      * @param items       the items whose prices should be queried
      * @return pairs of the passed items to their price, sorted by most expensive unit price first
      */
-    private static List<Pair<ItemData, Integer>> getPricedItems(ItemManager itemManager, Collection<ItemData> items) {
+    private static List<ItemData> getPricedItems(Collection<ItemData> items) {
         return items.stream()
-                .map(item -> Pair.of(item, item.getGePrice()))
-                .sorted(Comparator.<Pair<ItemData, Integer>>comparingLong(Pair::getValue).reversed())
-                .collect(Collectors.toList());
+                .sorted(Comparator.comparingLong(ItemData::getGePrice).reversed())
+                .toList();
     }
 
     /**
      * Takes the complete list of items in the player's inventory and assigns them to separate lists,
      * depending on whether they would be kept or lost upon an unsafe death.
      *
-     * @param itemsByPrice inventory items transformed by {@link #getPricedItems(ItemManager, Collection)}
+     * @param itemsByPrice inventory items transformed by {@link #getPricedItems(Collection)}
      * @param keepCount    the number of items kept on death
      * @return the kept items on death (left) and lost items on death (right), in stable order, in separate lists
      */
     @VisibleForTesting
-    static Pair<List<Pair<ItemData, Integer>>, List<Pair<ItemData, Integer>>> splitItemsByKept(List<Pair<ItemData, Integer>> itemsByPrice, int keepCount) {
-        final List<Pair<ItemData, Integer>> keep = new ArrayList<>(keepCount);
-        final List<Pair<ItemData, Integer>> lost = new ArrayList<>(Math.max(itemsByPrice.size() - keepCount, 0));
+    static Pair<List<ItemData>, List<ItemData>> splitItemsByKept(List<ItemData> itemsByPrice, int keepCount) {
+        List<ItemData> kept = new ArrayList<>();
+        List<ItemData> lost = new ArrayList<>();
 
-        int kept = 0;
-        for (Pair<ItemData, Integer> item : itemsByPrice) {
-            int id = item.getKey().getId();
+        int remainingKeeps = keepCount;
 
-            if (id == ItemID.OSRS_BOND || id == ItemID.BOUGHT_OSRS_BOND || id == ItemID.OSRS_BOND_UNTRADEABLE) {
-                // deliberately do not increment kept
-                keep.add(item);
+        for (ItemData item : itemsByPrice) {
+            int id = item.getId();
+            int quantity = item.getQuantity();
+
+            // Bonds are always kept
+            if (id == ItemID.OSRS_BOND
+                    || id == ItemID.BOUGHT_OSRS_BOND
+                    || id == ItemID.OSRS_BOND_UNTRADEABLE) {
+                kept.add(item);
                 continue;
             }
 
             boolean neverKept = ItemUtils.isItemNeverKeptOnDeath(id);
-            for (int i = 0; i < item.getKey().getQuantity(); i++) {
-                ItemData currentItem = item.getKey();
-                if (kept < keepCount && !neverKept) {
-                    keep.add(
-                        Pair.of(
-                            new ItemData(
-                                    currentItem.getName(),
-                                    currentItem.getId(),
-                                    currentItem.getGePrice(),
-                                    currentItem.getHaPrice(),
-                                    1
-                            ),
-                            item.getValue()
-                        )
-                    );
-                    kept++;
-                } else {
-                    lost.add(
-                        Pair.of(
-                            new ItemData(
-                                    currentItem.getName(),
-                                    currentItem.getId(),
-                                    currentItem.getGePrice(),
-                                    currentItem.getHaPrice(),
-                                    currentItem.getQuantity() - i
-                            ),
-                           item.getValue()
-                        )
-                    );
-                    break;
-                }
+
+            if (neverKept || remainingKeeps <= 0) {
+                lost.add(item);
+                continue;
+            }
+
+            int toKeep = Math.min(quantity, remainingKeeps);
+            int toLose = quantity - toKeep;
+
+            if (toKeep > 0) {
+                kept.add(new ItemData(item.getName(), id, item.getGePrice(), item.getHaPrice(), toKeep));
+                remainingKeeps -= toKeep;
+            }
+
+            if (toLose > 0) {
+                lost.add(new ItemData(item.getName(), id, item.getGePrice(), item.getHaPrice(), toLose));
             }
         }
 
-        return Pair.of(keep, lost);
+        return Pair.of(kept, lost);
     }
 
-    private static List<ItemData> getStacks(ItemManager itemManager, List<Pair<ItemData, Integer>> pricedItems, boolean reduce) {
-        List<ItemData> items = pricedItems.stream().map(Pair::getLeft).collect(Collectors.toList());
-        if (reduce) {
-            items = (List<ItemData>) ItemUtils.reduceItems(items).values();
+    private static List<ItemData> getStacks(List<ItemData> items, boolean reduce) {
+        if (!reduce) {
+            // Preserve exact stacks
+            return items.stream().map(ItemData::new).collect(Collectors.toList());
         }
-        return items;
+
+        // Merge stacks with same ID
+        Map<Integer, ItemData> merged = new LinkedHashMap<>();
+        for (ItemData item : items) {
+            merged.merge(item.getId(),
+                    new ItemData(item), // copy
+                    (existing, incoming) -> {
+                        existing.setQuantity(existing.getQuantity() + incoming.getQuantity());
+                        return existing;
+                    });
+        }
+
+        return new ArrayList<>(merged.values());
     }
 
     static {
