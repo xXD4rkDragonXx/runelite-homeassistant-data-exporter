@@ -9,7 +9,7 @@ import net.runelite.api.coords.WorldPoint;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Slf4j
@@ -56,15 +56,9 @@ public class MessageBuilder {
 
     public void addEvent(String category, Object event)
     {
-        Map<String, Object> eventMap = new HashMap<>();
-        eventMap.put(category, event);
-        root.addEvent(eventMap);
-    }
-
-    public void addEvent(String category, String event)
-    {
-        Map<String, String> eventMap = new HashMap<>();
-        eventMap.put(category, event);
+        Map<String, Object> eventMap = new LinkedHashMap<>();
+        eventMap.put("type", category);
+        eventMap.put("data", event);
         root.addEvent(eventMap);
     }
 
