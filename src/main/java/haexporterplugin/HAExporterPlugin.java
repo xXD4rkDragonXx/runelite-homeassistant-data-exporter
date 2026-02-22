@@ -15,6 +15,7 @@ import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.api.gameval.ItemID;
 import net.runelite.api.gameval.NpcID;
+import net.runelite.api.gameval.VarbitID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.*;
@@ -236,7 +237,7 @@ public class HAExporterPlugin extends Plugin
 			log.debug("USERNAME AFTER INIT: {}", name);
 
 			messageBuilder.setData("world", String.valueOf(client.getWorld()));
-			int accountType = client.getVarbitValue(4354);
+			int accountType = client.getVarbitValue(VarbitID.IRONMAN);
 			messageBuilder.setData("accounttype", String.valueOf(accountType));
             assert name != null;
             messageBuilder.setData("name", name);
@@ -255,7 +256,7 @@ public class HAExporterPlugin extends Plugin
 	}
 
 	private void updateSpellbook(){
-		int spellbookId = client.getVarbitValue(4070);
+		int spellbookId = client.getVarbitValue(VarbitID.SPELLBOOK);
 		SpellbookData spellbook = new SpellbookData(spellbookId);
 		messageBuilder.setData("spellbook", spellbook);
 	}
