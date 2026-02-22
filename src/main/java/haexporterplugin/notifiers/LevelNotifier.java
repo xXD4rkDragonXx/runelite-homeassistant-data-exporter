@@ -21,11 +21,12 @@ public class LevelNotifier extends BaseNotifier {
     private static final int SKILL_COUNT = Skill.values().length;
     private static final String COMBAT_NAME = "Combat";
     private final Map<String, Integer> currentLevels = new HashMap<>();
+    private final Map<String, Integer> previousLevels = new HashMap<>();
     private final Map<Skill, Integer> currentXp = new EnumMap<>(Skill.class);
     static final int INIT_GAME_TICKS = 1; // ~10s
     private Set<WorldType> specialWorldType = null;
 
-    private void initLevels() {
+    private void updateSkillsFromGameState() {
         for (Skill skill : Skill.values()) {
             int xp = client.getSkillExperience(skill);
             int level = client.getRealSkillLevel(skill);
@@ -34,10 +35,15 @@ public class LevelNotifier extends BaseNotifier {
             }
             currentLevels.put(skill.getName(), level);
             currentXp.put(skill, xp);
-            currentLevels.put(COMBAT_NAME, calculateCombatLevel());
-            this.specialWorldType = getSpecialWorldTypes();
-            log.debug("Initialized current skill levels: {}", currentLevels);
         }
+        currentLevels.put(COMBAT_NAME, calculateCombatLevel());
+    }
+
+    private void initLevels() {
+        updateSkillsFromGameState();
+        previousLevels.putAll(currentLevels);
+        this.specialWorldType = getSpecialWorldTypes();
+        log.debug("Initialized current skill levels: {}", currentLevels);
     }
 
     private int getLevel(int xp) {
@@ -74,8 +80,33 @@ public class LevelNotifier extends BaseNotifier {
         return world;
     }
 
+    private Map<String, Integer> detectAndUpdateLevelChanges() {
+        Map<String, Integer> changedLevels = new HashMap<>();
+        for (String skillName : currentLevels.keySet()) {
+            int currentLevel = currentLevels.get(skillName);
+            int previousLevel = previousLevels.getOrDefault(skillName, currentLevel);
+            if (currentLevel != previousLevel) {
+                changedLevels.put(skillName, currentLevel);
+                previousLevels.put(skillName, currentLevel);
+            }
+        }
+        return changedLevels;
+    }
+
+    private Stats buildStats() {
+        Map<String, SkillInfo> skillsMap = new LinkedHashMap<>();
+        for (Skill runeLiteSkill : Skill.values()) {
+            String skillName = runeLiteSkill.getName();
+            Integer xp = currentXp.get(runeLiteSkill);
+            Integer level = currentLevels.get(skillName);
+            if (xp != null && level != null) {
+                skillsMap.put(skillName, new SkillInfo(xp, level));
+            }
+        }
+        return new Stats(skillsMap);
+    }
+
     public void onTick(){
-        // Don't do anything if not on send tick
         int tickCount = tickUtils.getTickCount();
 
         if ((tickCount > INIT_GAME_TICKS || tickCount >= config.sendRate()) && currentLevels.size() < SKILL_COUNT) {
@@ -83,20 +114,16 @@ public class LevelNotifier extends BaseNotifier {
             return;
         }
         
-        // Build SkillInfo map for all skills
-        Map<String, SkillInfo> skillsMap = new LinkedHashMap<>();
-        for (Skill runeLiteSkill : Skill.values()) {
-            String skillName = runeLiteSkill.getName();
-            Integer xp = currentXp.get(runeLiteSkill);
-            Integer level = currentLevels.get(skillName);
-            
-            if (xp != null && level != null) {
-                skillsMap.put(skillName, new SkillInfo(xp, level));
-            }
-        }
+        updateSkillsFromGameState();
+        Map<String, Integer> changedLevels = detectAndUpdateLevelChanges();
         
-        // Create Stats object with skills map
-        Stats stats = new Stats(skillsMap);
+        Stats stats = buildStats();
         messageBuilder.setData("stats", stats);
+        
+        if (!changedLevels.isEmpty()) {
+            log.info("Level changes detected: {}", changedLevels);
+            messageBuilder.addEvent("Levelup", changedLevels);
+            tickUtils.sendNow();
+        }
     }
 }

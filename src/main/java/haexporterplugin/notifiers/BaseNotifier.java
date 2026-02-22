@@ -1,11 +1,10 @@
 package haexporterplugin.notifiers;
 
 import haexporterplugin.HAExporterConfig;
-import haexporterplugin.utils.HomeAssistUtils;
-import haexporterplugin.utils.MessageBuilder;
-import haexporterplugin.utils.TickUtils;
+import haexporterplugin.utils.*;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.client.game.ItemManager;
 
 import javax.inject.Inject;
 
@@ -25,5 +24,12 @@ public abstract class BaseNotifier {
     protected TickUtils tickUtils;
 
     @Inject
+    protected RarityUtils rarityUtils;
+
+    @Inject
+    protected ThievingUtils thievingUtils;
+
+    @Inject
     protected MessageBuilder messageBuilder;
+
 }

@@ -41,7 +41,7 @@ public class ItemUtils {
     );
 
     private final BinaryOperator<ItemData> SUM_ITEM_QUANTITIES = (a, b) -> new ItemData(a.getName(), a.getId(), a.getGePrice(), a.getHaPrice(), a.getQuantity() + b.getQuantity());
-    private final BinaryOperator<ItemStack> SUM_ITEM_STACK_QUANTITIES = (a, b) -> new ItemStack(a.getId(), a.getQuantity() + b.getQuantity());
+    private final BinaryOperator<ItemData> SUM_ITEM_STACK_QUANTITIES = (a, b) -> new ItemData(a.getName(), a.getId(), a.getGePrice(), a.getHaPrice(), a.getQuantity() + b.getQuantity());
 
     public List<ItemData> getInventoryItems(Client client, ItemManager itemManager)
     {
@@ -108,6 +108,21 @@ public class ItemUtils {
         return itemManager.getItemPrice(id);
     }
 
+    public long getStackGePrice(ItemData items){
+        List<ItemData> itemList = new ArrayList<>(1);
+        itemList.add(items);
+        return getStackGePrice(itemList);
+    }
+
+    public long getStackGePrice(List<ItemData> items){
+        long totalPrice = 0;
+        for (ItemData item : items){
+            int stackPrice = item.getGePrice() * item.getQuantity();
+            totalPrice += stackPrice;
+        }
+        return totalPrice;
+    }
+
     public <K, V> Map<K, V> reduce(Iterable<V> items, Function<V, K> deriveKey, BinaryOperator<V> aggregate) {
         final Map<K, V> map = new LinkedHashMap<>();
         items.forEach(v -> map.merge(deriveKey.apply(v), v, aggregate));
@@ -118,7 +133,20 @@ public class ItemUtils {
         return reduce(items, ItemData::getId, SUM_ITEM_QUANTITIES);
     }
 
-    public Collection<ItemStack> reduceItemStack(Iterable<ItemStack> items) {
-        return reduce(items, ItemStack::getId, SUM_ITEM_STACK_QUANTITIES).values();
+    public List<ItemData> itemsToItemDataList(Collection<ItemStack> itemStacks, ItemManager itemManager){
+        List<ItemData> itemDataList = new ArrayList<>(itemStacks.size());
+        for (ItemStack itemStack: itemStacks ){
+            itemDataList.add(itemStackToItemData(itemStack, itemManager));
+        }
+        return itemDataList;
+    }
+
+    public ItemData itemStackToItemData(ItemStack itemStack, ItemManager itemManager){
+        ItemComposition ic = itemManager.getItemComposition(itemStack.getId());
+        return createItemData(ic, itemStack.getQuantity(), itemManager);
+    }
+
+    public Collection<ItemData> reduceItemStack(Iterable<ItemData> items) {
+        return reduce(items, ItemData::getId, SUM_ITEM_STACK_QUANTITIES).values();
     }
 }

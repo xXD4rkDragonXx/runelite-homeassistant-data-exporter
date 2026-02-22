@@ -6,10 +6,7 @@ import javax.inject.Inject;
 import haexporterplugin.data.HealthData;
 import haexporterplugin.data.PrayerData;
 import haexporterplugin.data.SpellbookData;
-import haexporterplugin.notifiers.DeathNotifier;
-import haexporterplugin.notifiers.ItemNotifier;
-import haexporterplugin.notifiers.LevelNotifier;
-import haexporterplugin.notifiers.LocationNotifier;
+import haexporterplugin.notifiers.*;
 import haexporterplugin.utils.MessageBuilder;
 import haexporterplugin.utils.TickUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -17,10 +14,10 @@ import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
-import net.runelite.client.events.ClientShutdown;
-import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.events.*;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.plugins.loottracker.LootReceived;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.util.ImageUtil;
@@ -48,6 +45,7 @@ public class HAExporterPlugin extends Plugin
 	private @Inject TickUtils tickUtils;
 	private @Inject LevelNotifier levelNotifier;
 	private @Inject ItemNotifier itemNotifier;
+	private @Inject LootNotifier lootNotifier;
 	private @Inject LocationNotifier locationNotifier;
 	private @Inject DeathNotifier deathNotifier;
 	private boolean initialized = false;
@@ -65,14 +63,15 @@ public class HAExporterPlugin extends Plugin
 		clientToolbar.addNavigation(navButton);
 
 		panel.initialize();
+		lootNotifier.init();
 
-		log.debug("Example started!");
+		log.debug("HA Exporter Started");
 	}
 
 	@Override
 	protected void shutDown() throws Exception
 	{
-		messageBuilder.addEvent("ClientShutdown", "Disabled");
+		messageBuilder.addEvent("clientShutdown", "Disabled");
 		tickUtils.sendNow();
 		clientToolbar.removeNavigation(navButton);
 	}
@@ -81,8 +80,13 @@ public class HAExporterPlugin extends Plugin
 	public void onClientShutdown(ClientShutdown event)
 	{
 		if (!initialized) return;
-		messageBuilder.addEvent("ClientShutdown", "Shutdown");
+		messageBuilder.addEvent("clientShutdown", "Shutdown");
 		tickUtils.sendShutdown();
+	}
+
+	@Subscribe
+	public void onPlayerLootReceived(PlayerLootReceived playerLootReceived) {
+		lootNotifier.onPlayerLootReceived(playerLootReceived);
 	}
 
 	@Subscribe
@@ -99,7 +103,7 @@ public class HAExporterPlugin extends Plugin
 		}
 		if (gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
 		{
-			messageBuilder.addEvent("ClientShutdown", "Logout");
+			messageBuilder.addEvent("clientShutdown", "Logout");
 			tickUtils.sendNow();
 			initialized = false;
 			messageBuilder.resetData();
@@ -127,18 +131,46 @@ public class HAExporterPlugin extends Plugin
 	}
 
 	@Subscribe(priority = 1) // run before the base loot tracker plugin
-	public void onChatMessage(ChatMessage message) {
-		String source = message.getName() != null && !message.getName().isEmpty() ? message.getName() : message.getSender();
-		switch (message.getType()){
+	public void onChatMessage(ChatMessage chatMessage) {
+		String source = chatMessage.getName() != null && !chatMessage.getName().isEmpty() ? chatMessage.getName() : chatMessage.getSender();
+		switch (chatMessage.getType()){
 			case GAMEMESSAGE:
 				if ("runelite".equals(source)) {
 					// filter out plugin-sourced chat messages
 					return;
 				}
-				deathNotifier.onGameMessage(message.getMessage());
+				lootNotifier.onGameMessage(chatMessage.getMessage());
+				deathNotifier.onGameMessage(chatMessage.getMessage());
 				break;
 		}
 
+	}
+
+	@Subscribe(priority = 1) // run before the base loot tracker plugin
+	public void onServerNpcLoot(ServerNpcLoot serverNpcLoot) {
+		// temporarily only use new event when needed
+		int npcId = serverNpcLoot.getComposition().getId();
+		var name = serverNpcLoot.getComposition().getName();
+		if (npcId != NpcID.YAMA && npcId != NpcID.HESPORI && !name.startsWith("Hallowed Sepulchre")) {
+			return;
+		}
+
+		lootNotifier.onServerNpcLoot(serverNpcLoot);
+	}
+
+	@Subscribe(priority = 1) // run before the base loot tracker plugin
+	public void onNpcLootReceived(NpcLootReceived npcLootReceived) {
+		if (npcLootReceived.getNpc().getId() == NpcID.YAMA) {
+			// handled by ServerNpcLoot, but return just in case
+			return;
+		}
+
+		lootNotifier.onNpcLootReceived(npcLootReceived);
+	}
+
+	@Subscribe
+	public void onLootReceived(LootReceived lootReceived) {
+		lootNotifier.onLootReceived(lootReceived);
 	}
 
 	@Subscribe
@@ -179,6 +211,7 @@ public class HAExporterPlugin extends Plugin
 	@Subscribe
 	public void onConfigChanged(ConfigChanged event) {
 		messageBuilder.setTickDelay(config.sendRate());
+		lootNotifier.onConfigChanged(event.getKey(), event.getNewValue());
 	}
 
 	@Provides
