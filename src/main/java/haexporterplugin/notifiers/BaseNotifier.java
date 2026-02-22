@@ -4,7 +4,6 @@ import haexporterplugin.HAExporterConfig;
 import haexporterplugin.utils.*;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
-import net.runelite.client.game.ItemManager;
 
 import javax.inject.Inject;
 
