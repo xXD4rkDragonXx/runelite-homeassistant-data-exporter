@@ -7,11 +7,13 @@ import haexporterplugin.data.HealthData;
 import haexporterplugin.data.PrayerData;
 import haexporterplugin.data.SpellbookData;
 import haexporterplugin.notifiers.*;
+import haexporterplugin.utils.EasterEggUtils;
 import haexporterplugin.utils.MessageBuilder;
 import haexporterplugin.utils.TickUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
+import net.runelite.api.gameval.ItemID;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.*;
@@ -48,6 +50,7 @@ public class HAExporterPlugin extends Plugin
 	private @Inject LootNotifier lootNotifier;
 	private @Inject LocationNotifier locationNotifier;
 	private @Inject DeathNotifier deathNotifier;
+	private @Inject EasterEggUtils easterEggUtils;
 	private boolean initialized = false;
 
 	@Override
@@ -65,6 +68,8 @@ public class HAExporterPlugin extends Plugin
 		panel.initialize();
 		lootNotifier.init();
 
+		easterEggUtils.init();
+
 		log.debug("HA Exporter Started");
 	}
 
@@ -73,6 +78,7 @@ public class HAExporterPlugin extends Plugin
 	{
 		messageBuilder.addEvent("clientShutdown", "Disabled");
 		tickUtils.sendNow();
+		easterEggUtils.shutDown();
 		clientToolbar.removeNavigation(navButton);
 	}
 
@@ -181,6 +187,9 @@ public class HAExporterPlugin extends Plugin
 	@Subscribe
 	public void onActorDeath(ActorDeath actor) {
 		deathNotifier.onActorDeath(actor);
+		if (client.getLocalPlayer() == actor.getActor()){
+			easterEggUtils.playGarbage();
+		}
 	}
 
 	@Subscribe
@@ -248,5 +257,13 @@ public class HAExporterPlugin extends Plugin
 		int spellbookId = client.getVarbitValue(4070);
 		SpellbookData spellbook = new SpellbookData(spellbookId);
 		messageBuilder.setData("spellbook", spellbook);
+	}
+
+	@Subscribe
+	public void onMenuOptionClicked(MenuOptionClicked event) {
+		log.debug("EVENT TRIGGERED, {} {} {} {}",event.getMenuOption(), event.getId(), ItemID.KEBAB, event.getItemId());
+		if (event.getMenuOption().equals("Eat") && (event.getItemId() == ItemID.KEBAB || event.getItemId() == ItemID.UGTHANKI_KEBAB || event.getItemId() == ItemID.SUPER_KEBAB || event.getItemId() == ItemID.VARLAMORIAN_KEBAB)) {
+			easterEggUtils.playKebab();
+		}
 	}
 }

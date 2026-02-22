@@ -2,6 +2,7 @@ package haexporterplugin.notifiers;
 
 import haexporterplugin.data.SkillInfo;
 import haexporterplugin.data.Stats;
+import haexporterplugin.events.LevelEvent;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Experience;
 
@@ -80,13 +81,13 @@ public class LevelNotifier extends BaseNotifier {
         return world;
     }
 
-    private Map<String, Integer> detectAndUpdateLevelChanges() {
-        Map<String, Integer> changedLevels = new HashMap<>();
+    private List<LevelEvent> detectAndUpdateLevelChanges() {
+        List<LevelEvent> changedLevels = new ArrayList<LevelEvent>();
         for (String skillName : currentLevels.keySet()) {
             int currentLevel = currentLevels.get(skillName);
             int previousLevel = previousLevels.getOrDefault(skillName, currentLevel);
             if (currentLevel != previousLevel) {
-                changedLevels.put(skillName, currentLevel);
+                changedLevels.add(new LevelEvent(skillName, currentLevel));
                 previousLevels.put(skillName, currentLevel);
             }
         }
@@ -109,20 +110,21 @@ public class LevelNotifier extends BaseNotifier {
     public void onTick(){
         int tickCount = tickUtils.getTickCount();
 
-        if ((tickCount > INIT_GAME_TICKS || tickCount >= config.sendRate()) && currentLevels.size() < SKILL_COUNT) {
+        if ((tickCount > INIT_GAME_TICKS || tickCount >= config.sendRate()) && previousLevels.isEmpty()) {
+            log.debug("INIT LEVELS");
             initLevels();
             return;
         }
-        
+
         updateSkillsFromGameState();
-        Map<String, Integer> changedLevels = detectAndUpdateLevelChanges();
+        List<LevelEvent> changedLevels = detectAndUpdateLevelChanges();
         
         Stats stats = buildStats();
         messageBuilder.setData("stats", stats);
         
         if (!changedLevels.isEmpty()) {
             log.info("Level changes detected: {}", changedLevels);
-            messageBuilder.addEvent("Levelup", changedLevels);
+            messageBuilder.addEvent("levelUp", changedLevels);
             tickUtils.sendNow();
         }
     }

@@ -133,6 +133,31 @@ public interface HAExporterConfig extends Config
 		return PlayerLookupService.OSRS_HISCORE;
 	}
 
+
+	// Whether to play sound on eating kebab
+	@ConfigItem(
+			keyName = "kebab",
+			name = "Kebab?",
+			description = "Do you like kebab?",
+			position = 902,
+			section = advancedSection
+	)
+	default boolean kebab() {
+		return true;
+	}
+
+	// Whether to play sound on eating kebab
+	@ConfigItem(
+			keyName = "garbage",
+			name = "Garbage?",
+			description = "Do you feel like garbage?",
+			position = 902,
+			section = advancedSection
+	)
+	default boolean garbage() {
+		return true;
+	}
+
 	/* ============================
        Hidden Config Items
        ============================ */
