@@ -4,8 +4,6 @@ import com.google.common.net.UrlEscapers;
 import lombok.Value;
 import lombok.experimental.UtilityClass;
 
-import java.util.Arrays;
-
 @UtilityClass
 public class ReplacementUtils {
 
