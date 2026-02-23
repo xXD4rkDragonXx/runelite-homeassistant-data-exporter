@@ -1,8 +1,8 @@
 package haexporterplugin.data;
 
 public class SpellbookData {
-    private int id;
-    private String name;
+    private final int id;
+    private final String name;
 
     public static String getSpellbookName(int id){
         return switch (id)

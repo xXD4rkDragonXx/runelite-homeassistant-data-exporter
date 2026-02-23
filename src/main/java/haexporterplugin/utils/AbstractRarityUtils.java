@@ -6,7 +6,6 @@ import com.google.gson.reflect.TypeToken;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Setter;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ItemComposition;
 import net.runelite.client.game.ItemManager;
@@ -59,22 +58,17 @@ public abstract class AbstractRarityUtils {
         );
         return dropsBySourceName.getOrDefault(sourceName, Collections.emptyList())
                 .stream()
-                .filter(drop -> drop.getMinQuantity() <= quantity && quantity <= drop.getMaxQuantity())
+                .filter(drop -> drop.minQuantity() <= quantity && quantity <= drop.maxQuantity())
                 .filter(drop -> {
-                    int id = drop.getItemId();
+                    int id = drop.itemId();
                     if (id == itemId) return true;
                     return variants.contains(id) && itemName.equals(itemManager.getItemComposition(id).getMembersName());
                 })
-                .mapToDouble(RareDrop::getProbability)
+                .mapToDouble(RareDrop::probability)
                 .reduce(Double::sum);
     }
 
-    @Value
-    protected static class RareDrop {
-        int itemId;
-        int minQuantity;
-        int maxQuantity;
-        double probability;
+    protected record RareDrop(int itemId, int minQuantity, int maxQuantity, double probability) {
     }
 
     @Data

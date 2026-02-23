@@ -1,7 +1,6 @@
 package haexporterplugin.utils;
 
 import com.google.common.net.UrlEscapers;
-import lombok.Value;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -23,25 +22,18 @@ public class ReplacementUtils {
         return ofWiki(phrase, phrase);
     }
 
-    @Value
-    private static class Text implements Evaluable {
-        String text;
-
-        @Override
-        public String evaluate(boolean rich) {
-            return text;
+    private record Text(String text) implements Evaluable {
+            @Override
+            public String evaluate(boolean rich) {
+                return text;
+            }
         }
-    }
 
-    @Value
-    private static class TextWithLink implements Evaluable {
-        String text;
-        String link;
-
-        @Override
-        public String evaluate(boolean rich) {
-            return rich ? String.format("[%s](%s)", text, link) : text;
+    private record TextWithLink(String text, String link) implements Evaluable {
+            @Override
+            public String evaluate(boolean rich) {
+                return rich ? String.format("[%s](%s)", text, link) : text;
+            }
         }
-    }
 
 }

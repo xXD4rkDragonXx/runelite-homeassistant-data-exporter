@@ -239,7 +239,7 @@ public class LootNotifier extends BaseNotifier{
         } else if (CG_BOSS.equals(event.getName())) {
             return CG_NAME;
         } else if (lastDrop != null && shouldUseChatName(event)) {
-            return lastDrop.getSource().toString(); // distinguish entry/expert/challenge modes
+            return lastDrop.source().toString(); // distinguish entry/expert/challenge modes
         }
         return event.getName();
     }
@@ -247,7 +247,7 @@ public class LootNotifier extends BaseNotifier{
     private boolean shouldUseChatName(LootReceived event) {
         assert lastDrop != null;
         if (event.getType() != LootRecordType.EVENT) return false;
-        String lastSource = lastDrop.getSource().toString();
+        String lastSource = lastDrop.source().toString();
         Predicate<String> coincides = source -> source.equals(event.getName()) && lastSource.startsWith(source);
         return coincides.test(TOA) || coincides.test(TOB) || coincides.test(COX);
     }
