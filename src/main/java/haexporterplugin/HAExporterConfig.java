@@ -15,7 +15,7 @@ public interface HAExporterConfig extends Config
 			name = "Loot",
 			description = "Settings for notifying when loot is dropped",
 			position = 300,
-			closedByDefault = true
+			closedByDefault = false
 	)
 	String lootSection = "Loot";
 
@@ -125,7 +125,7 @@ public interface HAExporterConfig extends Config
 	@ConfigItem(
 			keyName = "playerLookupService",
 			name = "Player Lookup Service",
-			description = "The service used to lookup a players account, to make their name clickable in Discord embeds",
+			description = "The service used to lookup a players account",
 			position = 902,
 			section = advancedSection
 	)
