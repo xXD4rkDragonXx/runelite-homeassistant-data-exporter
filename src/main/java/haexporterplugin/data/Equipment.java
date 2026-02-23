@@ -1,7 +1,12 @@
 package haexporterplugin.data;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.List;
 
+@Setter
+@Getter
 public class Equipment {
     private List<ItemData> items;
 
@@ -12,11 +17,4 @@ public class Equipment {
         this.items = items;
     }
 
-    public List<ItemData> getItems() {
-        return items;
-    }
-
-    public void setItems(List<ItemData> items) {
-        this.items = items;
-    }
 }

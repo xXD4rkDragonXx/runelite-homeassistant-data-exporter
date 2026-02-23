@@ -31,7 +31,7 @@ public class EasterEggUtils {
     }
 
     public void playGarbage(){
-        if (config.kebab())
+        if (config.garbage())
             executorService.submit(() -> playSound("garbage"));
     }
 
