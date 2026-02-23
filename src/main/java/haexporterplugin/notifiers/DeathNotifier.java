@@ -239,14 +239,21 @@ public class DeathNotifier extends BaseNotifier {
         if (!INTERACTING.test(localPlayer, actor))
             return false;
 
-        if (actor instanceof Player other) {
-            return pvpEnabled && !other.isClanMember() && !other.isFriend() && !other.isFriendsChatMember();
+        if (actor instanceof Player) {
+            Player other = (Player) actor;
+            return pvpEnabled
+                    && !other.isClanMember()
+                    && !other.isFriend()
+                    && !other.isFriendsChatMember();
         }
 
         if (actor instanceof NPC) {
-            NPCComposition npc = ((NPC) actor).getTransformedComposition();
+            NPC npcActor = (NPC) actor;
+            NPCComposition npc = npcActor.getTransformedComposition();
+
             if (!NPC_VALID.test(npc)) return false;
             assert npc != null;
+
             return ArrayUtils.contains(npc.getActions(), ATTACK_OPTION);
         }
 
@@ -261,7 +268,7 @@ public class DeathNotifier extends BaseNotifier {
     private static List<ItemData> getPricedItems(Collection<ItemData> items) {
         return items.stream()
                 .sorted(Comparator.comparingLong(ItemData::getGePrice).reversed())
-                .toList();
+                .collect(Collectors.toList());
     }
 
     /**

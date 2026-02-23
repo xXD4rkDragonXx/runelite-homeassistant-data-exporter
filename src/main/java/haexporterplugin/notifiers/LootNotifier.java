@@ -47,7 +47,7 @@ public class LootNotifier extends BaseNotifier{
                 Utils.readDelimited(config.lootItemAllowlist())
                         .map(Utils::regexify)
                         .filter(Objects::nonNull)
-                        .toList()
+                        .collect(Collectors.toList())
         );
 
         itemNameDenylist.clear();
@@ -55,14 +55,14 @@ public class LootNotifier extends BaseNotifier{
                 Utils.readDelimited(config.lootItemDenylist())
                         .map(Utils::regexify)
                         .filter(Objects::nonNull)
-                        .toList()
+                        .collect(Collectors.toList())
         );
 
         sourceDenylist.clear();
         sourceDenylist.addAll(
                 Utils.readDelimited(config.lootSourceDenylist())
                         .map(String::toLowerCase)
-                        .toList()
+                        .collect(Collectors.toList())
         );
     }
 

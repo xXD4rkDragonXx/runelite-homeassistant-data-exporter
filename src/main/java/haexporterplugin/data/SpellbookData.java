@@ -4,15 +4,19 @@ public class SpellbookData {
     private int id;
     private String name;
 
-    public static String getSpellbookName(int id){
-        return switch (id)
-        {
-            case 0 -> "standard";
-            case 1 -> "ancient";
-            case 2 -> "lunar";
-            case 3 -> "arceuus";
-            default -> "unknown";
-        };
+    public static String getSpellbookName(int id) {
+        switch (id) {
+            case 0:
+                return "standard";
+            case 1:
+                return "ancient";
+            case 2:
+                return "lunar";
+            case 3:
+                return "arceuus";
+            default:
+                return "unknown";
+        }
     }
 
     public SpellbookData(int id){
