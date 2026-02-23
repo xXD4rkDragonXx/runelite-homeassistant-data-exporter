@@ -72,7 +72,7 @@ RuneLite                                Home Assistant
    │                                          │
    │  Response: { "token": "abc123…" } ◄──────│
    │                                          │
-   │         ── connection saved ──            │
+   │         ── connection saved ──           │
    │                                          │
    │  POST /api/osrs-data/events              │
    │  Header: X-Osrs-Token: abc123…    ──────►│
