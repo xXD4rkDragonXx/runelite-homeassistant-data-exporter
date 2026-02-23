@@ -20,6 +20,7 @@ public class HAExporterPanel extends PluginPanel
     protected @Inject HAExporterConfig config;
     protected @Inject HomeAssistUtils homeAssistUtils;
     protected @Inject ConfigUtils configUtils;
+    protected @Inject Gson gson;
 
     private final JPanel mainPanel = new JPanel(new BorderLayout());
 
@@ -141,7 +142,6 @@ public class HAExporterPanel extends PluginPanel
                         && c.getToken().equals(connection.getToken())
         );
 
-        Gson gson = new Gson();
         config.setHomeassistantConnections(gson.toJson(connections));
 
         showHomeView(); // refresh UI
