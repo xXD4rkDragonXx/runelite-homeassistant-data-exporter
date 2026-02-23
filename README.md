@@ -15,15 +15,15 @@ A [RuneLite](https://runelite.net/) plugin that exports real-time Old School Run
 | Category | What's Tracked |
 |----------|----------------|
 | **Player Stats** | All 23 skill levels & XP |
-| **Health & Prayer** | Current / max hitpoints and prayer points |
+| **Health & Prayer** | Current / max hitpoints, prayer points and spellbook |
 | **Inventory** | Full item list with GE & HA prices |
 | **Equipment** | Worn gear with slot information |
 | **Loot Drops** | Configurable value & rarity filters |
 | **Level-Ups** | Skill name and new level |
 | **Deaths** | Killer info, kept/lost items, danger level |
-| **World & Location** | Current world, coordinates, spellbook |
+| **World & Location** | Current world, coordinates |
 
-All data is pushed over HTTP as JSON to your Home Assistant instance, where a companion integration turns it into entities you can use in automations, dashboards, and more.
+All data is pushed over HTTP(s) as JSON to your Home Assistant instance, where a companion integration turns it into entities you can use in automations, dashboards, and more.
 
 ---
 
@@ -32,9 +32,7 @@ All data is pushed over HTTP as JSON to your Home Assistant instance, where a co
 | Requirement | Details |
 |-------------|---------|
 | **RuneLite** | Latest release — [runelite.net](https://runelite.net/) |
-| **Home Assistant** | With the **OSRS Data** custom integration installed |
-| **Java** | 17 or later (bundled with RuneLite) |
-| **Network** | The RuneLite client must be able to reach your HA instance |
+| **Home Assistant** | With the [**OSRS Data**](https://github.com/RedFirebreak/ha-osrs-data) custom integration installed |
 
 ---
 
@@ -48,8 +46,8 @@ Install **HA Exporter** from the RuneLite Plugin Hub (or side-load the JAR for d
 
 The plugin uses a **code-based pairing** flow to securely link your RuneLite client with Home Assistant.
 
-1. In Home Assistant, open the **OSRS Data** integration and click **Add Device** — you'll receive a **5-digit pairing code**.
-2. In RuneLite, open the **HA Exporter** side panel (🏠 icon in the toolbar).
+1. In Home Assistant, open the [**OSRS Data**](https://github.com/RedFirebreak/ha-osrs-data) integration and click **Add Device** — you'll receive a **5-digit pairing code**.
+2. In RuneLite, open the **HA Exporter** side panel (icon in the toolbar).
 3. Click **Connect New Device**.
 4. Enter the 5-digit code and your Home Assistant base URL (e.g. `https://ha.example.com`).
 5. Click **Submit**. The plugin exchanges the code for a long-lived token and stores the connection.
@@ -162,14 +160,11 @@ Open **RuneLite Settings → HA Exporter** to find these options:
 | **Rarity Threshold** | `0` | Report drops rarer than 1-in-X (0 = disabled) |
 | **Rarity + Value Intersection** | `false` | Require **both** rarity and value thresholds to be met |
 
-### Advanced Settings
+### Notable Advanced Settings
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | **Send Rate** | `100` ticks (~60 s) | How often a full state snapshot is sent |
-| **Player Lookup Service** | `OSRS_HISCORE` | Service linked to clickable player names |
-| **Kebab** | `true` | 🥙 Easter egg |
-| **Garbage** | `true` | 🗑️ Easter egg |
 
 ---
 
@@ -246,3 +241,4 @@ This project is licensed under the **BSD 2-Clause License** — see [LICENSE](LI
 - **[pajlads / DinkPlugin](https://github.com/pajlads/DinkPlugin)** — large portions of the codebase are based on Dink.
 - **[RuneLite](https://runelite.net/)** — the open-source OSRS client that makes this possible.
 - **[Home Assistant](https://www.home-assistant.io/)** — the home-automation platform on the receiving end.
+- **[OSRS-Data](https://github.com/RedFirebreak/ha-osrs-data)** — the companion Home Assistant integration
