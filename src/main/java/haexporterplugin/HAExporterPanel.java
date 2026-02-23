@@ -27,6 +27,9 @@ public class HAExporterPanel extends PluginPanel
     private final JLabel goldLabel = new JLabel("Gold Stored: 0");
     private final JLabel itemsLabel = new JLabel("Items Processed: 0");
 
+    private final JLabel creditLabel = new JLabel("A plugin by: ");
+    private final JLabel authorLabel = new JLabel("xXD4rkDragonXx & RedFireBreak");
+
     public final int CODE_LENGTH = 5;
 
     public HAExporterPanel()
@@ -51,9 +54,15 @@ public class HAExporterPanel extends PluginPanel
 
         JPanel container = new JPanel(new BorderLayout());
 
-        container.add(buildStatsPanel(), BorderLayout.NORTH);
+        // Will be expanded on in a future release
+        // container.add(buildStatsPanel(), BorderLayout.NORTH);
+
+        container.add(buildCreditPanel(), BorderLayout.NORTH);
+
+
 
         JPanel centerPanel = new JPanel();
+        centerPanel.add(Box.createVerticalStrut(15));
         centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
 
         JButton connectButton = new JButton("Connect New Device");
@@ -139,6 +148,7 @@ public class HAExporterPanel extends PluginPanel
     }
 
 
+    // Boilerplate for future use, will not be used in the current version
     private JPanel buildStatsPanel()
     {
         JPanel statsPanel = new JPanel();
@@ -149,6 +159,18 @@ public class HAExporterPanel extends PluginPanel
         statsPanel.add(itemsLabel);
 
         return statsPanel;
+    }
+
+    private JPanel buildCreditPanel()
+    {
+        JPanel creditPanel = new JPanel();
+        creditPanel.setLayout(new GridLayout(2, 1));
+        creditPanel.setBorder(BorderFactory.createTitledBorder("Credit"));
+
+        creditPanel.add(creditLabel);
+        creditPanel.add(authorLabel);
+
+        return creditPanel;
     }
 
     /* ============================
