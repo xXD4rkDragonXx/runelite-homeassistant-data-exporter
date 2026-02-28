@@ -88,14 +88,11 @@ public class MessageBuilder {
     }
 
     public void setState(GameState state){
-        log.debug("Settings state: {}", state);
         root.setState(state);
     }
 
     public String build()
     {
-        log.debug("Converting data");
-        log.debug(gson.toJson(root));
         return gson.toJson(root);
     }
 

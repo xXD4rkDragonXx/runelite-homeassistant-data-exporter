@@ -14,8 +14,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Singleton
@@ -38,35 +36,23 @@ public class HomeAssistUtils {
     private @Inject Gson gson;
 
     public void sendMessage(String jsonPayload) {
-        sendPayload(jsonPayload, null);
+        sendPayload(jsonPayload);
     }
 
-    public void sendShutdownMessage(String jsonPayload){
-        CountDownLatch latch = new CountDownLatch(1);
-        sendPayload(jsonPayload, latch);
 
-        try
-        {
-            // Wait max 500ms, then continue shutdown
-            latch.await(500, TimeUnit.MILLISECONDS);
-        }
-        catch (InterruptedException ignored) {}
-    }
-
-    private void sendPayload(String jsonPayload, CountDownLatch latch) {
+    private void sendPayload(String jsonPayload) {
         List<HAConnection> connections = configUtils.getStoredConnections();
 
         for (HAConnection connection : connections) {
             String apiUrl = connection.getBaseUrl() + DATA_ENDPOINT;
             Request request = buildRequest(apiUrl, jsonPayload, connection.token);
 
-            okHttpClient.newCall(request).enqueue(createCallback(jsonPayload, latch));
+            okHttpClient.newCall(request).enqueue(createCallback(jsonPayload));
         }
     }
 
     private Request buildRequest(String apiUrl, String jsonPayload, String token) {
         RequestBody requestBody = RequestBody.create(MediaType.parse(CONTENT_TYPE_JSON), jsonPayload);
-        log.debug("Sending payload to home assistant, {}: {}", apiUrl, jsonPayload);
 
         return new Request.Builder()
                 .url(Objects.requireNonNull(HttpUrl.parse(apiUrl)))
@@ -76,25 +62,18 @@ public class HomeAssistUtils {
                 .build();
     }
 
-    private Callback createCallback(String jsonPayload, CountDownLatch latch) {
+    private Callback createCallback(String jsonPayload) {
         return new Callback() {
             @Override
             @EverythingIsNonNull
             public void onFailure(Call call, IOException e) {
                 log.error("Error submitting the entity to homeassistant ", e);
-                if (latch != null) {
-                    latch.countDown();
-                }
             }
 
             @Override
             @EverythingIsNonNull
             public void onResponse(Call call, Response response) {
-                log.info("Successfully created/updated entity {}.", jsonPayload);
                 response.close();
-                if (latch != null) {
-                    latch.countDown();
-                }
             }
         };
     }

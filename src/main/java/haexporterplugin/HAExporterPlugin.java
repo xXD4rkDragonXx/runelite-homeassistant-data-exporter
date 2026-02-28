@@ -122,9 +122,6 @@ public class HAExporterPlugin extends Plugin
 	public void onStatChanged(StatChanged statChanged)
 	{
 		var exp = statChanged.getSkill();
-		log.debug(String.valueOf(exp));
-		log.debug(String.valueOf(statChanged.getXp()));
-		log.debug(statChanged.toString());
 
 		if (statChanged.getSkill() == Skill.HITPOINTS){
 			HealthData health = new HealthData(statChanged.getBoostedLevel(), client.getRealSkillLevel(Skill.HITPOINTS));
@@ -213,9 +210,6 @@ public class HAExporterPlugin extends Plugin
 			initialize();
 		}
 
-
-//		log.debug(config.homeassistantConnections());
-
 		tickUtils.sendOnSendRate();
 	}
 
@@ -234,7 +228,6 @@ public class HAExporterPlugin extends Plugin
 	private void initialize(){
 		if (client.getLocalPlayer() != null){
 			String name = client.getLocalPlayer().getName();
-			log.debug("USERNAME AFTER INIT: {}", name);
 
 			messageBuilder.setData("world", String.valueOf(client.getWorld()));
 			int accountType = client.getVarbitValue(VarbitID.IRONMAN);
@@ -263,7 +256,6 @@ public class HAExporterPlugin extends Plugin
 
 	@Subscribe
 	public void onMenuOptionClicked(MenuOptionClicked event) {
-		log.debug("EVENT TRIGGERED, {} {} {} {}",event.getMenuOption(), event.getId(), ItemID.KEBAB, event.getItemId());
 		if (event.getMenuOption().equals("Eat") && (event.getItemId() == ItemID.KEBAB || event.getItemId() == ItemID.UGTHANKI_KEBAB || event.getItemId() == ItemID.SUPER_KEBAB || event.getItemId() == ItemID.VARLAMORIAN_KEBAB)) {
 			easterEggUtils.playKebab();
 		}

@@ -24,7 +24,6 @@ public class TickUtils {
 
     public void onTick(){
         tickCount++;
-//        log.debug(String.valueOf(tickCount));
     }
 
     public void sendOnSendRate(){
@@ -44,6 +43,6 @@ public class TickUtils {
 
     public void sendShutdown(){
         String json = messageBuilder.build();
-        homeAssistUtils.sendShutdownMessage(json);
+        homeAssistUtils.sendMessage(json);
     }
 }

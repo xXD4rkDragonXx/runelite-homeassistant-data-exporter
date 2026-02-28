@@ -90,7 +90,6 @@ public class HAExporterPanel extends PluginPanel
         wrapper.setBorder(BorderFactory.createTitledBorder("Connected Devices"));
 
         List<HAConnection> connections = configUtils.getStoredConnections();
-        log.debug(Integer.toString(connections.size()));
 
         if (connections.isEmpty())
         {
@@ -104,9 +103,6 @@ public class HAExporterPanel extends PluginPanel
         {
             JPanel row = new JPanel(new BorderLayout());
             row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-
-            log.debug("{} {}", connection.baseUrl, connection.token);
-            log.debug(String.valueOf(connections.indexOf(connection)));
 
             JLabel label = new JLabel(connection.getBaseUrl());
             JButton removeButton = new JButton("Remove");

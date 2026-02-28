@@ -44,7 +44,6 @@ public class LevelNotifier extends BaseNotifier {
         updateSkillsFromGameState();
         previousLevels.putAll(currentLevels);
         this.specialWorldType = getSpecialWorldTypes();
-        log.debug("Initialized current skill levels: {}", currentLevels);
     }
 
     private int getLevel(int xp) {
@@ -111,7 +110,6 @@ public class LevelNotifier extends BaseNotifier {
         int tickCount = tickUtils.getTickCount();
 
         if ((tickCount > INIT_GAME_TICKS || tickCount >= config.sendRate()) && previousLevels.isEmpty()) {
-            log.debug("INIT LEVELS");
             initLevels();
             return;
         }
@@ -123,7 +121,6 @@ public class LevelNotifier extends BaseNotifier {
         messageBuilder.setData("stats", stats);
         
         if (!changedLevels.isEmpty()) {
-            log.info("Level changes detected: {}", changedLevels);
             messageBuilder.addEvent("levelUp", changedLevels);
             tickUtils.sendNow();
         }
