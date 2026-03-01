@@ -40,7 +40,7 @@ public interface HAExporterConfig extends Config
 			section = lootSection
 	)
 	default int minLootValue() {
-		return 0;
+		return 25000;
 	}
 
 	@ConfigItem(
