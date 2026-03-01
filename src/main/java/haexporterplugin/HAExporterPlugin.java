@@ -101,10 +101,6 @@ public class HAExporterPlugin extends Plugin
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
 		messageBuilder.setState(gameStateChanged.getGameState());
-		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
-		{
-			client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", "HA Exporter Enabled", null);
-		}
 		if (gameStateChanged.getGameState() == GameState.HOPPING)
 		{
 			initialized = false;
