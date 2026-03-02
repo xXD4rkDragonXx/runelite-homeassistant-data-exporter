@@ -8,8 +8,8 @@ public class HAConnection {
     @Getter
     public String token;
 
-    // Per-connection toggles (Boolean wrappers for backwards-compatible deserialization:
-    // old JSON without these fields -> null -> treated as enabled)
+    // Per-connection toggles. Boolean wrappers for backwards-compatible deserialization:
+    // old JSON without these fields -> null -> treated as enabled.
     private Boolean includeInventory;
     private Boolean includeEquipment;
     private Boolean includeLocation;

@@ -227,10 +227,6 @@ public class HAExporterPanel extends PluginPanel
         JButton saveButton = new JButton("Save");
         saveButton.addActionListener(e ->
         {
-            connection.setIncludeInventory(inventoryCheckbox.isSelected());
-            connection.setIncludeEquipment(equipmentCheckbox.isSelected());
-            connection.setIncludeLocation(locationCheckbox.isSelected());
-
             List<HAConnection> connections = configUtils.getStoredConnections();
             for (HAConnection c : connections)
             {
