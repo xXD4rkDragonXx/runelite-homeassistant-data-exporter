@@ -268,11 +268,11 @@ public class HAExporterPanel extends PluginPanel
         togglesPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JCheckBox inventoryCheckbox = new JCheckBox("Include Inventory", connection.isIncludeInventory());
-        inventoryCheckbox.setAlignmentX(Component.CENTER_ALIGNMENT);
+        inventoryCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
         JCheckBox equipmentCheckbox = new JCheckBox("Include Equipment", connection.isIncludeEquipment());
-        equipmentCheckbox.setAlignmentX(Component.CENTER_ALIGNMENT);
+        equipmentCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
         JCheckBox locationCheckbox = new JCheckBox("Include Location", connection.isIncludeLocation());
-        locationCheckbox.setAlignmentX(Component.CENTER_ALIGNMENT);
+        locationCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         togglesPanel.add(inventoryCheckbox);
         togglesPanel.add(equipmentCheckbox);
