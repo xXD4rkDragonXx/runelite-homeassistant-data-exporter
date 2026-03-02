@@ -55,26 +55,40 @@ public class HAExporterPanel extends PluginPanel
 
         JPanel container = new JPanel();
         container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+        container.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         // Will be expanded on in a future release
         // container.add(buildStatsPanel());
 
-        container.add(buildCreditPanel());
+        JPanel creditPanelWrapper = new JPanel();
+        creditPanelWrapper.setLayout(new BoxLayout(creditPanelWrapper, BoxLayout.X_AXIS));
+        creditPanelWrapper.setAlignmentX(Component.CENTER_ALIGNMENT);
+        creditPanelWrapper.add(Box.createHorizontalGlue());
+        JPanel creditPanel = buildCreditPanel();
+        creditPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        creditPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, creditPanel.getPreferredSize().height));
+        creditPanelWrapper.add(creditPanel);
+        creditPanelWrapper.add(Box.createHorizontalGlue());
+        container.add(creditPanelWrapper);
 
         container.add(Box.createVerticalStrut(15));
 
         JButton connectButton = new JButton("Connect New Device");
         connectButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        connectButton.setMaximumSize(new Dimension(200, connectButton.getPreferredSize().height));
         connectButton.addActionListener(e -> showConnectionCodeInput());
 
         container.add(connectButton);
         container.add(Box.createVerticalStrut(15));
 
         JPanel connectionsPanel = buildConnectionsPanel();
-        connectionsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        connectionsPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        connectionsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
         container.add(connectionsPanel);
 
-        mainPanel.add(container, BorderLayout.CENTER);
+        JPanel centerWrapper = new JPanel(new BorderLayout());
+        centerWrapper.add(container, BorderLayout.CENTER);
+        mainPanel.add(centerWrapper, BorderLayout.CENTER);
 
         revalidate();
         repaint();
@@ -105,9 +119,21 @@ public class HAExporterPanel extends PluginPanel
             card.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
             card.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+            // Header panel with name and settings button
+            JPanel headerPanel = new JPanel(new BorderLayout());
+            headerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
             JLabel nameLabel = new JLabel(connection.getDisplayName());
-            nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            card.add(nameLabel);
+            headerPanel.add(nameLabel, BorderLayout.WEST);
+
+            JButton settingsButton = new JButton("\u2699"); // Gear icon (⚙)
+            settingsButton.setPreferredSize(new Dimension(30, 20));
+            settingsButton.setMargin(new Insets(0, 0, 0, 0));
+            settingsButton.setToolTipText("Settings");
+            settingsButton.addActionListener(e -> showConnectionSettings(connection));
+            headerPanel.add(settingsButton, BorderLayout.EAST);
+
+            card.add(headerPanel);
 
             card.add(Box.createVerticalStrut(3));
 
@@ -119,23 +145,6 @@ public class HAExporterPanel extends PluginPanel
             statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             card.add(statusLabel);
 
-            card.add(Box.createVerticalStrut(3));
-
-            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
-            buttonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            JButton settingsButton = new JButton("Settings");
-            JButton removeButton = new JButton("Remove");
-
-            settingsButton.addActionListener(e ->
-                    showConnectionSettings(connection));
-
-            removeButton.addActionListener(e ->
-                    removeConnection(connection));
-
-            buttonPanel.add(settingsButton);
-            buttonPanel.add(removeButton);
-
-            card.add(buttonPanel);
 
             wrapper.add(card);
 
@@ -157,9 +166,10 @@ public class HAExporterPanel extends PluginPanel
     {
         int result = JOptionPane.showConfirmDialog(
                 this,
-                "Remove this device?",
-                "Confirm",
-                JOptionPane.YES_NO_OPTION
+                "Are you sure you want to remove \"" + connection.getDisplayName() + "\"?\n\nThis action cannot be undone.",
+                "Remove Device - Confirm",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE
         );
 
         if (result != JOptionPane.YES_OPTION)
@@ -172,6 +182,13 @@ public class HAExporterPanel extends PluginPanel
         );
 
         config.setHomeassistantConnections(gson.toJson(connections));
+
+        JOptionPane.showMessageDialog(
+                this,
+                "Device removed successfully.",
+                "Success",
+                JOptionPane.INFORMATION_MESSAGE
+        );
 
         showHomeView(); // refresh UI
     }
@@ -239,16 +256,27 @@ public class HAExporterPanel extends PluginPanel
         JPanel togglesPanel = new JPanel();
         togglesPanel.setLayout(new BoxLayout(togglesPanel, BoxLayout.Y_AXIS));
         togglesPanel.setBorder(BorderFactory.createTitledBorder("Data Toggles"));
+        togglesPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JCheckBox inventoryCheckbox = new JCheckBox("Include Inventory", connection.isIncludeInventory());
+        inventoryCheckbox.setAlignmentX(Component.CENTER_ALIGNMENT);
         JCheckBox equipmentCheckbox = new JCheckBox("Include Equipment", connection.isIncludeEquipment());
+        equipmentCheckbox.setAlignmentX(Component.CENTER_ALIGNMENT);
         JCheckBox locationCheckbox = new JCheckBox("Include Location", connection.isIncludeLocation());
+        locationCheckbox.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         togglesPanel.add(inventoryCheckbox);
         togglesPanel.add(equipmentCheckbox);
         togglesPanel.add(locationCheckbox);
 
         topPanel.add(togglesPanel);
+        topPanel.add(Box.createVerticalStrut(15));
+
+        JButton removeButton = new JButton("Remove Device");
+        removeButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        removeButton.setMaximumSize(new Dimension(200, removeButton.getPreferredSize().height));
+        removeButton.addActionListener(e -> removeConnection(connection));
+        topPanel.add(removeButton);
 
         container.add(topPanel, BorderLayout.CENTER);
 
