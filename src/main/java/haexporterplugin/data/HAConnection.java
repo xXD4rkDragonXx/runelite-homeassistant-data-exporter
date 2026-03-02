@@ -1,12 +1,18 @@
 package haexporterplugin.data;
 
 import lombok.Getter;
+import lombok.Setter;
 
 public class HAConnection {
     @Getter
     public String baseUrl;
     @Getter
     public String token;
+
+    // Optional friendly name shown in the panel instead of the URL.
+    @Getter
+    @Setter
+    private String friendlyName;
 
     // Per-connection toggles. Boolean wrappers for backwards-compatible deserialization:
     // old JSON without these fields -> null -> treated as enabled.
@@ -21,6 +27,13 @@ public class HAConnection {
         this.includeInventory = true;
         this.includeEquipment = true;
         this.includeLocation = true;
+    }
+
+    public String getDisplayName()
+    {
+        return friendlyName != null && !friendlyName.trim().isEmpty()
+                ? friendlyName
+                : baseUrl;
     }
 
     public boolean isIncludeInventory()

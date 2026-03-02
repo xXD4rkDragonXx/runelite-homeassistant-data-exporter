@@ -53,29 +53,26 @@ public class HAExporterPanel extends PluginPanel
     {
         mainPanel.removeAll();
 
-        JPanel container = new JPanel(new BorderLayout());
+        JPanel container = new JPanel();
+        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
 
         // Will be expanded on in a future release
-        // container.add(buildStatsPanel(), BorderLayout.NORTH);
+        // container.add(buildStatsPanel());
 
-        container.add(buildCreditPanel(), BorderLayout.NORTH);
+        container.add(buildCreditPanel());
 
-
-
-        JPanel centerPanel = new JPanel();
-        centerPanel.add(Box.createVerticalStrut(15));
-        centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+        container.add(Box.createVerticalStrut(15));
 
         JButton connectButton = new JButton("Connect New Device");
         connectButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         connectButton.addActionListener(e -> showConnectionCodeInput());
 
-        centerPanel.add(connectButton);
-        centerPanel.add(Box.createVerticalStrut(15));
+        container.add(connectButton);
+        container.add(Box.createVerticalStrut(15));
 
-        centerPanel.add(buildConnectionsPanel());
-
-        container.add(centerPanel, BorderLayout.CENTER);
+        JPanel connectionsPanel = buildConnectionsPanel();
+        connectionsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        container.add(connectionsPanel);
 
         mainPanel.add(container, BorderLayout.CENTER);
 
@@ -94,7 +91,7 @@ public class HAExporterPanel extends PluginPanel
         if (connections.isEmpty())
         {
             JLabel none = new JLabel("No devices connected.");
-            none.setAlignmentX(Component.CENTER_ALIGNMENT);
+            none.setAlignmentX(Component.LEFT_ALIGNMENT);
             wrapper.add(none);
             return wrapper;
         }
@@ -106,10 +103,11 @@ public class HAExporterPanel extends PluginPanel
             JPanel card = new JPanel();
             card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
             card.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+            card.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-            JLabel urlLabel = new JLabel(connection.getBaseUrl());
-            urlLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            card.add(urlLabel);
+            JLabel nameLabel = new JLabel(connection.getDisplayName());
+            nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            card.add(nameLabel);
 
             card.add(Box.createVerticalStrut(3));
 
@@ -144,7 +142,10 @@ public class HAExporterPanel extends PluginPanel
             if (i < connections.size() - 1)
             {
                 wrapper.add(Box.createVerticalStrut(5));
-                wrapper.add(new JSeparator(SwingConstants.HORIZONTAL));
+                JSeparator sep = new JSeparator(SwingConstants.HORIZONTAL);
+                sep.setAlignmentX(Component.LEFT_ALIGNMENT);
+                sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+                wrapper.add(sep);
                 wrapper.add(Box.createVerticalStrut(5));
             }
         }
@@ -224,6 +225,17 @@ public class HAExporterPanel extends PluginPanel
         topPanel.add(urlLabel);
         topPanel.add(Box.createVerticalStrut(15));
 
+        JPanel namePanel = new JPanel();
+        namePanel.setLayout(new BoxLayout(namePanel, BoxLayout.Y_AXIS));
+        namePanel.setBorder(BorderFactory.createTitledBorder("Friendly Name"));
+
+        JTextField nameField = new JTextField(connection.getFriendlyName() != null ? connection.getFriendlyName() : "");
+        nameField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
+        namePanel.add(nameField);
+
+        topPanel.add(namePanel);
+        topPanel.add(Box.createVerticalStrut(10));
+
         JPanel togglesPanel = new JPanel();
         togglesPanel.setLayout(new BoxLayout(togglesPanel, BoxLayout.Y_AXIS));
         togglesPanel.setBorder(BorderFactory.createTitledBorder("Data Toggles"));
@@ -256,6 +268,8 @@ public class HAExporterPanel extends PluginPanel
                 if (c.getBaseUrl().equals(connection.getBaseUrl())
                         && c.getToken().equals(connection.getToken()))
                 {
+                    String name = nameField.getText().trim();
+                    c.setFriendlyName(name.isEmpty() ? null : name);
                     c.setIncludeInventory(inventoryCheckbox.isSelected());
                     c.setIncludeEquipment(equipmentCheckbox.isSelected());
                     c.setIncludeLocation(locationCheckbox.isSelected());
