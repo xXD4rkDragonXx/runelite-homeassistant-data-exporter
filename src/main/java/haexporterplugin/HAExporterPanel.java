@@ -137,10 +137,19 @@ public class HAExporterPanel extends PluginPanel
 
             card.add(Box.createVerticalStrut(3));
 
-            String indicators =
-                    (connection.isIncludeInventory() ? "\u2713" : "\u2717") + " Inv  " +
-                    (connection.isIncludeEquipment() ? "\u2713" : "\u2717") + " Equip  " +
-                    (connection.isIncludeLocation()  ? "\u2713" : "\u2717") + " Loc";
+            // Create colored HTML status indicators
+            String invColor = connection.isIncludeInventory() ? "green" : "red";
+            String invIcon = connection.isIncludeInventory() ? "\u2713" : "\u2717";
+            String equipColor = connection.isIncludeEquipment() ? "green" : "red";
+            String equipIcon = connection.isIncludeEquipment() ? "\u2713" : "\u2717";
+            String locColor = connection.isIncludeLocation() ? "green" : "red";
+            String locIcon = connection.isIncludeLocation() ? "\u2713" : "\u2717";
+
+            String indicators = "<html>" +
+                    "<span style='color:" + invColor + ";'>" + invIcon + "</span> Inv  " +
+                    "<span style='color:" + equipColor + ";'>" + equipIcon + "</span> Equip  " +
+                    "<span style='color:" + locColor + ";'>" + locIcon + "</span> Loc" +
+                    "</html>";
             JLabel statusLabel = new JLabel(indicators);
             statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             card.add(statusLabel);
@@ -275,6 +284,7 @@ public class HAExporterPanel extends PluginPanel
         JButton removeButton = new JButton("Remove Device");
         removeButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         removeButton.setMaximumSize(new Dimension(200, removeButton.getPreferredSize().height));
+        removeButton.setForeground(Color.RED);
         removeButton.addActionListener(e -> removeConnection(connection));
         topPanel.add(removeButton);
 
