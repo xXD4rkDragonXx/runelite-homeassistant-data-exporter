@@ -536,7 +536,7 @@ public class HAExporterPanel extends PluginPanel
 
         submitButton.addActionListener(e ->
         {
-            String baseUrl = baseUrlField.getText().trim();
+            String baseUrl = normalizeBaseUrl(baseUrlField.getText().trim());
 
             StringBuilder code = new StringBuilder();
             for (JTextField field : fields)
@@ -619,5 +619,10 @@ public class HAExporterPanel extends PluginPanel
 
         checkBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         return checkBox;
+    }
+
+    private static String normalizeBaseUrl(String url)
+    {
+        return url.trim().replaceAll("/+$", "");
     }
 }
