@@ -48,12 +48,22 @@ public class HomeAssistUtils {
             String apiUrl = connection.getBaseUrl() + DATA_ENDPOINT;
             Request request = buildRequest(apiUrl, filteredPayload, connection.token);
 
+            if (log.isDebugEnabled()){
+                log.debug("{} ({}): {}",connection.getDisplayName(), apiUrl, filteredPayload);
+            }
+
             okHttpClient.newCall(request).enqueue(createCallback(filteredPayload));
         }
     }
 
     private String applyConnectionFilters(String jsonPayload, HAConnection connection) {
-        if (connection.isIncludeInventory() && connection.isIncludeEquipment() && connection.isIncludeLocation()) {
+        if (connection.isIncludeInventory()
+                && connection.isIncludeEquipment()
+                && connection.isIncludeLocation()
+                && config.includeInventory()
+                && config.includeEquipment()
+                && config.includeLocation())
+        {
             return jsonPayload;
         }
 
