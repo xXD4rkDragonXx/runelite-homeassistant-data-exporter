@@ -60,13 +60,13 @@ public class HomeAssistUtils {
         JsonObject root = gson.fromJson(jsonPayload, JsonObject.class);
         if (root.has("player")) {
             JsonObject player = root.getAsJsonObject("player");
-            if (!connection.isIncludeInventory()) {
+            if (!connection.isIncludeInventory() || !config.includeInventory()) {
                 player.remove("inventory");
             }
-            if (!connection.isIncludeEquipment()) {
+            if (!connection.isIncludeEquipment() || !config.includeEquipment()) {
                 player.remove("equipment");
             }
-            if (!connection.isIncludeLocation()) {
+            if (!connection.isIncludeLocation() || !config.includeLocation()) {
                 player.remove("location");
             }
         }
