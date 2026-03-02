@@ -20,6 +20,14 @@ public interface HAExporterConfig extends Config
 	String lootSection = "Loot";
 
 	@ConfigSection(
+			name = "Global Overwrites",
+			description = "Settings for global overwrites",
+			position = 400,
+			closedByDefault = true
+	)
+	String overwriteSection = "Global Overwrite";
+
+	@ConfigSection(
 		name = "Advanced",
 		description = "Settings for notifying about Advanced features",
 		position = 900,
@@ -40,7 +48,7 @@ public interface HAExporterConfig extends Config
 			section = lootSection
 	)
 	default int minLootValue() {
-		return 0;
+		return 25000;
 	}
 
 	@ConfigItem(
@@ -106,6 +114,45 @@ public interface HAExporterConfig extends Config
 	default boolean lootRarityValueIntersection() {
 		return false;
 	}
+
+
+	/* ============================
+       Global Overwrite Items
+       ============================ */
+
+	@ConfigItem(
+			keyName = "includeInventory",
+			name = "Include Inventory",
+			description = "Global overwrite to disable sending inventory data.",
+			position = 400,
+			section = overwriteSection
+	)
+	default boolean includeInventory() {
+		return true;
+	}
+
+	@ConfigItem(
+			keyName = "includeEquipment",
+			name = "Include Equipment",
+			description = "Global overwrite to disable sending equipment data.",
+			position = 401,
+			section = overwriteSection
+	)
+	default boolean includeEquipment() {
+		return true;
+	}
+
+	@ConfigItem(
+			keyName = "includeLocation",
+			name = "Include Location",
+			description = "Global overwrite to disable sending in-game location data.",
+			position = 402,
+			section = overwriteSection
+	)
+	default boolean includeLocation() {
+		return true;
+	}
+
 	/* ============================
        Advanced Config Items
        ============================ */
