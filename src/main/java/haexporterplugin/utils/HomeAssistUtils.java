@@ -44,11 +44,33 @@ public class HomeAssistUtils {
         List<HAConnection> connections = configUtils.getStoredConnections();
 
         for (HAConnection connection : connections) {
+            String filteredPayload = applyConnectionFilters(jsonPayload, connection);
             String apiUrl = connection.getBaseUrl() + DATA_ENDPOINT;
-            Request request = buildRequest(apiUrl, jsonPayload, connection.token);
+            Request request = buildRequest(apiUrl, filteredPayload, connection.token);
 
-            okHttpClient.newCall(request).enqueue(createCallback(jsonPayload));
+            okHttpClient.newCall(request).enqueue(createCallback(filteredPayload));
         }
+    }
+
+    private String applyConnectionFilters(String jsonPayload, HAConnection connection) {
+        if (connection.isIncludeInventory() && connection.isIncludeEquipment() && connection.isIncludeLocation()) {
+            return jsonPayload;
+        }
+
+        JsonObject root = gson.fromJson(jsonPayload, JsonObject.class);
+        if (root.has("player")) {
+            JsonObject player = root.getAsJsonObject("player");
+            if (!connection.isIncludeInventory()) {
+                player.remove("inventory");
+            }
+            if (!connection.isIncludeEquipment()) {
+                player.remove("equipment");
+            }
+            if (!connection.isIncludeLocation()) {
+                player.remove("location");
+            }
+        }
+        return gson.toJson(root);
     }
 
     private Request buildRequest(String apiUrl, String jsonPayload, String token) {

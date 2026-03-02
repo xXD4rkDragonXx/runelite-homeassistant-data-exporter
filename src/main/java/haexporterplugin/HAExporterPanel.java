@@ -105,13 +105,22 @@ public class HAExporterPanel extends PluginPanel
             row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
 
             JLabel label = new JLabel(connection.getBaseUrl());
+
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
+            JButton settingsButton = new JButton("Settings");
             JButton removeButton = new JButton("Remove");
+
+            settingsButton.addActionListener(e ->
+                    showConnectionSettings(connection));
 
             removeButton.addActionListener(e ->
                     removeConnection(connection));
 
+            buttonPanel.add(settingsButton);
+            buttonPanel.add(removeButton);
+
             row.add(label, BorderLayout.CENTER);
-            row.add(removeButton, BorderLayout.EAST);
+            row.add(buttonPanel, BorderLayout.EAST);
 
             wrapper.add(row);
             wrapper.add(Box.createVerticalStrut(5));
@@ -167,6 +176,96 @@ public class HAExporterPanel extends PluginPanel
         creditPanel.add(authorLabel);
 
         return creditPanel;
+    }
+
+    /* ============================
+       CONNECTION SETTINGS VIEW
+       ============================ */
+
+    private void showConnectionSettings(HAConnection connection)
+    {
+        mainPanel.removeAll();
+
+        JPanel container = new JPanel(new BorderLayout());
+
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+
+        JLabel title = new JLabel("Connection Settings", SwingConstants.CENTER);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        topPanel.add(title);
+        topPanel.add(Box.createVerticalStrut(5));
+
+        JLabel urlLabel = new JLabel(connection.getBaseUrl());
+        urlLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        topPanel.add(urlLabel);
+        topPanel.add(Box.createVerticalStrut(15));
+
+        JPanel togglesPanel = new JPanel();
+        togglesPanel.setLayout(new BoxLayout(togglesPanel, BoxLayout.Y_AXIS));
+        togglesPanel.setBorder(BorderFactory.createTitledBorder("Data Toggles"));
+
+        JCheckBox inventoryCheckbox = new JCheckBox("Include Inventory", connection.isIncludeInventory());
+        JCheckBox equipmentCheckbox = new JCheckBox("Include Equipment", connection.isIncludeEquipment());
+        JCheckBox locationCheckbox = new JCheckBox("Include Location", connection.isIncludeLocation());
+
+        togglesPanel.add(inventoryCheckbox);
+        togglesPanel.add(equipmentCheckbox);
+        togglesPanel.add(locationCheckbox);
+
+        topPanel.add(togglesPanel);
+
+        container.add(topPanel, BorderLayout.CENTER);
+
+        JPanel buttonContainer = new JPanel();
+        buttonContainer.setLayout(new BoxLayout(buttonContainer, BoxLayout.Y_AXIS));
+        buttonContainer.add(Box.createVerticalStrut(5));
+
+        JButton backButton = new JButton("Back");
+        backButton.addActionListener(e -> showHomeView());
+
+        JButton saveButton = new JButton("Save");
+        saveButton.addActionListener(e ->
+        {
+            connection.setIncludeInventory(inventoryCheckbox.isSelected());
+            connection.setIncludeEquipment(equipmentCheckbox.isSelected());
+            connection.setIncludeLocation(locationCheckbox.isSelected());
+
+            List<HAConnection> connections = configUtils.getStoredConnections();
+            for (HAConnection c : connections)
+            {
+                if (c.getBaseUrl().equals(connection.getBaseUrl())
+                        && c.getToken().equals(connection.getToken()))
+                {
+                    c.setIncludeInventory(inventoryCheckbox.isSelected());
+                    c.setIncludeEquipment(equipmentCheckbox.isSelected());
+                    c.setIncludeLocation(locationCheckbox.isSelected());
+                }
+            }
+            config.setHomeassistantConnections(gson.toJson(connections));
+
+            JOptionPane.showMessageDialog(
+                    HAExporterPanel.this,
+                    "Settings saved!",
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+            showHomeView();
+        });
+
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 2, 5, 5));
+        buttonPanel.add(backButton);
+        buttonPanel.add(saveButton);
+
+        buttonContainer.add(buttonPanel);
+
+        container.add(buttonContainer, BorderLayout.SOUTH);
+
+        mainPanel.add(container, BorderLayout.CENTER);
+
+        revalidate();
+        repaint();
     }
 
     /* ============================
