@@ -39,6 +39,13 @@ public class HAExporterPanel extends PluginPanel
         add(mainPanel, BorderLayout.CENTER);
     }
 
+    @Override
+    public void onActivate()
+    {
+        super.onActivate();
+        showHomeView(); // Rebuild the UI every time the panel is opened
+    }
+
     public void initialize()
     {
         showHomeView();
@@ -138,12 +145,12 @@ public class HAExporterPanel extends PluginPanel
             card.add(Box.createVerticalStrut(3));
 
             // Create colored HTML status indicators
-            String invColor = connection.isIncludeInventory() ? "green" : "red";
-            String invIcon = connection.isIncludeInventory() ? "\u2713" : "\u2717";
-            String equipColor = connection.isIncludeEquipment() ? "green" : "red";
-            String equipIcon = connection.isIncludeEquipment() ? "\u2713" : "\u2717";
-            String locColor = connection.isIncludeLocation() ? "green" : "red";
-            String locIcon = connection.isIncludeLocation() ? "\u2713" : "\u2717";
+            String invColor = (connection.isIncludeInventory() && config.includeInventory()) ? "green" : "red";
+            String invIcon = (connection.isIncludeInventory() && config.includeInventory()) ? "\u2713" : "\u2717";
+            String equipColor = (connection.isIncludeEquipment() && config.includeEquipment()) ? "green" : "red";
+            String equipIcon = (connection.isIncludeEquipment() && config.includeEquipment()) ? "\u2713" : "\u2717";
+            String locColor = (connection.isIncludeLocation() && config.includeLocation()) ? "green" : "red";
+            String locIcon = (connection.isIncludeLocation() && config.includeLocation()) ? "\u2713" : "\u2717";
 
             String indicators = "<html>" +
                     "<span style='color:" + invColor + ";'>" + invIcon + "</span> Inv  " +
