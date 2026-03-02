@@ -99,14 +99,32 @@ public class HAExporterPanel extends PluginPanel
             return wrapper;
         }
 
-        for (HAConnection connection : connections)
+        for (int i = 0; i < connections.size(); i++)
         {
-            JPanel row = new JPanel(new BorderLayout());
-            row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+            HAConnection connection = connections.get(i);
 
-            JLabel label = new JLabel(connection.getBaseUrl());
+            JPanel card = new JPanel();
+            card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+            card.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 
-            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
+            JLabel urlLabel = new JLabel(connection.getBaseUrl());
+            urlLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            card.add(urlLabel);
+
+            card.add(Box.createVerticalStrut(3));
+
+            String indicators =
+                    (connection.isIncludeInventory() ? "\u2713" : "\u2717") + " Inv  " +
+                    (connection.isIncludeEquipment() ? "\u2713" : "\u2717") + " Equip  " +
+                    (connection.isIncludeLocation()  ? "\u2713" : "\u2717") + " Loc";
+            JLabel statusLabel = new JLabel(indicators);
+            statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            card.add(statusLabel);
+
+            card.add(Box.createVerticalStrut(3));
+
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
+            buttonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
             JButton settingsButton = new JButton("Settings");
             JButton removeButton = new JButton("Remove");
 
@@ -119,11 +137,16 @@ public class HAExporterPanel extends PluginPanel
             buttonPanel.add(settingsButton);
             buttonPanel.add(removeButton);
 
-            row.add(label, BorderLayout.CENTER);
-            row.add(buttonPanel, BorderLayout.EAST);
+            card.add(buttonPanel);
 
-            wrapper.add(row);
-            wrapper.add(Box.createVerticalStrut(5));
+            wrapper.add(card);
+
+            if (i < connections.size() - 1)
+            {
+                wrapper.add(Box.createVerticalStrut(5));
+                wrapper.add(new JSeparator(SwingConstants.HORIZONTAL));
+                wrapper.add(Box.createVerticalStrut(5));
+            }
         }
 
         return wrapper;
