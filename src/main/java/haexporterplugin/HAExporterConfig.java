@@ -121,24 +121,24 @@ public interface HAExporterConfig extends Config
        ============================ */
 
 	@ConfigItem(
-			keyName = "includeEquipment",
-			name = "Include Equipment",
-			description = "Global overwrite to disable sending equipment data.",
+			keyName = "includeInventory",
+			name = "Include Inventory",
+			description = "Global overwrite to disable sending inventory data.",
 			position = 400,
 			section = overwriteSection
 	)
-	default boolean includeEquipment() {
+	default boolean includeInventory() {
 		return true;
 	}
 
 	@ConfigItem(
-			keyName = "includeInventory",
-			name = "Include Inventory",
-			description = "Global overwrite to disable sending inventory data.",
+			keyName = "includeEquipment",
+			name = "Include Equipment",
+			description = "Global overwrite to disable sending equipment data.",
 			position = 401,
 			section = overwriteSection
 	)
-	default boolean includeInventory() {
+	default boolean includeEquipment() {
 		return true;
 	}
 

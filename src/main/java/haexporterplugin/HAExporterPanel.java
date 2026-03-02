@@ -274,12 +274,24 @@ public class HAExporterPanel extends PluginPanel
         togglesPanel.setBorder(BorderFactory.createTitledBorder("Data Toggles"));
         togglesPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JCheckBox inventoryCheckbox = new JCheckBox("Include Inventory", connection.isIncludeInventory());
-        inventoryCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JCheckBox equipmentCheckbox = new JCheckBox("Include Equipment", connection.isIncludeEquipment());
-        equipmentCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        JCheckBox locationCheckbox = new JCheckBox("Include Location", connection.isIncludeLocation());
-        locationCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JCheckBox inventoryCheckbox  = createCheckbox(
+                "Include Inventory",
+                connection.isIncludeInventory(),
+                config.includeInventory()
+        );
+
+        JCheckBox equipmentCheckbox = createCheckbox(
+                "Include Equipment",
+                connection.isIncludeEquipment(),
+                config.includeEquipment()
+        );
+
+        JCheckBox locationCheckbox  = createCheckbox(
+                "Include Location",
+                connection.isIncludeLocation(),
+                config.includeLocation()
+        );
 
         togglesPanel.add(inventoryCheckbox);
         togglesPanel.add(equipmentCheckbox);
@@ -591,5 +603,21 @@ public class HAExporterPanel extends PluginPanel
         );
 
         showHomeView();
+    }
+
+    private JCheckBox createCheckbox(String label, boolean selected, boolean globallyEnabled) {
+        JCheckBox checkBox = new JCheckBox(
+                globallyEnabled ? label : label + " (Globally disabled)",
+                globallyEnabled && selected
+        );
+
+        checkBox.setEnabled(globallyEnabled);
+
+        if (!globallyEnabled) {
+            checkBox.setToolTipText("Globally disabled");
+        }
+
+        checkBox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return checkBox;
     }
 }
