@@ -47,6 +47,8 @@ public class HAExporterPlugin extends Plugin
 
     private NavigationButton navButton;
 	private @Inject TickUtils tickUtils;
+	private @Inject AchievementDiaryNotifier achievementDiaryNotifier;
+	private @Inject CombatTaskNotifier combatTaskNotifier;
 	private @Inject LevelNotifier levelNotifier;
 	private @Inject ItemNotifier itemNotifier;
 	private @Inject LootNotifier lootNotifier;
@@ -142,6 +144,8 @@ public class HAExporterPlugin extends Plugin
 				}
 				lootNotifier.onGameMessage(chatMessage.getMessage());
 				deathNotifier.onGameMessage(chatMessage.getMessage());
+				combatTaskNotifier.onChatMessage(chatMessage);
+				achievementDiaryNotifier.onChatMessage(chatMessage);
 				break;
 		}
 
