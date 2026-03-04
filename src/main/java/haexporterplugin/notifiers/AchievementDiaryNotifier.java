@@ -31,7 +31,7 @@ public class AchievementDiaryNotifier extends BaseNotifier {
             log.debug("Detected diary completion: {} (tier: {})", region, tier);
 
             Map<String, Object> thisEvent = new HashMap<>();
-            thisEvent.put("task_name", region);
+            thisEvent.put("region", region);
             thisEvent.put("tier", tier);
             messageBuilder.addEvent("achievementDiary", thisEvent);
         }

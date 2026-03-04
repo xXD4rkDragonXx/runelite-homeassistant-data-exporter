@@ -31,7 +31,7 @@ public class CombatTaskNotifier extends BaseNotifier {
             log.debug("Detected combat task completion: {} (tier: {})", task, tier);
 
             Map<String, Object> thisEvent = new HashMap<>();
-            thisEvent.put("task_name", task);
+            thisEvent.put("taskName", task);
             thisEvent.put("tier", tier);
             messageBuilder.addEvent("combatTask", thisEvent);
         }
