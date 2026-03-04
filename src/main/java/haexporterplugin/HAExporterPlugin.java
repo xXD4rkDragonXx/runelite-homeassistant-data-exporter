@@ -124,12 +124,16 @@ public class HAExporterPlugin extends Plugin
 		if (statChanged.getSkill() == Skill.HITPOINTS){
 			HealthData health = new HealthData(statChanged.getBoostedLevel(), client.getRealSkillLevel(Skill.HITPOINTS));
 			messageBuilder.setData("health", health);
-			tickUtils.sendNow();
+			if (config.sendHealthInstantly()) {
+				tickUtils.sendNow();
+			}
 		}
 		if (statChanged.getSkill() == Skill.PRAYER){
 			PrayerData prayer = new PrayerData(statChanged.getBoostedLevel(), client.getRealSkillLevel(Skill.PRAYER));
 			messageBuilder.setData("prayer", prayer);
-			tickUtils.sendNow();
+			if (config.sendPrayerInstantly()) {
+				tickUtils.sendNow();
+			}
 		}
 	}
 

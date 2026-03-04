@@ -181,12 +181,34 @@ public interface HAExporterConfig extends Config
 	}
 
 
+	@ConfigItem(
+			keyName = "sendHealthInstantly",
+			name = "Send Health changes instantly?",
+			description = "When enabled, health changes trigger an immediate send. When disabled, health updates are sent during the normal tick cycle.",
+			position = 903,
+			section = advancedSection
+	)
+	default boolean sendHealthInstantly() {
+		return true;
+	}
+
+	@ConfigItem(
+			keyName = "sendPrayerInstantly",
+			name = "Send Prayer changes instantly?",
+			description = "When enabled, prayer changes trigger an immediate send. When disabled, prayer updates are sent during the normal tick cycle.",
+			position = 904,
+			section = advancedSection
+	)
+	default boolean sendPrayerInstantly() {
+		return true;
+	}
+
 	// Whether to play sound on eating kebab
 	@ConfigItem(
 			keyName = "kebab",
 			name = "Kebab?",
 			description = "Do you like kebab?",
-			position = 902,
+			position = 905,
 			section = advancedSection
 	)
 	default boolean kebab() {
@@ -198,7 +220,7 @@ public interface HAExporterConfig extends Config
 			keyName = "garbage",
 			name = "Garbage?",
 			description = "Do you feel like garbage?",
-			position = 902,
+			position = 906,
 			section = advancedSection
 	)
 	default boolean garbage() {
