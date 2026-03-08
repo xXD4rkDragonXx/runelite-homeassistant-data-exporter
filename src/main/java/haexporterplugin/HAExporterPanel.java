@@ -270,22 +270,6 @@ public class HAExporterPanel extends PluginPanel
         topPanel.add(urlLabel);
         topPanel.add(Box.createVerticalStrut(15));
 
-        // Enabled checkbox
-        JCheckBox enabledCheckbox = new JCheckBox("Enabled", connection.isEnabled());
-        enabledCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        topPanel.add(enabledCheckbox);
-
-        // Show warning if connection was auto-disabled
-        if (!connection.isEnabled() && connection.getDisabledReason() != null)
-        {
-            topPanel.add(Box.createVerticalStrut(5));
-            JLabel warningLabel = new JLabel("<html><span style='color:orange;'>\u26A0 " + connection.getDisabledReason() + "</span></html>");
-            warningLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            topPanel.add(warningLabel);
-        }
-
-        topPanel.add(Box.createVerticalStrut(10));
-
         JPanel namePanel = new JPanel();
         namePanel.setLayout(new BoxLayout(namePanel, BoxLayout.Y_AXIS));
         namePanel.setBorder(BorderFactory.createTitledBorder("Friendly Name"));
@@ -296,6 +280,39 @@ public class HAExporterPanel extends PluginPanel
 
         topPanel.add(namePanel);
         topPanel.add(Box.createVerticalStrut(10));
+
+        JPanel statusPanel = new JPanel();
+        statusPanel.setLayout(new BoxLayout(statusPanel, BoxLayout.Y_AXIS));
+        statusPanel.setBorder(BorderFactory.createTitledBorder("Status"));
+        statusPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JCheckBox enabledCheckbox = new JCheckBox("Enabled", connection.isEnabled());
+        enabledCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        statusPanel.add(enabledCheckbox);
+
+        int minStatusWidth = namePanel.getPreferredSize().width;
+        Dimension statusPref = statusPanel.getPreferredSize();
+        statusPanel.setPreferredSize(new Dimension(Math.max(statusPref.width, minStatusWidth), statusPref.height));
+
+        topPanel.add(statusPanel);
+
+        if (!connection.isEnabled() && connection.getDisabledReason() != null)
+        {
+            int warningWidth = Math.max(minStatusWidth - 16, 180);
+            JLabel warningLabel = new JLabel(
+                    "<html><div style='width:" + warningWidth + "px;color:orange;'>\u26A0 "
+                            + connection.getDisabledReason() +
+                            "</div></html>"
+            );
+            warningLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            topPanel.add(Box.createVerticalStrut(6));
+            topPanel.add(warningLabel);
+            topPanel.add(Box.createVerticalStrut(10));
+        }
+        else
+        {
+            topPanel.add(Box.createVerticalStrut(10));
+        }
 
         JPanel togglesPanel = new JPanel();
         togglesPanel.setLayout(new BoxLayout(togglesPanel, BoxLayout.Y_AXIS));
@@ -659,3 +676,4 @@ public class HAExporterPanel extends PluginPanel
         return url.trim().replaceAll("/+$", "");
     }
 }
+
