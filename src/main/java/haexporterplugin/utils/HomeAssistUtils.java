@@ -129,6 +129,7 @@ public class HomeAssistUtils {
                     && c.getToken().equals(connection.getToken())) {
                 c.setEnabled(false);
                 c.setDisabledReason(reason);
+                break;
             }
         }
         configUtils.saveConnections(connections);
