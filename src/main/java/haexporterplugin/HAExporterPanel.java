@@ -142,6 +142,18 @@ public class HAExporterPanel extends PluginPanel
 
             card.add(headerPanel);
 
+            // Show warning if connection is disabled
+            if (!connection.isEnabled())
+            {
+                card.add(Box.createVerticalStrut(3));
+                String reason = connection.getDisabledReason() != null
+                        ? connection.getDisabledReason()
+                        : "Disabled";
+                JLabel disabledLabel = new JLabel("<html><span style='color:orange;'>\u26A0 " + reason + "</span></html>");
+                disabledLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                card.add(disabledLabel);
+            }
+
             card.add(Box.createVerticalStrut(3));
 
             // Create colored HTML status indicators
@@ -258,6 +270,22 @@ public class HAExporterPanel extends PluginPanel
         topPanel.add(urlLabel);
         topPanel.add(Box.createVerticalStrut(15));
 
+        // Enabled checkbox
+        JCheckBox enabledCheckbox = new JCheckBox("Enabled", connection.isEnabled());
+        enabledCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        topPanel.add(enabledCheckbox);
+
+        // Show warning if connection was auto-disabled
+        if (!connection.isEnabled() && connection.getDisabledReason() != null)
+        {
+            topPanel.add(Box.createVerticalStrut(5));
+            JLabel warningLabel = new JLabel("<html><span style='color:orange;'>\u26A0 " + connection.getDisabledReason() + "</span></html>");
+            warningLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            topPanel.add(warningLabel);
+        }
+
+        topPanel.add(Box.createVerticalStrut(10));
+
         JPanel namePanel = new JPanel();
         namePanel.setLayout(new BoxLayout(namePanel, BoxLayout.Y_AXIS));
         namePanel.setBorder(BorderFactory.createTitledBorder("Friendly Name"));
@@ -327,6 +355,11 @@ public class HAExporterPanel extends PluginPanel
                 {
                     String name = nameField.getText().trim();
                     c.setFriendlyName(name.isEmpty() ? null : name);
+                    c.setEnabled(enabledCheckbox.isSelected());
+                    if (enabledCheckbox.isSelected())
+                    {
+                        c.setDisabledReason(null);
+                    }
                     c.setIncludeInventory(inventoryCheckbox.isSelected());
                     c.setIncludeEquipment(equipmentCheckbox.isSelected());
                     c.setIncludeLocation(locationCheckbox.isSelected());

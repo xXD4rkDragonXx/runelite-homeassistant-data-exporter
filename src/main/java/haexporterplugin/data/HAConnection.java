@@ -14,6 +14,15 @@ public class HAConnection {
     @Setter
     private String friendlyName;
 
+    // Whether the connection is enabled. Boolean wrapper for backwards-compatible deserialization:
+    // old JSON without this field -> null -> treated as enabled.
+    private Boolean enabled;
+
+    // If the connection was auto-disabled (e.g. 401 Unauthorized), this stores the reason.
+    @Getter
+    @Setter
+    private String disabledReason;
+
     // Per-connection toggles. Boolean wrappers for backwards-compatible deserialization:
     // old JSON without these fields -> null -> treated as enabled.
     private Boolean includeInventory;
@@ -34,6 +43,16 @@ public class HAConnection {
         return friendlyName != null && !friendlyName.trim().isEmpty()
                 ? friendlyName
                 : baseUrl;
+    }
+
+    public boolean isEnabled()
+    {
+        return enabled == null || enabled;
+    }
+
+    public void setEnabled(boolean value)
+    {
+        this.enabled = value;
     }
 
     public boolean isIncludeInventory()
