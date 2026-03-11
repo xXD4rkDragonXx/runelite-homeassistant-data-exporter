@@ -145,21 +145,13 @@ public class HAExporterPanel extends PluginPanel
             card.add(Box.createVerticalStrut(3));
 
             // Create colored HTML status indicators
-            String invColor = (connection.isIncludeInventory() && config.includeInventory()) ? "green" : "red";
-            String invIcon = (connection.isIncludeInventory() && config.includeInventory()) ? "\u2713" : "\u2717";
-            String equipColor = (connection.isIncludeEquipment() && config.includeEquipment()) ? "green" : "red";
-            String equipIcon = (connection.isIncludeEquipment() && config.includeEquipment()) ? "\u2713" : "\u2717";
-            String locColor = (connection.isIncludeLocation() && config.includeLocation()) ? "green" : "red";
-            String locIcon = (connection.isIncludeLocation() && config.includeLocation()) ? "\u2713" : "\u2717";
+            JLabel dataStatusLabel = new JLabel(buildDataIndicators(connection));
+            dataStatusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            card.add(dataStatusLabel);
 
-            String indicators = "<html>" +
-                    "<span style='color:" + invColor + ";'>" + invIcon + "</span> Inv  " +
-                    "<span style='color:" + equipColor + ";'>" + equipIcon + "</span> Equip  " +
-                    "<span style='color:" + locColor + ";'>" + locIcon + "</span> Loc" +
-                    "</html>";
-            JLabel statusLabel = new JLabel(indicators);
-            statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            card.add(statusLabel);
+            JLabel eventStatusLabel = new JLabel(buildEventIndicators(connection));
+            eventStatusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            card.add(eventStatusLabel);
 
 
             wrapper.add(card);
@@ -176,6 +168,33 @@ public class HAExporterPanel extends PluginPanel
         }
 
         return wrapper;
+    }
+
+    private String buildDataIndicators(HAConnection connection)
+    {
+        return "<html>" +
+                indicator(connection.isIncludeInventory() && config.includeInventory(), "Inv") + "  " +
+                indicator(connection.isIncludeEquipment() && config.includeEquipment(), "Equip") + "  " +
+                indicator(connection.isIncludeLocation() && config.includeLocation(), "Loc") +
+                "</html>";
+    }
+
+    private String buildEventIndicators(HAConnection connection)
+    {
+        return "<html>" +
+                indicator(connection.isIncludeLootEvents() && config.includeLootEvents(), "Loot") + "  " +
+                indicator(connection.isIncludeDeathEvents() && config.includeDeathEvents(), "Death") + "  " +
+                indicator(connection.isIncludeLevelUpEvents() && config.includeLevelUpEvents(), "Lvl") + "  " +
+                indicator(connection.isIncludeAchievementDiaryEvents() && config.includeAchievementDiaryEvents(), "Diary") + "  " +
+                indicator(connection.isIncludeCombatTaskEvents() && config.includeCombatTaskEvents(), "Task") +
+                "</html>";
+    }
+
+    private String indicator(boolean enabled, String label)
+    {
+        String color = enabled ? "green" : "red";
+        String icon = enabled ? "\u2713" : "\u2717";
+        return "<span style='color:" + color + ";'>" + icon + "</span> " + label;
     }
 
     private void removeConnection(HAConnection connection)
@@ -269,13 +288,12 @@ public class HAExporterPanel extends PluginPanel
         topPanel.add(namePanel);
         topPanel.add(Box.createVerticalStrut(10));
 
-        JPanel togglesPanel = new JPanel();
-        togglesPanel.setLayout(new BoxLayout(togglesPanel, BoxLayout.Y_AXIS));
-        togglesPanel.setBorder(BorderFactory.createTitledBorder("Data Toggles"));
-        togglesPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JPanel dataTogglesPanel = new JPanel();
+        dataTogglesPanel.setLayout(new BoxLayout(dataTogglesPanel, BoxLayout.Y_AXIS));
+        dataTogglesPanel.setBorder(BorderFactory.createTitledBorder("Data Toggles"));
+        dataTogglesPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-
-        JCheckBox inventoryCheckbox  = createCheckbox(
+        JCheckBox inventoryCheckbox = createCheckbox(
                 "Include Inventory",
                 connection.isIncludeInventory(),
                 config.includeInventory()
@@ -287,17 +305,37 @@ public class HAExporterPanel extends PluginPanel
                 config.includeEquipment()
         );
 
-        JCheckBox locationCheckbox  = createCheckbox(
+        JCheckBox locationCheckbox = createCheckbox(
                 "Include Location",
                 connection.isIncludeLocation(),
                 config.includeLocation()
         );
 
-        togglesPanel.add(inventoryCheckbox);
-        togglesPanel.add(equipmentCheckbox);
-        togglesPanel.add(locationCheckbox);
+        dataTogglesPanel.add(inventoryCheckbox);
+        dataTogglesPanel.add(equipmentCheckbox);
+        dataTogglesPanel.add(locationCheckbox);
 
-        topPanel.add(togglesPanel);
+        topPanel.add(dataTogglesPanel);
+        topPanel.add(Box.createVerticalStrut(10));
+
+        JPanel eventTogglesPanel = new JPanel();
+        eventTogglesPanel.setLayout(new BoxLayout(eventTogglesPanel, BoxLayout.Y_AXIS));
+        eventTogglesPanel.setBorder(BorderFactory.createTitledBorder("Event Toggles"));
+        eventTogglesPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JCheckBox lootCheckbox = createCheckbox("Loot Events", connection.isIncludeLootEvents(), config.includeLootEvents());
+        JCheckBox deathCheckbox = createCheckbox("Death Events", connection.isIncludeDeathEvents(), config.includeDeathEvents());
+        JCheckBox levelUpCheckbox = createCheckbox("Level-Up Events", connection.isIncludeLevelUpEvents(), config.includeLevelUpEvents());
+        JCheckBox diaryCheckbox = createCheckbox("Achievement Diary Events", connection.isIncludeAchievementDiaryEvents(), config.includeAchievementDiaryEvents());
+        JCheckBox combatTaskCheckbox = createCheckbox("Combat Task Events", connection.isIncludeCombatTaskEvents(), config.includeCombatTaskEvents());
+
+        eventTogglesPanel.add(lootCheckbox);
+        eventTogglesPanel.add(deathCheckbox);
+        eventTogglesPanel.add(levelUpCheckbox);
+        eventTogglesPanel.add(diaryCheckbox);
+        eventTogglesPanel.add(combatTaskCheckbox);
+
+        topPanel.add(eventTogglesPanel);
         topPanel.add(Box.createVerticalStrut(15));
 
         JButton removeButton = new JButton("Remove Device");
@@ -330,6 +368,11 @@ public class HAExporterPanel extends PluginPanel
                     c.setIncludeInventory(inventoryCheckbox.isSelected());
                     c.setIncludeEquipment(equipmentCheckbox.isSelected());
                     c.setIncludeLocation(locationCheckbox.isSelected());
+                    c.setIncludeLootEvents(lootCheckbox.isSelected());
+                    c.setIncludeDeathEvents(deathCheckbox.isSelected());
+                    c.setIncludeLevelUpEvents(levelUpCheckbox.isSelected());
+                    c.setIncludeAchievementDiaryEvents(diaryCheckbox.isSelected());
+                    c.setIncludeCombatTaskEvents(combatTaskCheckbox.isSelected());
                 }
             }
             config.setHomeassistantConnections(gson.toJson(connections));
