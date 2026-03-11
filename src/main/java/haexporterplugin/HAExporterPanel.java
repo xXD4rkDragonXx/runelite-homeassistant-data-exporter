@@ -12,6 +12,7 @@ import javax.inject.Inject;
 import javax.swing.*;
 import javax.swing.text.*;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -144,14 +145,9 @@ public class HAExporterPanel extends PluginPanel
 
             card.add(Box.createVerticalStrut(3));
 
-            // Create colored HTML status indicators
-            JLabel dataStatusLabel = new JLabel(buildDataIndicators(connection));
-            dataStatusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            card.add(dataStatusLabel);
-
-            JLabel eventStatusLabel = new JLabel(buildEventIndicators(connection));
-            eventStatusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            card.add(eventStatusLabel);
+            JLabel statusLabel = new JLabel(buildStatusIndicators(connection));
+            statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            card.add(statusLabel);
 
 
             wrapper.add(card);
@@ -170,31 +166,25 @@ public class HAExporterPanel extends PluginPanel
         return wrapper;
     }
 
-    private String buildDataIndicators(HAConnection connection)
+    private String buildStatusIndicators(HAConnection connection)
     {
-        return "<html>" +
-                indicator(connection.isIncludeInventory() && config.includeInventory(), "Inv") + "  " +
-                indicator(connection.isIncludeEquipment() && config.includeEquipment(), "Equip") + "  " +
-                indicator(connection.isIncludeLocation() && config.includeLocation(), "Loc") +
-                "</html>";
-    }
+        List<String> disabled = new ArrayList<>();
 
-    private String buildEventIndicators(HAConnection connection)
-    {
-        return "<html>" +
-                indicator(connection.isIncludeLootEvents() && config.includeLootEvents(), "Loot") + "  " +
-                indicator(connection.isIncludeDeathEvents() && config.includeDeathEvents(), "Death") + "  " +
-                indicator(connection.isIncludeLevelUpEvents() && config.includeLevelUpEvents(), "Lvl") + "  " +
-                indicator(connection.isIncludeAchievementDiaryEvents() && config.includeAchievementDiaryEvents(), "Diary") + "  " +
-                indicator(connection.isIncludeCombatTaskEvents() && config.includeCombatTaskEvents(), "Task") +
-                "</html>";
-    }
+        if (!connection.isIncludeInventory() || !config.includeInventory()) disabled.add("Inv");
+        if (!connection.isIncludeEquipment() || !config.includeEquipment()) disabled.add("Equip");
+        if (!connection.isIncludeLocation() || !config.includeLocation()) disabled.add("Loc");
+        if (!connection.isIncludeLootEvents() || !config.includeLootEvents()) disabled.add("Loot");
+        if (!connection.isIncludeDeathEvents() || !config.includeDeathEvents()) disabled.add("Death");
+        if (!connection.isIncludeLevelUpEvents() || !config.includeLevelUpEvents()) disabled.add("Lvl");
+        if (!connection.isIncludeAchievementDiaryEvents() || !config.includeAchievementDiaryEvents()) disabled.add("Diary");
+        if (!connection.isIncludeCombatTaskEvents() || !config.includeCombatTaskEvents()) disabled.add("Task");
 
-    private String indicator(boolean enabled, String label)
-    {
-        String color = enabled ? "green" : "red";
-        String icon = enabled ? "\u2713" : "\u2717";
-        return "<span style='color:" + color + ";'>" + icon + "</span> " + label;
+        if (disabled.isEmpty())
+        {
+            return "<html><span style='color:green;'>\u2713</span> All enabled</html>";
+        }
+
+        return "<html><span style='color:red;'>\u2717</span> Disabled: " + String.join(", ", disabled) + "</html>";
     }
 
     private void removeConnection(HAConnection connection)
