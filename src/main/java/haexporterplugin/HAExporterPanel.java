@@ -142,6 +142,18 @@ public class HAExporterPanel extends PluginPanel
 
             card.add(headerPanel);
 
+            // Show warning if connection is disabled
+            if (!connection.isEnabled())
+            {
+                card.add(Box.createVerticalStrut(3));
+                String reason = connection.getDisabledReason() != null
+                        ? connection.getDisabledReason()
+                        : "Disabled";
+                JLabel disabledLabel = new JLabel("<html><span style='color:orange;'>\u26A0 " + reason + "</span></html>");
+                disabledLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                card.add(disabledLabel);
+            }
+
             card.add(Box.createVerticalStrut(3));
 
             // Create colored HTML status indicators
@@ -269,6 +281,39 @@ public class HAExporterPanel extends PluginPanel
         topPanel.add(namePanel);
         topPanel.add(Box.createVerticalStrut(10));
 
+        JPanel statusPanel = new JPanel();
+        statusPanel.setLayout(new BoxLayout(statusPanel, BoxLayout.Y_AXIS));
+        statusPanel.setBorder(BorderFactory.createTitledBorder("Status"));
+        statusPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JCheckBox enabledCheckbox = new JCheckBox("Enabled", connection.isEnabled());
+        enabledCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        statusPanel.add(enabledCheckbox);
+
+        int minStatusWidth = namePanel.getPreferredSize().width;
+        Dimension statusPref = statusPanel.getPreferredSize();
+        statusPanel.setPreferredSize(new Dimension(Math.max(statusPref.width, minStatusWidth), statusPref.height));
+
+        topPanel.add(statusPanel);
+
+        if (!connection.isEnabled() && connection.getDisabledReason() != null)
+        {
+            int warningWidth = Math.max(minStatusWidth - 16, 180);
+            JLabel warningLabel = new JLabel(
+                    "<html><div style='width:" + warningWidth + "px;color:orange;'>\u26A0 "
+                            + connection.getDisabledReason() +
+                            "</div></html>"
+            );
+            warningLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            topPanel.add(Box.createVerticalStrut(6));
+            topPanel.add(warningLabel);
+            topPanel.add(Box.createVerticalStrut(10));
+        }
+        else
+        {
+            topPanel.add(Box.createVerticalStrut(10));
+        }
+
         JPanel togglesPanel = new JPanel();
         togglesPanel.setLayout(new BoxLayout(togglesPanel, BoxLayout.Y_AXIS));
         togglesPanel.setBorder(BorderFactory.createTitledBorder("Data Toggles"));
@@ -327,6 +372,11 @@ public class HAExporterPanel extends PluginPanel
                 {
                     String name = nameField.getText().trim();
                     c.setFriendlyName(name.isEmpty() ? null : name);
+                    c.setEnabled(enabledCheckbox.isSelected());
+                    if (enabledCheckbox.isSelected())
+                    {
+                        c.setDisabledReason(null);
+                    }
                     c.setIncludeInventory(inventoryCheckbox.isSelected());
                     c.setIncludeEquipment(equipmentCheckbox.isSelected());
                     c.setIncludeLocation(locationCheckbox.isSelected());
@@ -626,3 +676,4 @@ public class HAExporterPanel extends PluginPanel
         return url.trim().replaceAll("/+$", "");
     }
 }
+

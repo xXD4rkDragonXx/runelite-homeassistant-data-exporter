@@ -54,4 +54,9 @@ public class ConfigUtils {
         connections.add(new HAConnection(baseUrl, token));
         config.setHomeassistantConnections(gson.toJson(connections));
     }
+
+    public void saveConnections(List<HAConnection> connections)
+    {
+        config.setHomeassistantConnections(gson.toJson(connections));
+    }
 }
