@@ -59,7 +59,7 @@ public class HomeAssistUtils {
                 log.debug("{} ({}): {}",connection.getDisplayName(), apiUrl, filteredPayload);
             }
 
-            okHttpClient.newCall(request).enqueue(createCallback(filteredPayload));
+            okHttpClient.newCall(request).enqueue(createCallback(filteredPayload, connection));
         }
     }
 
@@ -141,7 +141,7 @@ public class HomeAssistUtils {
                 .build();
     }
 
-    private Callback createCallback(String jsonPayload) {
+    private Callback createCallback(String jsonPayload, HAConnection connection) {
         return new Callback() {
             @Override
             @EverythingIsNonNull
@@ -152,9 +152,29 @@ public class HomeAssistUtils {
             @Override
             @EverythingIsNonNull
             public void onResponse(Call call, Response response) {
-                response.close();
+                try {
+                    if (response.code() == 401) {
+                        log.warn("Received 401 Unauthorized from {}. Disabling connection.", connection.getDisplayName());
+                        disableConnection(connection, "Unauthorized (401): Token may have been revoked.");
+                    }
+                } finally {
+                    response.close();
+                }
             }
         };
+    }
+
+    private void disableConnection(HAConnection connection, String reason) {
+        List<HAConnection> connections = configUtils.getStoredConnections();
+        for (HAConnection c : connections) {
+            if (c.getBaseUrl().equals(connection.getBaseUrl())
+                    && c.getToken().equals(connection.getToken())) {
+                c.setEnabled(false);
+                c.setDisabledReason(reason);
+                break;
+            }
+        }
+        configUtils.saveConnections(connections);
     }
 
     public void getToken(String baseUrl, String code, TokenCallback callback) {
