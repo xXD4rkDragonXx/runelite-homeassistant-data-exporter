@@ -12,16 +12,16 @@ A [RuneLite](https://runelite.net/) plugin that exports real-time Old School Run
 
 ## ✨ Features
 
-| Category | What's Tracked |
-|----------|----------------|
-| **Player Stats** | All 23 skill levels & XP |
+| Category | What's Tracked                                       |
+|----------|------------------------------------------------------|
+| **Player Stats** | All 24 skill levels & XP                             |
 | **Health & Prayer** | Current / max hitpoints, prayer points and spellbook |
-| **Inventory** | Full item list with GE & HA prices |
-| **Equipment** | Worn gear with slot information |
-| **Loot Drops** | Configurable value & rarity filters |
-| **Level-Ups** | Skill name and new level |
-| **Deaths** | Killer info, kept/lost items, danger level |
-| **World & Location** | Current world, coordinates |
+| **Inventory** | Full item list with GE & HA prices                   |
+| **Equipment** | Worn gear with slot information                      |
+| **Loot Drops** | Configurable value & rarity filters                  |
+| **Level-Ups** | Skill name and new level                             |
+| **Deaths** | Killer info, kept/lost items, danger level           |
+| **World & Location** | Current world, coordinates                           |
 
 All data is pushed over HTTP(s) as JSON to your Home Assistant instance, where a companion integration turns it into entities you can use in automations, dashboards, and more.
 
