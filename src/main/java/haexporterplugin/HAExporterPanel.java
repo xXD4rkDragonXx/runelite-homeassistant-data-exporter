@@ -12,6 +12,7 @@ import javax.inject.Inject;
 import javax.swing.*;
 import javax.swing.text.*;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -142,22 +143,21 @@ public class HAExporterPanel extends PluginPanel
 
             card.add(headerPanel);
 
+            // Show warning if connection is disabled
+            if (!connection.isEnabled())
+            {
+                card.add(Box.createVerticalStrut(3));
+                String reason = connection.getDisabledReason() != null
+                        ? connection.getDisabledReason()
+                        : "Disabled";
+                JLabel disabledLabel = new JLabel("<html><span style='color:orange;'>\u26A0 " + reason + "</span></html>");
+                disabledLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                card.add(disabledLabel);
+            }
+
             card.add(Box.createVerticalStrut(3));
 
-            // Create colored HTML status indicators
-            String invColor = (connection.isIncludeInventory() && config.includeInventory()) ? "green" : "red";
-            String invIcon = (connection.isIncludeInventory() && config.includeInventory()) ? "\u2713" : "\u2717";
-            String equipColor = (connection.isIncludeEquipment() && config.includeEquipment()) ? "green" : "red";
-            String equipIcon = (connection.isIncludeEquipment() && config.includeEquipment()) ? "\u2713" : "\u2717";
-            String locColor = (connection.isIncludeLocation() && config.includeLocation()) ? "green" : "red";
-            String locIcon = (connection.isIncludeLocation() && config.includeLocation()) ? "\u2713" : "\u2717";
-
-            String indicators = "<html>" +
-                    "<span style='color:" + invColor + ";'>" + invIcon + "</span> Inv  " +
-                    "<span style='color:" + equipColor + ";'>" + equipIcon + "</span> Equip  " +
-                    "<span style='color:" + locColor + ";'>" + locIcon + "</span> Loc" +
-                    "</html>";
-            JLabel statusLabel = new JLabel(indicators);
+            JLabel statusLabel = new JLabel(buildStatusIndicators(connection));
             statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             card.add(statusLabel);
 
@@ -176,6 +176,27 @@ public class HAExporterPanel extends PluginPanel
         }
 
         return wrapper;
+    }
+
+    private String buildStatusIndicators(HAConnection connection)
+    {
+        List<String> disabled = new ArrayList<>();
+
+        if (!connection.isIncludeInventory() || !config.includeInventory()) disabled.add("Inv");
+        if (!connection.isIncludeEquipment() || !config.includeEquipment()) disabled.add("Equip");
+        if (!connection.isIncludeLocation() || !config.includeLocation()) disabled.add("Loc");
+        if (!connection.isIncludeLootEvents() || !config.includeLootEvents()) disabled.add("Loot");
+        if (!connection.isIncludeDeathEvents() || !config.includeDeathEvents()) disabled.add("Death");
+        if (!connection.isIncludeLevelUpEvents() || !config.includeLevelUpEvents()) disabled.add("Lvl");
+        if (!connection.isIncludeAchievementDiaryEvents() || !config.includeAchievementDiaryEvents()) disabled.add("Diary");
+        if (!connection.isIncludeCombatTaskEvents() || !config.includeCombatTaskEvents()) disabled.add("Task");
+
+        if (disabled.isEmpty())
+        {
+            return "<html><span style='color:green;'>\u2713</span> All enabled</html>";
+        }
+
+        return "<html><span style='color:red;'>\u2717</span> Disabled: " + String.join(", ", disabled) + "</html>";
     }
 
     private void removeConnection(HAConnection connection)
@@ -269,13 +290,49 @@ public class HAExporterPanel extends PluginPanel
         topPanel.add(namePanel);
         topPanel.add(Box.createVerticalStrut(10));
 
+        JPanel dataTogglesPanel = new JPanel();
+        dataTogglesPanel.setLayout(new BoxLayout(dataTogglesPanel, BoxLayout.Y_AXIS));
+        dataTogglesPanel.setBorder(BorderFactory.createTitledBorder("Data Toggles"));
+        dataTogglesPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JPanel statusPanel = new JPanel();
+        statusPanel.setLayout(new BoxLayout(statusPanel, BoxLayout.Y_AXIS));
+        statusPanel.setBorder(BorderFactory.createTitledBorder("Status"));
+        statusPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JCheckBox enabledCheckbox = new JCheckBox("Enabled", connection.isEnabled());
+        enabledCheckbox.setAlignmentX(Component.LEFT_ALIGNMENT);
+        statusPanel.add(enabledCheckbox);
+
+        int minStatusWidth = namePanel.getPreferredSize().width;
+        Dimension statusPref = statusPanel.getPreferredSize();
+        statusPanel.setPreferredSize(new Dimension(Math.max(statusPref.width, minStatusWidth), statusPref.height));
+
+        topPanel.add(statusPanel);
+
+        if (!connection.isEnabled() && connection.getDisabledReason() != null)
+        {
+            int warningWidth = Math.max(minStatusWidth - 16, 180);
+            JLabel warningLabel = new JLabel(
+                    "<html><div style='width:" + warningWidth + "px;color:orange;'>\u26A0 "
+                            + connection.getDisabledReason() +
+                            "</div></html>"
+            );
+            warningLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            topPanel.add(Box.createVerticalStrut(6));
+            topPanel.add(warningLabel);
+            topPanel.add(Box.createVerticalStrut(10));
+        }
+        else
+        {
+            topPanel.add(Box.createVerticalStrut(10));
+        }
+
         JPanel togglesPanel = new JPanel();
         togglesPanel.setLayout(new BoxLayout(togglesPanel, BoxLayout.Y_AXIS));
         togglesPanel.setBorder(BorderFactory.createTitledBorder("Data Toggles"));
         togglesPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-
-        JCheckBox inventoryCheckbox  = createCheckbox(
+        JCheckBox inventoryCheckbox = createCheckbox(
                 "Include Inventory",
                 connection.isIncludeInventory(),
                 config.includeInventory()
@@ -287,17 +344,37 @@ public class HAExporterPanel extends PluginPanel
                 config.includeEquipment()
         );
 
-        JCheckBox locationCheckbox  = createCheckbox(
+        JCheckBox locationCheckbox = createCheckbox(
                 "Include Location",
                 connection.isIncludeLocation(),
                 config.includeLocation()
         );
 
-        togglesPanel.add(inventoryCheckbox);
-        togglesPanel.add(equipmentCheckbox);
-        togglesPanel.add(locationCheckbox);
+        dataTogglesPanel.add(inventoryCheckbox);
+        dataTogglesPanel.add(equipmentCheckbox);
+        dataTogglesPanel.add(locationCheckbox);
 
-        topPanel.add(togglesPanel);
+        topPanel.add(dataTogglesPanel);
+        topPanel.add(Box.createVerticalStrut(10));
+
+        JPanel eventTogglesPanel = new JPanel();
+        eventTogglesPanel.setLayout(new BoxLayout(eventTogglesPanel, BoxLayout.Y_AXIS));
+        eventTogglesPanel.setBorder(BorderFactory.createTitledBorder("Event Toggles"));
+        eventTogglesPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JCheckBox lootCheckbox = createCheckbox("Loot Events", connection.isIncludeLootEvents(), config.includeLootEvents());
+        JCheckBox deathCheckbox = createCheckbox("Death Events", connection.isIncludeDeathEvents(), config.includeDeathEvents());
+        JCheckBox levelUpCheckbox = createCheckbox("Level-Up Events", connection.isIncludeLevelUpEvents(), config.includeLevelUpEvents());
+        JCheckBox diaryCheckbox = createCheckbox("Achievement Diary Events", connection.isIncludeAchievementDiaryEvents(), config.includeAchievementDiaryEvents());
+        JCheckBox combatTaskCheckbox = createCheckbox("Combat Task Events", connection.isIncludeCombatTaskEvents(), config.includeCombatTaskEvents());
+
+        eventTogglesPanel.add(lootCheckbox);
+        eventTogglesPanel.add(deathCheckbox);
+        eventTogglesPanel.add(levelUpCheckbox);
+        eventTogglesPanel.add(diaryCheckbox);
+        eventTogglesPanel.add(combatTaskCheckbox);
+
+        topPanel.add(eventTogglesPanel);
         topPanel.add(Box.createVerticalStrut(15));
 
         JButton removeButton = new JButton("Remove Device");
@@ -327,9 +404,19 @@ public class HAExporterPanel extends PluginPanel
                 {
                     String name = nameField.getText().trim();
                     c.setFriendlyName(name.isEmpty() ? null : name);
+                    c.setEnabled(enabledCheckbox.isSelected());
+                    if (enabledCheckbox.isSelected())
+                    {
+                        c.setDisabledReason(null);
+                    }
                     c.setIncludeInventory(inventoryCheckbox.isSelected());
                     c.setIncludeEquipment(equipmentCheckbox.isSelected());
                     c.setIncludeLocation(locationCheckbox.isSelected());
+                    c.setIncludeLootEvents(lootCheckbox.isSelected());
+                    c.setIncludeDeathEvents(deathCheckbox.isSelected());
+                    c.setIncludeLevelUpEvents(levelUpCheckbox.isSelected());
+                    c.setIncludeAchievementDiaryEvents(diaryCheckbox.isSelected());
+                    c.setIncludeCombatTaskEvents(combatTaskCheckbox.isSelected());
                 }
             }
             config.setHomeassistantConnections(gson.toJson(connections));
@@ -626,3 +713,4 @@ public class HAExporterPanel extends PluginPanel
         return url.trim().replaceAll("/+$", "");
     }
 }
+

@@ -153,6 +153,61 @@ public interface HAExporterConfig extends Config
 		return true;
 	}
 
+	@ConfigItem(
+			keyName = "includeLootEvents",
+			name = "Include Loot Events",
+			description = "Global overwrite to disable sending loot events to all connections.",
+			position = 410,
+			section = overwriteSection
+	)
+	default boolean includeLootEvents() {
+		return true;
+	}
+
+	@ConfigItem(
+			keyName = "includeDeathEvents",
+			name = "Include Death Events",
+			description = "Global overwrite to disable sending death events to all connections.",
+			position = 411,
+			section = overwriteSection
+	)
+	default boolean includeDeathEvents() {
+		return true;
+	}
+
+	@ConfigItem(
+			keyName = "includeLevelUpEvents",
+			name = "Include Level-Up Events",
+			description = "Global overwrite to disable sending level-up events to all connections.",
+			position = 412,
+			section = overwriteSection
+	)
+	default boolean includeLevelUpEvents() {
+		return true;
+	}
+
+	@ConfigItem(
+			keyName = "includeAchievementDiaryEvents",
+			name = "Include Achievement Diary Events",
+			description = "Global overwrite to disable sending achievement diary events to all connections.",
+			position = 413,
+			section = overwriteSection
+	)
+	default boolean includeAchievementDiaryEvents() {
+		return true;
+	}
+
+	@ConfigItem(
+			keyName = "includeCombatTaskEvents",
+			name = "Include Combat Task Events",
+			description = "Global overwrite to disable sending combat task events to all connections.",
+			position = 414,
+			section = overwriteSection
+	)
+	default boolean includeCombatTaskEvents() {
+		return true;
+	}
+
 	/* ============================
        Advanced Config Items
        ============================ */

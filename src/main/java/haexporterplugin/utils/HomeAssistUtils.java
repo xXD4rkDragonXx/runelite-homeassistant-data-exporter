@@ -1,6 +1,8 @@
 package haexporterplugin.utils;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import haexporterplugin.HAExporterConfig;
 import haexporterplugin.data.HAConnection;
@@ -44,6 +46,11 @@ public class HomeAssistUtils {
         List<HAConnection> connections = configUtils.getStoredConnections();
 
         for (HAConnection connection : connections) {
+            if (!connection.isEnabled()) {
+                log.debug("Skipping disabled connection: {}", connection.getDisplayName());
+                continue;
+            }
+
             String filteredPayload = applyConnectionFilters(jsonPayload, connection);
             String apiUrl = connection.getBaseUrl() + DATA_ENDPOINT;
             Request request = buildRequest(apiUrl, filteredPayload, connection.token);
@@ -52,23 +59,31 @@ public class HomeAssistUtils {
                 log.debug("{} ({}): {}",connection.getDisplayName(), apiUrl, filteredPayload);
             }
 
-            okHttpClient.newCall(request).enqueue(createCallback(filteredPayload));
+            okHttpClient.newCall(request).enqueue(createCallback(filteredPayload, connection));
         }
     }
 
     private String applyConnectionFilters(String jsonPayload, HAConnection connection) {
-        if (connection.isIncludeInventory()
+        boolean allDataEnabled = connection.isIncludeInventory()
                 && connection.isIncludeEquipment()
                 && connection.isIncludeLocation()
                 && config.includeInventory()
                 && config.includeEquipment()
-                && config.includeLocation())
-        {
+                && config.includeLocation();
+
+        boolean allEventsEnabled = connection.isIncludeLootEvents() && config.includeLootEvents()
+                && connection.isIncludeDeathEvents() && config.includeDeathEvents()
+                && connection.isIncludeLevelUpEvents() && config.includeLevelUpEvents()
+                && connection.isIncludeAchievementDiaryEvents() && config.includeAchievementDiaryEvents()
+                && connection.isIncludeCombatTaskEvents() && config.includeCombatTaskEvents();
+
+        if (allDataEnabled && allEventsEnabled) {
             return jsonPayload;
         }
 
         JsonObject root = gson.fromJson(jsonPayload, JsonObject.class);
-        if (root.has("player")) {
+
+        if (!allDataEnabled && root.has("player")) {
             JsonObject player = root.getAsJsonObject("player");
             if (!connection.isIncludeInventory() || !config.includeInventory()) {
                 player.remove("inventory");
@@ -80,7 +95,39 @@ public class HomeAssistUtils {
                 player.remove("location");
             }
         }
+
+        if (!allEventsEnabled && root.has("events")) {
+            JsonArray filtered = new JsonArray();
+            for (JsonElement element : root.getAsJsonArray("events")) {
+                JsonObject event = element.getAsJsonObject();
+                String type = event.has("type") ? event.get("type").getAsString() : "";
+                if (shouldIncludeEvent(type, connection)) {
+                    filtered.add(event);
+                }
+            }
+            root.add("events", filtered);
+        }
+
         return gson.toJson(root);
+    }
+
+    private boolean shouldIncludeEvent(String type, HAConnection connection) {
+        switch (type) {
+            case "loot":
+            case "pkLoot":
+                return connection.isIncludeLootEvents() && config.includeLootEvents();
+            case "death":
+                return connection.isIncludeDeathEvents() && config.includeDeathEvents();
+            case "levelUp":
+                return connection.isIncludeLevelUpEvents() && config.includeLevelUpEvents();
+            case "achievementDiary":
+                return connection.isIncludeAchievementDiaryEvents() && config.includeAchievementDiaryEvents();
+            case "combatTask":
+                return connection.isIncludeCombatTaskEvents() && config.includeCombatTaskEvents();
+            default:
+                // clientShutdown and any unknown events are always forwarded
+                return true;
+        }
     }
 
     private Request buildRequest(String apiUrl, String jsonPayload, String token) {
@@ -94,7 +141,7 @@ public class HomeAssistUtils {
                 .build();
     }
 
-    private Callback createCallback(String jsonPayload) {
+    private Callback createCallback(String jsonPayload, HAConnection connection) {
         return new Callback() {
             @Override
             @EverythingIsNonNull
@@ -105,9 +152,29 @@ public class HomeAssistUtils {
             @Override
             @EverythingIsNonNull
             public void onResponse(Call call, Response response) {
-                response.close();
+                try {
+                    if (response.code() == 401) {
+                        log.warn("Received 401 Unauthorized from {}. Disabling connection.", connection.getDisplayName());
+                        disableConnection(connection, "Unauthorized (401): Token may have been revoked.");
+                    }
+                } finally {
+                    response.close();
+                }
             }
         };
+    }
+
+    private void disableConnection(HAConnection connection, String reason) {
+        List<HAConnection> connections = configUtils.getStoredConnections();
+        for (HAConnection c : connections) {
+            if (c.getBaseUrl().equals(connection.getBaseUrl())
+                    && c.getToken().equals(connection.getToken())) {
+                c.setEnabled(false);
+                c.setDisabledReason(reason);
+                break;
+            }
+        }
+        configUtils.saveConnections(connections);
     }
 
     public void getToken(String baseUrl, String code, TokenCallback callback) {

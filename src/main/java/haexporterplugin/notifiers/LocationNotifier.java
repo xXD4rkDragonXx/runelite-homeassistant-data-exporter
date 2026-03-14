@@ -16,7 +16,7 @@ public class LocationNotifier extends BaseNotifier{
         LocalPoint localPoint = player.getLocalLocation();
         WorldView worldView = player.getWorldView();
         int worldViewId = worldView.getId();
-        boolean isOnBoat = worldViewId != -1;
+        boolean isOnBoat = worldViewId != WorldView.TOPLEVEL;
         WorldPoint worldPoint;
         if (isOnBoat) {
             WorldEntity worldEntity = client.getTopLevelWorldView().worldEntities().byIndex(worldViewId);
