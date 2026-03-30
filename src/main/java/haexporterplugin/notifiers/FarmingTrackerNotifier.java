@@ -90,8 +90,8 @@ public class FarmingTrackerNotifier extends BaseNotifier {
     // Track state to detect changes
     private Map<Integer, Integer> previousFarmingState = new HashMap<>();
     private Map<Integer, Integer> previousBirdhouseState = new HashMap<>();
-    private Map<Integer, Integer> farmingPlantedTick = new HashMap<>();  // varbit -> tick count when planted
-    private Map<Integer, Integer> birdhousePlantedTick = new HashMap<>();  // varbit -> tick count when planted
+    private Map<Integer, Long> farmingPlantedTime = new HashMap<>();
+    private Map<Integer, Long> birdhousePlantedTime = new HashMap<>();
 
     public void onTick() {
         checkFarmingPatches();
@@ -99,8 +99,6 @@ public class FarmingTrackerNotifier extends BaseNotifier {
     }
 
     private void checkFarmingPatches() {
-        int currentTick = tickUtils.getTickCount();
-
         for (Map.Entry<Integer, PatchInfo> entry : FARMING_PATCHES.entrySet()) {
             int varbit = entry.getKey();
             PatchInfo patchInfo = entry.getValue();
@@ -113,37 +111,32 @@ public class FarmingTrackerNotifier extends BaseNotifier {
             // State 0 = empty, anything else = something planted
             if (previousState == 0 && currentState != 0) {
                 // Crop was just planted
-                long currentTime = System.currentTimeMillis();
-                long doneTime = currentTime + (patchInfo.growthTimeMinutes * 60 * 1000L);
+                long now = System.currentTimeMillis();
+                long doneTime = now + (patchInfo.growthTimeMinutes * 60 * 1000L);
                 String cropName = getCropNameFromState(varbit, currentState);
 
-                farmingPlantedTick.put(varbit, currentTick);
+                farmingPlantedTime.put(varbit, now);
                 
-                FarmingEvent event = new FarmingEvent(patchInfo.name, cropName, currentTime, doneTime);
+                FarmingEvent event = new FarmingEvent(patchInfo.name, cropName, now, doneTime);
                 messageBuilder.addEvent("farmingPlanted", event);
                 tickUtils.sendNow();
 
-                log.info("Farming crop planted at {}: {} (tick: {})", patchInfo.name, cropName, currentTick);
+                log.info("Farming crop planted at {}: {}", patchInfo.name, cropName);
             }
 
             // Detect when crop is ready (state changed to harvested state)
-            if (previousState != currentState && currentState == 0 && farmingPlantedTick.containsKey(varbit)) {
+            if (previousState != currentState && currentState == 0 && farmingPlantedTime.containsKey(varbit)) {
                 // Crop is now ready to harvest
-                int plantedTick = farmingPlantedTick.remove(varbit);
-                int ticksElapsed = currentTick - plantedTick;
-                
+                farmingPlantedTime.remove(varbit);
                 messageBuilder.addEvent("farmingReady", patchInfo.name);
                 tickUtils.sendNow();
 
-                log.info("Farming crop ready at {} (took {} ticks, expected ~{})", 
-                    patchInfo.name, ticksElapsed, patchInfo.growthTimeMinutes * 100);
+                log.info("Farming crop ready at {}", patchInfo.name);
             }
         }
     }
 
     private void checkBirdhouses() {
-        int currentTick = tickUtils.getTickCount();
-
         for (Map.Entry<Integer, BirdhouseInfo> entry : BIRDHOUSES.entrySet()) {
             int varbit = entry.getKey();
             BirdhouseInfo houseInfo = entry.getValue();
@@ -156,30 +149,27 @@ public class FarmingTrackerNotifier extends BaseNotifier {
             // State transitions: 0 = empty, 1-3 = growing, 4 = ready
             if (previousState == 0 && currentState != 0) {
                 // Birdhouse was just seeded
-                long currentTime = System.currentTimeMillis();
-                long doneTime = currentTime + (houseInfo.growthTimeMinutes * 60 * 1000L);
+                long now = System.currentTimeMillis();
+                long doneTime = now + (houseInfo.growthTimeMinutes * 60 * 1000L);
                 String seedName = getSeedNameFromState(currentState);
 
-                birdhousePlantedTick.put(varbit, currentTick);
+                birdhousePlantedTime.put(varbit, now);
                 
-                BirdhouseEvent event = new BirdhouseEvent(houseInfo.name, seedName, currentTime, doneTime);
+                BirdhouseEvent event = new BirdhouseEvent(houseInfo.name, seedName, now, doneTime);
                 messageBuilder.addEvent("birdhouseSeeded", event);
                 tickUtils.sendNow();
 
-                log.info("Birdhouse seeded at {}: {} (tick: {})", houseInfo.name, seedName, currentTick);
+                log.info("Birdhouse seeded at {}: {}", houseInfo.name, seedName);
             }
 
             // Detect when birdhouse is ready (state = 4 or similar)
-            if (previousState != 0 && currentState == 4 && birdhousePlantedTick.containsKey(varbit)) {
+            if (previousState != 0 && currentState == 4 && birdhousePlantedTime.containsKey(varbit)) {
                 // Birdhouse is now ready
-                int plantedTick = birdhousePlantedTick.remove(varbit);
-                int ticksElapsed = currentTick - plantedTick;
-                
+                birdhousePlantedTime.remove(varbit);
                 messageBuilder.addEvent("birdhouseReady", houseInfo.name);
                 tickUtils.sendNow();
 
-                log.info("Birdhouse ready at {} (took {} ticks, expected ~{})", 
-                    houseInfo.name, ticksElapsed, houseInfo.growthTimeMinutes * 100);
+                log.info("Birdhouse ready at {}", houseInfo.name);
             }
         }
     }
