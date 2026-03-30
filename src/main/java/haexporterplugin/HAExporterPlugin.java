@@ -54,6 +54,7 @@ public class HAExporterPlugin extends Plugin
 	private @Inject LootNotifier lootNotifier;
 	private @Inject LocationNotifier locationNotifier;
 	private @Inject DeathNotifier deathNotifier;
+	private @Inject FarmingTrackerNotifier farmingTrackerNotifier;
 	private @Inject EasterEggUtils easterEggUtils;
 	private boolean initialized = false;
 
@@ -209,6 +210,7 @@ public class HAExporterPlugin extends Plugin
 		levelNotifier.onTick();
 		itemNotifier.onTick();
 		locationNotifier.onTick();
+		farmingTrackerNotifier.onTick();
 
 		if (!initialized){
 			initialize();
