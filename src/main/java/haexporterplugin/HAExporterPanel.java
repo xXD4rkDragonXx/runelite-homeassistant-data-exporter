@@ -190,6 +190,7 @@ public class HAExporterPanel extends PluginPanel
         if (!connection.isIncludeLevelUpEvents() || !config.includeLevelUpEvents()) disabled.add("Lvl");
         if (!connection.isIncludeAchievementDiaryEvents() || !config.includeAchievementDiaryEvents()) disabled.add("Diary");
         if (!connection.isIncludeCombatTaskEvents() || !config.includeCombatTaskEvents()) disabled.add("Task");
+        if (!connection.isIncludeSuperiorEvents() || !config.includeSuperiorEvents()) disabled.add("Superior");
 
         if (disabled.isEmpty())
         {
@@ -367,12 +368,14 @@ public class HAExporterPanel extends PluginPanel
         JCheckBox levelUpCheckbox = createCheckbox("Level-Up Events", connection.isIncludeLevelUpEvents(), config.includeLevelUpEvents());
         JCheckBox diaryCheckbox = createCheckbox("Achievement Diary Events", connection.isIncludeAchievementDiaryEvents(), config.includeAchievementDiaryEvents());
         JCheckBox combatTaskCheckbox = createCheckbox("Combat Task Events", connection.isIncludeCombatTaskEvents(), config.includeCombatTaskEvents());
+        JCheckBox superiorCheckbox = createCheckbox("Superior Spawn Events", connection.isIncludeSuperiorEvents(), config.includeSuperiorEvents());
 
         eventTogglesPanel.add(lootCheckbox);
         eventTogglesPanel.add(deathCheckbox);
         eventTogglesPanel.add(levelUpCheckbox);
         eventTogglesPanel.add(diaryCheckbox);
         eventTogglesPanel.add(combatTaskCheckbox);
+        eventTogglesPanel.add(superiorCheckbox);
 
         topPanel.add(eventTogglesPanel);
         topPanel.add(Box.createVerticalStrut(15));
@@ -417,6 +420,7 @@ public class HAExporterPanel extends PluginPanel
                     c.setIncludeLevelUpEvents(levelUpCheckbox.isSelected());
                     c.setIncludeAchievementDiaryEvents(diaryCheckbox.isSelected());
                     c.setIncludeCombatTaskEvents(combatTaskCheckbox.isSelected());
+                    c.setIncludeSuperiorEvents(superiorCheckbox.isSelected());
                 }
             }
             config.setHomeassistantConnections(gson.toJson(connections));

@@ -75,7 +75,8 @@ public class HomeAssistUtils {
                 && connection.isIncludeDeathEvents() && config.includeDeathEvents()
                 && connection.isIncludeLevelUpEvents() && config.includeLevelUpEvents()
                 && connection.isIncludeAchievementDiaryEvents() && config.includeAchievementDiaryEvents()
-                && connection.isIncludeCombatTaskEvents() && config.includeCombatTaskEvents();
+                && connection.isIncludeCombatTaskEvents() && config.includeCombatTaskEvents()
+                && connection.isIncludeSuperiorEvents() && config.includeSuperiorEvents();
 
         if (allDataEnabled && allEventsEnabled) {
             return jsonPayload;
@@ -124,6 +125,8 @@ public class HomeAssistUtils {
                 return connection.isIncludeAchievementDiaryEvents() && config.includeAchievementDiaryEvents();
             case "combatTask":
                 return connection.isIncludeCombatTaskEvents() && config.includeCombatTaskEvents();
+            case "superiorSpawn":
+                return connection.isIncludeSuperiorEvents() && config.includeSuperiorEvents();
             default:
                 // clientShutdown and any unknown events are always forwarded
                 return true;

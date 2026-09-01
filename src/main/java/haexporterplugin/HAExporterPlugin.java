@@ -49,6 +49,7 @@ public class HAExporterPlugin extends Plugin
 	private @Inject TickUtils tickUtils;
 	private @Inject AchievementDiaryNotifier achievementDiaryNotifier;
 	private @Inject CombatTaskNotifier combatTaskNotifier;
+	private @Inject SuperiorNotifier superiorNotifier;
 	private @Inject LevelNotifier levelNotifier;
 	private @Inject ItemNotifier itemNotifier;
 	private @Inject LootNotifier lootNotifier;
@@ -150,6 +151,7 @@ public class HAExporterPlugin extends Plugin
 				deathNotifier.onGameMessage(chatMessage.getMessage());
 				combatTaskNotifier.onChatMessage(chatMessage);
 				achievementDiaryNotifier.onChatMessage(chatMessage);
+				superiorNotifier.onChatMessage(chatMessage);
 				break;
 		}
 
@@ -201,6 +203,11 @@ public class HAExporterPlugin extends Plugin
 	}
 
 	@Subscribe
+	public void onNpcSpawned(NpcSpawned npcSpawned) {
+		superiorNotifier.onNpcSpawned(npcSpawned);
+	}
+
+	@Subscribe
 	public void onGameTick(GameTick gameTick){
 		tickUtils.onTick();
 
@@ -209,6 +216,7 @@ public class HAExporterPlugin extends Plugin
 		levelNotifier.onTick();
 		itemNotifier.onTick();
 		locationNotifier.onTick();
+		superiorNotifier.onGameTick();
 
 		if (!initialized){
 			initialize();

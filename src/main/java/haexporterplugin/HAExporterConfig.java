@@ -208,6 +208,17 @@ public interface HAExporterConfig extends Config
 		return true;
 	}
 
+	@ConfigItem(
+			keyName = "includeSuperiorEvents",
+			name = "Include Superior Spawn Events",
+			description = "Global overwrite to disable sending superior monster spawn events to all connections.",
+			position = 415,
+			section = overwriteSection
+	)
+	default boolean includeSuperiorEvents() {
+		return true;
+	}
+
 	/* ============================
        Advanced Config Items
        ============================ */
