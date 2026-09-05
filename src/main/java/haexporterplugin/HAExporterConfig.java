@@ -278,7 +278,7 @@ public interface HAExporterConfig extends Config
 			section = advancedSection
 	)
 	default boolean kebab() {
-		return true;
+		return false;
 	}
 
 	// Whether to play sound on eating kebab
@@ -290,7 +290,7 @@ public interface HAExporterConfig extends Config
 			section = advancedSection
 	)
 	default boolean garbage() {
-		return true;
+		return false;
 	}
 
 	/* ============================
