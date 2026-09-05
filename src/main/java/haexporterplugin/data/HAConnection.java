@@ -37,6 +37,7 @@ public class HAConnection {
     private Boolean includeAchievementDiaryEvents;
     private Boolean includeCombatTaskEvents;
     private Boolean includeSuperiorEvents;
+    private Boolean includeCollectionLogEvents;
 
     public HAConnection(String baseUrl, String token)
     {
@@ -51,6 +52,7 @@ public class HAConnection {
         this.includeAchievementDiaryEvents = true;
         this.includeCombatTaskEvents = true;
         this.includeSuperiorEvents = true;
+        this.includeCollectionLogEvents = true;
     }
 
     public String getDisplayName()
@@ -130,6 +132,11 @@ public class HAConnection {
         return includeSuperiorEvents == null || includeSuperiorEvents;
     }
 
+    public boolean isIncludeCollectionLogEvents()
+    {
+        return includeCollectionLogEvents == null || includeCollectionLogEvents;
+    }
+
     public void setIncludeLootEvents(boolean value)
     {
         this.includeLootEvents = value;
@@ -158,5 +165,10 @@ public class HAConnection {
     public void setIncludeSuperiorEvents(boolean value)
     {
         this.includeSuperiorEvents = value;
+    }
+
+    public void setIncludeCollectionLogEvents(boolean value)
+    {
+        this.includeCollectionLogEvents = value;
     }
 }
