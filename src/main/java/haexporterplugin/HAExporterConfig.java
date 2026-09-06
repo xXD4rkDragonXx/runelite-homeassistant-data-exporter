@@ -219,6 +219,17 @@ public interface HAExporterConfig extends Config
 		return true;
 	}
 
+	@ConfigItem(
+			keyName = "includeCollectionLogEvents",
+			name = "Include Collection Log Events",
+			description = "Global overwrite to disable sending collection log events to all connections.",
+			position = 416,
+			section = overwriteSection
+	)
+	default boolean includeCollectionLogEvents() {
+		return true;
+	}
+
 	/* ============================
        Advanced Config Items
        ============================ */

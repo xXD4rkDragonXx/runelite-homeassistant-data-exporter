@@ -55,6 +55,7 @@ public class HAExporterPlugin extends Plugin
 	private @Inject LootNotifier lootNotifier;
 	private @Inject LocationNotifier locationNotifier;
 	private @Inject DeathNotifier deathNotifier;
+	private @Inject CollectionNotifier collectionNotifier;
 	private @Inject EasterEggUtils easterEggUtils;
 	private boolean initialized = false;
 
@@ -152,6 +153,7 @@ public class HAExporterPlugin extends Plugin
 				combatTaskNotifier.onChatMessage(chatMessage);
 				achievementDiaryNotifier.onChatMessage(chatMessage);
 				superiorNotifier.onChatMessage(chatMessage);
+				collectionNotifier.onChatMessage(chatMessage);
 				break;
 		}
 

@@ -191,6 +191,7 @@ public class HAExporterPanel extends PluginPanel
         if (!connection.isIncludeAchievementDiaryEvents() || !config.includeAchievementDiaryEvents()) disabled.add("Diary");
         if (!connection.isIncludeCombatTaskEvents() || !config.includeCombatTaskEvents()) disabled.add("Task");
         if (!connection.isIncludeSuperiorEvents() || !config.includeSuperiorEvents()) disabled.add("Superior");
+        if (!connection.isIncludeCollectionLogEvents() || !config.includeCollectionLogEvents()) disabled.add("CollLog");
 
         if (disabled.isEmpty())
         {
@@ -369,6 +370,7 @@ public class HAExporterPanel extends PluginPanel
         JCheckBox diaryCheckbox = createCheckbox("Achievement Diary Events", connection.isIncludeAchievementDiaryEvents(), config.includeAchievementDiaryEvents());
         JCheckBox combatTaskCheckbox = createCheckbox("Combat Task Events", connection.isIncludeCombatTaskEvents(), config.includeCombatTaskEvents());
         JCheckBox superiorCheckbox = createCheckbox("Superior Spawn Events", connection.isIncludeSuperiorEvents(), config.includeSuperiorEvents());
+        JCheckBox collectionLogCheckbox = createCheckbox("Collection Log Events", connection.isIncludeCollectionLogEvents(), config.includeCollectionLogEvents());
 
         eventTogglesPanel.add(lootCheckbox);
         eventTogglesPanel.add(deathCheckbox);
@@ -376,6 +378,7 @@ public class HAExporterPanel extends PluginPanel
         eventTogglesPanel.add(diaryCheckbox);
         eventTogglesPanel.add(combatTaskCheckbox);
         eventTogglesPanel.add(superiorCheckbox);
+        eventTogglesPanel.add(collectionLogCheckbox);
 
         topPanel.add(eventTogglesPanel);
         topPanel.add(Box.createVerticalStrut(15));
@@ -421,6 +424,7 @@ public class HAExporterPanel extends PluginPanel
                     c.setIncludeAchievementDiaryEvents(diaryCheckbox.isSelected());
                     c.setIncludeCombatTaskEvents(combatTaskCheckbox.isSelected());
                     c.setIncludeSuperiorEvents(superiorCheckbox.isSelected());
+                    c.setIncludeCollectionLogEvents(collectionLogCheckbox.isSelected());
                 }
             }
             config.setHomeassistantConnections(gson.toJson(connections));
