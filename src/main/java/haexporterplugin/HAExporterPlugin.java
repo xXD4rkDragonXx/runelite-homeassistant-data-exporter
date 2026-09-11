@@ -142,6 +142,7 @@ public class HAExporterPlugin extends Plugin
 	@Subscribe(priority = 1) // run before the base loot tracker plugin
 	public void onChatMessage(ChatMessage chatMessage) {
 		String source = chatMessage.getName() != null && !chatMessage.getName().isEmpty() ? chatMessage.getName() : chatMessage.getSender();
+
 		switch (chatMessage.getType()){
 			case GAMEMESSAGE:
 				if ("runelite".equals(source)) {
@@ -189,6 +190,7 @@ public class HAExporterPlugin extends Plugin
 	@Subscribe
 	public void onScriptPreFired(ScriptPreFired event) {
 		deathNotifier.onScript(event);
+		collectionNotifier.onScript(event);
 	}
 
 	@Subscribe
