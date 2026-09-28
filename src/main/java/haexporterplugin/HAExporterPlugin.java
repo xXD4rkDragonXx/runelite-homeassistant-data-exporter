@@ -8,6 +8,7 @@ import haexporterplugin.data.PrayerData;
 import haexporterplugin.data.SpellbookData;
 import haexporterplugin.notifiers.*;
 import haexporterplugin.utils.EasterEggUtils;
+import haexporterplugin.utils.HomeAssistUtils;
 import haexporterplugin.utils.MessageBuilder;
 import haexporterplugin.utils.TickUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +58,7 @@ public class HAExporterPlugin extends Plugin
 	private @Inject DeathNotifier deathNotifier;
 	private @Inject CollectionNotifier collectionNotifier;
 	private @Inject EasterEggUtils easterEggUtils;
+	private @Inject HomeAssistUtils homeAssistUtils;
 	private boolean initialized = false;
 
 	@Override
@@ -71,6 +73,7 @@ public class HAExporterPlugin extends Plugin
 			.build();
 		clientToolbar.addNavigation(navButton);
 
+		homeAssistUtils.startUp();
 		panel.initialize();
 		lootNotifier.init();
 
@@ -84,6 +87,8 @@ public class HAExporterPlugin extends Plugin
 	{
 		messageBuilder.addEvent("clientShutdown", "Disabled");
 		tickUtils.sendNow();
+		// Stop resending queued payloads; the "Disabled" message above is still attempted once
+		homeAssistUtils.shutDown();
 		easterEggUtils.shutDown();
 		clientToolbar.removeNavigation(navButton);
 	}

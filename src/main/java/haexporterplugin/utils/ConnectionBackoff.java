@@ -220,6 +220,10 @@ public class ConnectionBackoff {
         states.remove(key);
     }
 
+    public synchronized void clearAll() {
+        states.clear();
+    }
+
     private void prune(State state) {
         long cutoff = clock.getAsLong() - MAX_QUEUE_AGE_MS;
         while (!state.queue.isEmpty() && state.queue.peekFirst().enqueuedAt < cutoff) {

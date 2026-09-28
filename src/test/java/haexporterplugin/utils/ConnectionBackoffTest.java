@@ -263,6 +263,25 @@ public class ConnectionBackoffTest
 	}
 
 	@Test
+	public void testClearAllResetsEveryConnection()
+	{
+		String other = "http://other.local:8123\ntoken";
+		backoff.enqueue(KEY, "a");
+		backoff.recordFailure(KEY);
+		backoff.enqueue(other, "b");
+		backoff.recordFailure(other);
+
+		backoff.clearAll();
+
+		for (String key : new String[]{KEY, other})
+		{
+			assertFalse(backoff.isPaused(key));
+			assertEquals(0, backoff.getQueuedCount(key));
+			assertNull(backoff.beginDrain(key));
+		}
+	}
+
+	@Test
 	public void testConnectionsAreIndependent()
 	{
 		String other = "http://other.local:8123\ntoken";

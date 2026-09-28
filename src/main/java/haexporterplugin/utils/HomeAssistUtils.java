@@ -25,9 +25,9 @@ public class HomeAssistUtils {
     private static final String DATA_ENDPOINT = "/api/osrs-data/events";
     private static final String CONTENT_TYPE_JSON = "application/json; charset=utf-8";
     private static final String TOKEN_HEADER = "X-Osrs-Token";
+    private static final String RETRY_AFTER_HEADER = "Retry-After";
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String APPLICATION_JSON = "application/json";
-    private static final String RETRY_AFTER_HEADER = "Retry-After";
 
     @Inject
     protected HAExporterConfig config;
@@ -44,6 +44,18 @@ public class HomeAssistUtils {
     private @Inject Gson gson;
 
     private final ConnectionBackoff backoff = new ConnectionBackoff();
+
+    // Set while the plugin is disabled, so late callbacks and scheduled drains don't queue or resend anything
+    private volatile boolean stopped;
+
+    public void startUp() {
+        stopped = false;
+    }
+
+    public void shutDown() {
+        stopped = true;
+        backoff.clearAll();
+    }
 
     public void sendMessage(String jsonPayload) {
         sendPayload(jsonPayload);
@@ -105,6 +117,10 @@ public class HomeAssistUtils {
     }
 
     private void drainQueued(String key) {
+        if (stopped) {
+            return;
+        }
+
         String payload = backoff.beginDrain(key);
         if (payload == null) {
             return;
@@ -292,6 +308,11 @@ public class HomeAssistUtils {
      * Receivers dedupe on eventId, so resending a payload that did arrive (e.g. after a timeout) is harmless.
      */
     private void retryLater(HAConnection connection, String key, String payload, boolean drained, Long retryAt, String cause) {
+        if (stopped) {
+            log.debug("Could not deliver data to {} ({}) after the plugin was disabled, not retrying", connection.getDisplayName(), cause);
+            return;
+        }
+
         boolean firstFailure = retryAt != null
                 ? backoff.recordRetryAfter(key, retryAt)
                 : backoff.recordFailure(key);

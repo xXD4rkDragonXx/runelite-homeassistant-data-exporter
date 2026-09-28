@@ -170,7 +170,7 @@ Open **RuneLite Settings → HA Exporter** to find these options:
 
 ## 🔁 Delivery & Backoff
 
-Every connection is handled on its own. When Home Assistant can't be reached or asks the plugin to slow down, the plugin pauses sending to that connection for a while instead of continuing to send every update.
+Every connection is handled on its own. When an endpoint (Home Assistant or any other receiver) can't be reached or asks the plugin to slow down, the plugin pauses sending to that connection for a while instead of continuing to send every update.
 
 | Response | What the plugin does |
 |----------|----------------------|
@@ -190,9 +190,9 @@ While a connection is paused:
 - Payloads **with events** (loot, level-ups, deaths, …) are queued: at most 50 payloads per connection and nothing older than 10 minutes, dropping the oldest first.
 - When the pause ends, the queued payloads are resent one at a time, in their original order.
 
-Pauses and queued payloads live in memory only: they are never saved to your RuneLite config, and restarting the client clears them.
+Pauses and queued payloads live in memory only: they are never saved to your RuneLite config, and restarting the client or turning the plugin off clears them.
 
-> **Duplicates:** after a network error or timeout the plugin can't tell whether Home Assistant already received a payload, so it sends it again. Receivers may therefore occasionally get the same event twice and should de-duplicate on each event's `eventId`.
+> **Duplicates:** after a network error or timeout the plugin can't tell whether the endpoint already received a payload, so it sends it again. Receivers may therefore occasionally get the same event twice and should de-duplicate on each event's `eventId`.
 
 The side panel shows a paused connection under its name, e.g. `⏸ Paused — retrying in 2m 05s (3 queued)`, counting down live until sending resumes.
 
