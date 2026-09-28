@@ -10,7 +10,7 @@ import lombok.ToString;
 public class RareItemData extends ItemData {
     private final double rarity;
 
-    public RareItemData(String name, int id, int gePrice, int haPrice, int quantity, double rarity) {
+    public RareItemData(String name, int id, long gePrice, int haPrice, int quantity, double rarity) {
         this.setName(name);
         this.setId(id);
         this.setGePrice(gePrice);
