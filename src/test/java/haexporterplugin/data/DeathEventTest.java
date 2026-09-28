@@ -1,5 +1,6 @@
 package haexporterplugin.data;
 
+import com.google.gson.Gson;
 import haexporterplugin.enums.Danger;
 import net.runelite.api.coords.WorldPoint;
 import org.junit.Test;
@@ -65,5 +66,19 @@ public class DeathEventTest
 		);
 
 		assertNotNull(event);
+	}
+
+	@Test
+	public void testValueLostAboveIntMaxSerializesAsLong()
+	{
+		haexporterplugin.events.DeathEvent event = new haexporterplugin.events.DeathEvent(
+			3_000_000_000L, Danger.DANGEROUS, null, null,
+			new ArrayList<>(), new ArrayList<>(),
+			new WorldPoint(3222, 3218, 0)
+		);
+
+		String json = new Gson().toJson(event);
+
+		assertTrue(json, json.contains("\"valueLost\":3000000000"));
 	}
 }

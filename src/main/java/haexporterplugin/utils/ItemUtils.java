@@ -117,7 +117,7 @@ public class ItemUtils {
     public long getStackGePrice(List<ItemData> items){
         long totalPrice = 0;
         for (ItemData item : items){
-            int stackPrice = item.getGePrice() * item.getQuantity();
+            long stackPrice = (long) item.getGePrice() * item.getQuantity();
             totalPrice += stackPrice;
         }
         return totalPrice;
