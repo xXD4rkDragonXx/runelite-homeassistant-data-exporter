@@ -7,8 +7,10 @@ import lombok.Setter;
 @Setter
 public class Player {
     private String name;
+    private String accountHash;
     private String accountType;
     private String world;
+    private String[] worldTypes;
     private PlayerLocation location;
     private HealthData health;
     private PrayerData prayerPoints;

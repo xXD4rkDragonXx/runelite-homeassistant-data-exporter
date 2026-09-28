@@ -8,8 +8,11 @@ import haexporterplugin.data.PrayerData;
 import haexporterplugin.data.SpellbookData;
 import haexporterplugin.notifiers.*;
 import haexporterplugin.utils.EasterEggUtils;
+import haexporterplugin.utils.HomeAssistUtils;
 import haexporterplugin.utils.MessageBuilder;
 import haexporterplugin.utils.TickUtils;
+import haexporterplugin.utils.Utils;
+import haexporterplugin.utils.WorldUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
@@ -33,6 +36,9 @@ import net.runelite.client.util.ImageUtil;
 )
 public class HAExporterPlugin extends Plugin
 {
+	// Sent to endpoints as X-Osrs-Exporter-Version. Must match `version` in build.gradle (checked by PluginVersionTest).
+	public static final String PLUGIN_VERSION = "1.4";
+
 	@Inject
 	private Client client;
 
@@ -57,6 +63,7 @@ public class HAExporterPlugin extends Plugin
 	private @Inject DeathNotifier deathNotifier;
 	private @Inject CollectionNotifier collectionNotifier;
 	private @Inject EasterEggUtils easterEggUtils;
+	private @Inject HomeAssistUtils homeAssistUtils;
 	private boolean initialized = false;
 
 	@Override
@@ -71,6 +78,7 @@ public class HAExporterPlugin extends Plugin
 			.build();
 		clientToolbar.addNavigation(navButton);
 
+		homeAssistUtils.startUp();
 		panel.initialize();
 		lootNotifier.init();
 
@@ -84,6 +92,8 @@ public class HAExporterPlugin extends Plugin
 	{
 		messageBuilder.addEvent("clientShutdown", "Disabled");
 		tickUtils.sendNow();
+		// Stop resending queued payloads; the "Disabled" message above is still attempted once
+		homeAssistUtils.shutDown();
 		easterEggUtils.shutDown();
 		clientToolbar.removeNavigation(navButton);
 	}
@@ -97,6 +107,14 @@ public class HAExporterPlugin extends Plugin
 	}
 
 	@Subscribe
+	public void onAccountHashChanged(AccountHashChanged event)
+	{
+		// initialize() reads the hash itself, so only update once the player has been initialized
+		if (!initialized) return;
+		messageBuilder.setData("accounthash", Utils.accountHash(client.getAccountHash()));
+	}
+
+	@Subscribe
 	public void onPlayerLootReceived(PlayerLootReceived playerLootReceived) {
 		lootNotifier.onPlayerLootReceived(playerLootReceived);
 	}
@@ -105,6 +123,7 @@ public class HAExporterPlugin extends Plugin
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
 		messageBuilder.setState(gameStateChanged.getGameState());
+		levelNotifier.onGameStateChanged(gameStateChanged);
 		if (gameStateChanged.getGameState() == GameState.HOPPING)
 		{
 			initialized = false;
@@ -246,10 +265,12 @@ public class HAExporterPlugin extends Plugin
 			String name = client.getLocalPlayer().getName();
 
 			messageBuilder.setData("world", String.valueOf(client.getWorld()));
+			messageBuilder.setData("worldtypes", WorldUtils.getWorldTypeNames(client.getWorldType()));
 			int accountType = client.getVarbitValue(VarbitID.IRONMAN);
 			messageBuilder.setData("accounttype", String.valueOf(accountType));
             assert name != null;
             messageBuilder.setData("name", name);
+			messageBuilder.setData("accounthash", Utils.accountHash(client.getAccountHash()));
 
 			// Get and set Health & Prayer
 			HealthData health = new HealthData(client.getBoostedSkillLevel(Skill.HITPOINTS), client.getRealSkillLevel(Skill.HITPOINTS));

@@ -91,7 +91,7 @@ public class CollectionNotifier extends BaseNotifier {
         if (itemName.isEmpty()) return;
 
         int itemId = resolveItemId(itemName);
-        long value = itemId > 0 ? (long) itemManager.getItemPrice(itemId) : 0L;
+        long value = itemId > 0 ? itemManager.getItemPrice(itemId) : 0L;
 
         Integer killCount = (client.getTickCount() - lastKillCountTick) <= KILL_COUNT_MAX_TICK_AGE ? lastKillCount : null;
 

@@ -22,6 +22,10 @@ public class Root {
     private GameState state;
     @Setter
     private int tickDelay;
+    // Epoch millis (UTC) at which this payload was built
+    @Getter
+    @Setter
+    private long timestamp;
 
     public Root() {
         this.events = new ArrayList<>();
