@@ -501,10 +501,22 @@ public class HAExporterPanel extends PluginPanel
             submitButton.setEnabled(true);
         };
 
-        baseUrlField.addKeyListener(new java.awt.event.KeyAdapter()
+        baseUrlField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener()
         {
             @Override
-            public void keyTyped(java.awt.event.KeyEvent e)
+            public void insertUpdate(javax.swing.event.DocumentEvent e)
+            {
+                updateSubmitState.run();
+            }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e)
+            {
+                updateSubmitState.run();
+            }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e)
             {
                 updateSubmitState.run();
             }
