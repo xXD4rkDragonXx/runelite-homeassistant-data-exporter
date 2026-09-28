@@ -10,6 +10,8 @@ import haexporterplugin.notifiers.*;
 import haexporterplugin.utils.EasterEggUtils;
 import haexporterplugin.utils.MessageBuilder;
 import haexporterplugin.utils.TickUtils;
+import haexporterplugin.utils.Utils;
+import haexporterplugin.utils.WorldUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
@@ -94,6 +96,14 @@ public class HAExporterPlugin extends Plugin
 		if (!initialized) return;
 		messageBuilder.addEvent("clientShutdown", "Shutdown");
 		tickUtils.sendShutdown();
+	}
+
+	@Subscribe
+	public void onAccountHashChanged(AccountHashChanged event)
+	{
+		// initialize() reads the hash itself, so only update once the player has been initialized
+		if (!initialized) return;
+		messageBuilder.setData("accounthash", Utils.accountHash(client.getAccountHash()));
 	}
 
 	@Subscribe
@@ -244,10 +254,12 @@ public class HAExporterPlugin extends Plugin
 			String name = client.getLocalPlayer().getName();
 
 			messageBuilder.setData("world", String.valueOf(client.getWorld()));
+			messageBuilder.setData("worldtypes", WorldUtils.getWorldTypeNames(client.getWorldType()));
 			int accountType = client.getVarbitValue(VarbitID.IRONMAN);
 			messageBuilder.setData("accounttype", String.valueOf(accountType));
             assert name != null;
             messageBuilder.setData("name", name);
+			messageBuilder.setData("accounthash", Utils.accountHash(client.getAccountHash()));
 
 			// Get and set Health & Prayer
 			HealthData health = new HealthData(client.getBoostedSkillLevel(Skill.HITPOINTS), client.getRealSkillLevel(Skill.HITPOINTS));

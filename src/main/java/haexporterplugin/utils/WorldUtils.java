@@ -18,7 +18,9 @@ import net.runelite.api.widgets.Widget;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @UtilityClass
 public class WorldUtils {
@@ -80,6 +82,16 @@ public class WorldUtils {
     public boolean isSeasonal(Client client) {
         EnumSet<WorldType> worldTypes = client.getWorldType();
         return worldTypes.contains(WorldType.SEASONAL) || isSeasonalDeadman(worldTypes) || isGridMaster(client);
+    }
+
+    /**
+     * @return the names of the given world types in enum order, e.g. ["MEMBERS", "SEASONAL"]
+     */
+    public List<String> getWorldTypeNames(Set<WorldType> worldTypes) {
+        return worldTypes.stream()
+                .sorted()
+                .map(WorldType::name)
+                .collect(Collectors.toList());
     }
 
     public boolean isIgnoredWorld(Set<WorldType> worldType) {

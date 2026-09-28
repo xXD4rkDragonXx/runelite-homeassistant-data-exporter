@@ -7,6 +7,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Map;
@@ -53,6 +54,21 @@ public class MessageBuilderTest
 	{
 		messageBuilder.setData("name", "TestPlayer");
 		assertEquals("TestPlayer", messageBuilder.getPlayer().getName());
+	}
+
+	@Test
+	public void testSetDataAccountHash()
+	{
+		String hash = Utils.accountHash(1234567890123456789L);
+		messageBuilder.setData("accounthash", hash);
+		assertEquals(hash, messageBuilder.getPlayer().getAccountHash());
+	}
+
+	@Test
+	public void testSetDataWorldTypes()
+	{
+		messageBuilder.setData("worldtypes", Arrays.asList("MEMBERS", "SEASONAL"));
+		assertEquals(Arrays.asList("MEMBERS", "SEASONAL"), messageBuilder.getPlayer().getWorldTypes());
 	}
 
 	@Test

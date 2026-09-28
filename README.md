@@ -143,6 +143,29 @@ Every message sent to Home Assistant follows this structure:
 | `state` | Current `GameState` (e.g. `LOGGED_IN`, `HOPPING`, `LOGIN_SCREEN`) |
 | `tickDelay` | Number of game ticks between periodic base messages |
 
+### Account identity & world types
+
+Two `player` fields help receivers tell accounts and worlds apart:
+
+| Field | Description |
+|-------|-------------|
+| `player.accountHash` | Salted SHA-224 hex digest of the RuneLite account hash. Stays the same when the display name changes. Omitted when not logged in. It cannot be reversed and cannot be matched against hashes sent by other plugins. |
+| `player.worldTypes` | RuneLite `WorldType` names of the current world: `[]` on free-to-play worlds, `["MEMBERS"]` on normal members worlds. |
+
+```json
+{
+  "player": {
+    "name": "PlayerName",
+    "accountHash": "de731bc0f710567a6a0e852bbe79eb5fa8daf37d4140440a774591f0",
+    "world": "302",
+    "worldTypes": ["MEMBERS"]
+  }
+}
+```
+
+- Key accounts on `accountHash`, and fall back to `name` when it is absent.
+- If you track XP or levels, ignore stats while `worldTypes` contains `SEASONAL`, `DEADMAN`, `TOURNAMENT_WORLD`, `BETA_WORLD`, `QUEST_SPEEDRUNNING`, `NOSAVE_MODE` or `PVP_ARENA`. The plugin treats these as special worlds: they use separate or temporary characters (Leagues, Deadman, beta, tournament, speedrunning, …), so their stats don't belong to the main account.
+
 ---
 
 ## ⚙️ Configuration

@@ -3,12 +3,16 @@ package haexporterplugin.data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 public class Player {
     private String name;
+    private String accountHash;
     private String accountType;
     private String world;
+    private List<String> worldTypes;
     private PlayerLocation location;
     private HealthData health;
     private PrayerData prayerPoints;
