@@ -103,7 +103,7 @@ public interface HAExporterConfig extends Config
 	)
 	@ConfigItem(
 			keyName = "sendRate",
-			name = "Update interval (ticks)",
+			name = "Update rate (ticks)",
 			description = "Game ticks between regular state updates (1 tick = 0.6s, so 100 is about a minute).<br/>" +
 					"Events such as drops and deaths are always sent right away",
 			position = 101,
@@ -113,7 +113,7 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "sendHealthInstantly",
-			name = "Send health changes instantly",
+			name = "Instant health updates",
 			description = "When on, every health change is sent right away.<br/>" +
 					"When off, health is only sent with the regular update",
 			position = 102,
@@ -125,7 +125,7 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "sendPrayerInstantly",
-			name = "Send prayer changes instantly",
+			name = "Instant prayer updates",
 			description = "When on, every prayer point change is sent right away.<br/>" +
 					"When off, prayer is only sent with the regular update",
 			position = 103,
@@ -137,7 +137,7 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "sendSpecialWorldData",
-			name = "Send data from special worlds",
+			name = "Special world data",
 			description = "Send data while playing on special or event worlds (Leagues, Deadman, tournament, beta, quest speedrunning, PvP Arena).<br/>" +
 					"These use separate or temporary characters, so this is off by default: nothing is sent from them.",
 			position = 104,
@@ -201,7 +201,7 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "minLootValue",
-			name = "Minimum item value (gp)",
+			name = "Min item value (gp)",
 			description = "Only send a drop when an item stack is worth at least this much",
 			position = 302,
 			section = lootSection
@@ -212,7 +212,7 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "lootRarityThreshold",
-			name = "Also send if rarer than 1 in X",
+			name = "Rarer than 1 in X",
 			description = "Also send drops this rare, even when they are below the minimum value.<br/>" +
 					"For example, 100 sends anything with a 1% drop rate or rarer.<br/>" +
 					"Set to 0 to turn off. Only works for NPC drops and pickpocketing",
@@ -225,7 +225,7 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "lootRarityValueIntersection",
-			name = "Require value AND rarity",
+			name = "Value AND rarity",
 			description = "When on, a drop must pass <i>both</i> the minimum value and the rarity threshold.<br/>" +
 					"Drops without known rarity only need to pass the minimum value",
 			position = 304,
@@ -262,7 +262,7 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "lootSourceDenylist",
-			name = "Never send loot from these sources",
+			name = "Never send these sources",
 			description = "Drops from these NPCs or activities are never sent.<br/>" +
 					"One name per line, not case-sensitive.<br/>" +
 					"Does <i>not</i> apply to player names for PK loot",
@@ -286,7 +286,7 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "lootIncludePkChest",
-			name = "PK loot chest: use total value",
+			name = "PK chest total value",
 			description = "For PK loot chests, send when the <i>combined</i> value passes the minimum,<br/>" +
 					"even if no single item does",
 			position = 309,
@@ -393,7 +393,7 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "includeCollectionLogEvents",
-			name = "Send collection log events",
+			name = "Send clog events",
 			description = "Send an event when you fill a new collection log slot." + MASTER_SWITCH_NOTE + "<br/>" +
 					"Needs the in-game 'Collection log - New addition notification' setting to be on",
 			position = 501,
@@ -405,7 +405,7 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "clogMinValue",
-			name = "Minimum item value (gp)",
+			name = "Min item value (gp)",
 			description = "Only send new collection log items worth at least this much.<br/>" +
 					"Items without a GE price (such as pets) are always sent",
 			position = 502,
@@ -447,7 +447,7 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "includeCombatTaskEvents",
-			name = "Send combat task events",
+			name = "Send task events",
 			description = "Send an event when you complete a combat achievement task." + MASTER_SWITCH_NOTE,
 			position = 701,
 			section = combatTaskSection
@@ -488,7 +488,7 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "includeSuperiorEvents",
-			name = "Send superior spawn events",
+			name = "Send superior events",
 			description = "Send an event when a superior slayer monster appears." + MASTER_SWITCH_NOTE,
 			position = 851,
 			section = superiorSection
