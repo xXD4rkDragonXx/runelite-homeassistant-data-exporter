@@ -237,7 +237,7 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "lootItemAllowlist",
-			name = "Always send these items",
+			name = "Always send for these items",
 			description = "These items are always sent, even when below the value or rarity threshold.<br/>" +
 					"One item name per line, not case-sensitive. Use * as a wildcard (e.g. <i>*pet*</i>)",
 			position = 305,
@@ -249,9 +249,9 @@ public interface HAExporterConfig extends Config
 
 	@ConfigItem(
 			keyName = "lootItemDenylist",
-			name = "Never send these items",
+			name = "Never send for these items",
 			description = "These items are never sent, whatever their value or rarity.<br/>" +
-					"Wins over 'Always send these items'.<br/>" +
+					"Wins over 'Always send for these items'.<br/>" +
 					"One item name per line, not case-sensitive. Use * as a wildcard",
 			position = 306,
 			section = lootSection

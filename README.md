@@ -237,8 +237,8 @@ Open **RuneLite Settings → HA Exporter** to find these options. Every event ty
 | **Min item value (gp)** | `25000` | Only send a drop when an item stack is worth at least this much |
 | **Rarer than 1 in X** | `0` (off) | Also send rare drops that are below the minimum value (NPC drops and pickpocketing) |
 | **Value AND rarity** | `off` | A drop must pass both thresholds |
-| **Always send these items** | _(empty)_ | Always sent, even below the thresholds. One name per line, `*` wildcard |
-| **Never send these items** | _(empty)_ | Never sent. Wins over *Always send* |
+| **Always send for these items** | _(empty)_ | Always sent, even below the thresholds. One name per line, `*` wildcard |
+| **Never send for these items** | _(empty)_ | Never sent. Wins over *Always send* |
 | **Never send these sources** | `Einar` | NPC / activity names to ignore (not player names) |
 | **Send PK loot** | `on` | Loot from killing other players |
 | **PK chest total value** | `on` | Send PK loot chests when their combined value passes the minimum |
