@@ -44,6 +44,7 @@ public class CollectionNotifierTest
 
 	private int tick = 1000;
 	private Client client;
+	private HAExporterConfig config;
 	private MessageBuilder messageBuilder;
 	private KillCountTracker killCountTracker;
 	private CollectionNotifier collectionNotifier;
@@ -52,6 +53,7 @@ public class CollectionNotifierTest
 	public void setUp()
 	{
 		client = mock(Client.class);
+		config = mock(HAExporterConfig.class);
 		when(client.getTickCount()).thenAnswer(inv -> tick);
 		when(client.getItemCount()).thenReturn(10);
 
@@ -81,7 +83,7 @@ public class CollectionNotifierTest
 			binder.bind(Client.class).toProvider(Providers.of(client));
 			binder.bind(ItemManager.class).toProvider(Providers.of(itemManager));
 			binder.bind(ClientThread.class).toProvider(Providers.of(clientThread));
-			binder.bind(HAExporterConfig.class).toProvider(Providers.of(mock(HAExporterConfig.class)));
+			binder.bind(HAExporterConfig.class).toProvider(Providers.of(config));
 			binder.bind(TickUtils.class).toProvider(Providers.of(mock(TickUtils.class)));
 			binder.bind(HomeAssistUtils.class).toProvider(Providers.of(mock(HomeAssistUtils.class)));
 			binder.bind(RarityUtils.class).toProvider(Providers.of(mock(RarityUtils.class)));
@@ -158,6 +160,39 @@ public class CollectionNotifierTest
 		collectionNotifier.onGameStateChanged(loggedIn);
 
 		verify(client).getItemCount();
+	}
+
+	@Test
+	public void testItemBelowMinimumValueIsSkipped()
+	{
+		setNotificationSetting(CHAT_ONLY);
+		when(config.clogMinValue()).thenReturn(2_000_000);
+
+		chat("New item added to your collection log: Abyssal whip");
+
+		assertTrue(messageBuilder.getRoot().getEvents().isEmpty());
+	}
+
+	@Test
+	public void testItemAboveMinimumValueIsSent()
+	{
+		setNotificationSetting(CHAT_ONLY);
+		when(config.clogMinValue()).thenReturn(1_000_000);
+
+		chat("New item added to your collection log: Abyssal whip");
+
+		assertEquals("Abyssal whip", onlyCollectionLogEvent().getItemName());
+	}
+
+	@Test
+	public void testItemWithoutPriceIgnoresMinimumValue()
+	{
+		setNotificationSetting(CHAT_ONLY);
+		when(config.clogMinValue()).thenReturn(2_000_000);
+
+		chat("New item added to your collection log: Pet snakeling");
+
+		assertEquals("Pet snakeling", onlyCollectionLogEvent().getItemName());
 	}
 
 	@Test

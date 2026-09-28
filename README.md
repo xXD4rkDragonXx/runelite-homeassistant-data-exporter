@@ -170,7 +170,7 @@ Each event is an object `{ "type", "data", "eventId", "timestamp" }`:
 | `eventId` | Random UUID. Identical events can legitimately repeat (e.g. two diary tasks in a row), so use this to tell a genuine repeat from a duplicate delivery |
 | `timestamp` | When the event happened, in epoch milliseconds (UTC). Can be earlier than the message `timestamp` when the event waited for the next periodic message |
 
-Every event is sent exactly once. Events that trigger an immediate message go out right away; the others (`achievementDiary`, `combatTask`) are included in the next periodic message. Events that happen on a special world are dropped unless **Send data from special worlds** is enabled (see below).
+Every event is sent exactly once. Events that trigger an immediate message go out right away; the others (`achievementDiary`, `combatTask`) are included in the next periodic message. Events that happen on a special world are dropped unless **Special world data** is enabled (see below).
 
 | `type` | `data` |
 |--------|--------|
@@ -207,31 +207,69 @@ Two `player` fields help receivers tell accounts and worlds apart:
 ```
 
 - Key accounts on `accountHash`, and fall back to `name` when it is absent.
-- Special worlds (`SEASONAL`, `DEADMAN`, `TOURNAMENT_WORLD`, `BETA_WORLD`, `QUEST_SPEEDRUNNING`, `NOSAVE_MODE`, `PVP_ARENA`) use separate or temporary characters. By default the plugin sends **nothing** while you're on one, so their stats never mix with your main account. Enabling **Send data from special worlds** sends them anyway, and `worldTypes` then tells receivers which world the data came from.
+- Special worlds (`SEASONAL`, `DEADMAN`, `TOURNAMENT_WORLD`, `BETA_WORLD`, `QUEST_SPEEDRUNNING`, `NOSAVE_MODE`, `PVP_ARENA`) use separate or temporary characters. By default the plugin sends **nothing** while you're on one, so their stats never mix with your main account. Enabling **Special world data** sends them anyway, and `worldTypes` then tells receivers which world the data came from.
 
 ---
 
 ## ⚙️ Configuration
 
-Open **RuneLite Settings → HA Exporter** to find these options:
+Open **RuneLite Settings → HA Exporter** to find these options. Every event type has its own section with an on/off switch at the top. That switch applies to **all** connections, and when it's off the matching checkbox in the side panel is greyed out.
 
-### Loot Settings
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| **Min Loot Value** | `25000` | Minimum GP value for a loot drop to trigger an event |
-| **Item Allowlist** | _(empty)_ | Regex patterns — matching items are **always** reported |
-| **Item Denylist** | _(empty)_ | Regex patterns — matching items are **never** reported |
-| **Source Denylist** | _(empty)_ | NPC / source names to ignore (e.g. `Farmer`) |
-| **Rarity Threshold** | `0` | Report drops rarer than 1-in-X (0 = disabled) |
-| **Rarity + Value Intersection** | `false` | Require **both** rarity and value thresholds to be met |
-
-### Notable Advanced Settings
+### General
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| **Send data from special worlds** | `false` | Send data while on special or event worlds (Leagues, Deadman, tournament, beta, quest speedrunning, PvP Arena). When off, nothing at all is sent from those worlds — not even a logout — so receivers keep the last state from a normal world |
-| **Send Rate** | `100` ticks (~60 s) | How often a full state snapshot is sent |
+| **Update rate (ticks)** | `100` (~60 s) | How often a full state update is sent. Events are always sent right away |
+| **Instant health / prayer updates** | `on` | Send every HP / prayer change right away instead of waiting for the next update |
+| **Special world data** | `off` | Send data while on special or event worlds (Leagues, Deadman, tournament, beta, quest speedrunning, PvP Arena). When off, nothing at all is sent from those worlds — not even a logout — so receivers keep the last state from a normal world |
+
+### Data Sharing
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| **Share inventory / equipment / location** | `on` | Include these in every update |
+
+### Loot
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| **Send loot events** | `on` | Master switch for loot events |
+| **Min item value (gp)** | `25000` | Only send a drop when an item stack is worth at least this much |
+| **Rarer than 1 in X** | `0` (off) | Also send rare drops that are below the minimum value (NPC drops and pickpocketing) |
+| **Value AND rarity** | `off` | A drop must pass both thresholds |
+| **Always send for these items** | _(empty)_ | Always sent, even below the thresholds. One name per line, `*` wildcard |
+| **Never send for these items** | _(empty)_ | Never sent. Wins over *Always send* |
+| **Never send these sources** | `Einar` | NPC / activity names to ignore (not player names) |
+| **Send PK loot** | `on` | Loot from killing other players |
+| **PK chest total value** | `on` | Send PK loot chests when their combined value passes the minimum |
+| **Send pickpocket loot** | `on` | Loot from pickpocketing |
+| **Player lookup link** | `OSRS HiScore` | Website that player names in PK loot link to |
+
+### Level Up
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| **Send level-up events** | `on` | Master switch. Skill levels are still shared in every update |
+| **Minimum level** | `1` | Only send level-ups to this level or higher |
+| **Send every Nth level** | `1` | Only send multiples of N. Level 99 is always sent |
+| **Send virtual levels** | `on` | Levels above 99 |
+| **Send combat level** | `on` | Combat level increases |
+
+### Collection Log, Achievement Diary, Combat Tasks
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| **Send … events** | `on` | Master switch for each event type |
+| **Collection log: Min item value (gp)** | `0` | Items without a GE price (such as pets) are always sent |
+| **Diary: Minimum tier** | `Easy` | Only send diary tasks of this tier or harder |
+| **Combat tasks: Minimum tier** | `Easy` | Only send combat tasks of this tier or harder |
+
+### Deaths & Superior Spawns
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| **Send death events** | `on` | Master switch for death events |
+| **Send superior spawn events** | `on` | Master switch for superior slayer monster spawns |
 
 ---
 

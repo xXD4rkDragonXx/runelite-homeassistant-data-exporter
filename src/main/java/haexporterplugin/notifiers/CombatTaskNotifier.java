@@ -1,5 +1,6 @@
 package haexporterplugin.notifiers;
 
+import haexporterplugin.enums.CombatTaskTier;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.events.ChatMessage;
@@ -27,6 +28,12 @@ public class CombatTaskNotifier extends BaseNotifier {
         if (matcher.matches()) {
             String task = matcher.group("task");
             String tier = matcher.group("tier");
+
+            CombatTaskTier parsedTier = CombatTaskTier.fromString(tier);
+            if (parsedTier != null && parsedTier.compareTo(config.combatTaskMinTier()) < 0) {
+                log.debug("Skipping combat task below minimum tier: {} (tier: {})", task, tier);
+                return;
+            }
 
             log.debug("Detected combat task completion: {} (tier: {})", task, tier);
 

@@ -1,5 +1,6 @@
 package haexporterplugin.notifiers;
 
+import haexporterplugin.enums.DiaryTier;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.events.ChatMessage;
@@ -27,6 +28,12 @@ public class AchievementDiaryNotifier extends BaseNotifier {
         if (matcher.matches()) {
             String region = matcher.group("region");
             String tier = matcher.group("tier");
+
+            DiaryTier parsedTier = DiaryTier.fromString(tier);
+            if (parsedTier != null && parsedTier.compareTo(config.diaryMinTier()) < 0) {
+                log.debug("Skipping diary completion below minimum tier: {} (tier: {})", region, tier);
+                return;
+            }
 
             log.debug("Detected diary completion: {} (tier: {})", region, tier);
 

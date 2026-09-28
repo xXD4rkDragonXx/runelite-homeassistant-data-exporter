@@ -33,6 +33,7 @@ public class LevelNotifierTest
 	private final Map<Skill, Integer> levels = new EnumMap<>(Skill.class);
 
 	private TickUtils tickUtils;
+	private HAExporterConfig config;
 	private MessageBuilder messageBuilder;
 	private LevelNotifier levelNotifier;
 
@@ -45,8 +46,13 @@ public class LevelNotifierTest
 		when(client.getRealSkillLevel(any())).thenAnswer(inv -> levels.get(inv.<Skill>getArgument(0)));
 		when(client.getSkillExperience(any())).thenAnswer(inv -> Experience.getXpForLevel(levels.get(inv.<Skill>getArgument(0))));
 		when(client.getWorldType()).thenReturn(EnumSet.of(WorldType.MEMBERS));
-		HAExporterConfig config = mock(HAExporterConfig.class);
+		config = mock(HAExporterConfig.class);
 		when(config.sendRate()).thenReturn(100);
+		// Level-up filter defaults: send every level
+		when(config.levelMinValue()).thenReturn(1);
+		when(config.levelInterval()).thenReturn(1);
+		when(config.levelIncludeVirtual()).thenReturn(true);
+		when(config.levelIncludeCombat()).thenReturn(true);
 		tickUtils = mock(TickUtils.class);
 		// TickUtils counts ticks since the last send, which is usually well past the init delay
 		when(tickUtils.getTickCount()).thenReturn(60);
@@ -121,6 +127,41 @@ public class LevelNotifierTest
 		assertEquals(1, messageBuilder.getRoot().getEvents().size());
 	}
 
+	@Test
+	public void testIntervalFiltersEventsButStatsStillUpdate()
+	{
+		when(config.levelInterval()).thenReturn(5);
+		tick(5);
+
+		levels.put(Skill.MINING, 51);
+		levelNotifier.onTick();
+		assertNoLevelUp();
+		assertEquals(Integer.valueOf(51), messageBuilder.getPlayer().getStats().getSkills().get("Mining").getLevel());
+
+		levels.put(Skill.MINING, 55);
+		levelNotifier.onTick();
+		assertEquals(1, messageBuilder.getRoot().getEvents().size());
+	}
+
+	@Test
+	public void testCombatLevelCanBeTurnedOff()
+	{
+		when(config.levelIncludeCombat()).thenReturn(false);
+		tick(5);
+
+		// Raising the combat skills raises the combat level too
+		for (Skill skill : new Skill[]{Skill.ATTACK, Skill.STRENGTH, Skill.DEFENCE, Skill.HITPOINTS, Skill.PRAYER})
+		{
+			levels.put(skill, 60);
+		}
+		levelNotifier.onTick();
+
+		Map<?, ?> event = (Map<?, ?>) messageBuilder.getRoot().getEvents().get(0);
+		String json = new Gson().toJson(event.get("data"));
+		assertTrue(json.contains("Attack"));
+		assertFalse(json.contains("Combat"));
+	}
+
 	private void hop()
 	{
 		levelNotifier.onGameStateChanged(gameState(GameState.HOPPING));
@@ -153,5 +194,49 @@ public class LevelNotifierTest
 		GameStateChanged event = new GameStateChanged();
 		event.setGameState(state);
 		return event;
+	}
+
+	@Test
+	public void testDefaultsSendEverything()
+	{
+		assertTrue(LevelNotifier.shouldSend("Attack", 2, 1, 1, true, true));
+		assertTrue(LevelNotifier.shouldSend("Attack", 105, 1, 1, true, true));
+		assertTrue(LevelNotifier.shouldSend("Combat", 50, 1, 1, true, true));
+	}
+
+	@Test
+	public void testMinLevel()
+	{
+		assertFalse(LevelNotifier.shouldSend("Attack", 69, 70, 1, true, true));
+		assertTrue(LevelNotifier.shouldSend("Attack", 70, 70, 1, true, true));
+	}
+
+	@Test
+	public void testInterval()
+	{
+		assertFalse(LevelNotifier.shouldSend("Mining", 42, 1, 5, true, true));
+		assertTrue(LevelNotifier.shouldSend("Mining", 45, 1, 5, true, true));
+	}
+
+	@Test
+	public void testLevel99AlwaysSent()
+	{
+		assertTrue(LevelNotifier.shouldSend("Mining", 99, 1, 10, true, true));
+	}
+
+	@Test
+	public void testVirtualLevels()
+	{
+		assertFalse(LevelNotifier.shouldSend("Mining", 100, 1, 1, false, true));
+		assertTrue(LevelNotifier.shouldSend("Mining", 99, 1, 1, false, true));
+		// combat level is never "virtual"
+		assertTrue(LevelNotifier.shouldSend("Combat", 100, 1, 1, false, true));
+	}
+
+	@Test
+	public void testCombatToggle()
+	{
+		assertFalse(LevelNotifier.shouldSend("Combat", 100, 1, 1, true, false));
+		assertTrue(LevelNotifier.shouldSend("Attack", 60, 1, 1, true, false));
 	}
 }
