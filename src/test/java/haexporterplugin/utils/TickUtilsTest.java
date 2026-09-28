@@ -7,11 +7,14 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.util.Providers;
 import haexporterplugin.HAExporterConfig;
+import net.runelite.api.Client;
+import net.runelite.api.WorldType;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -32,10 +35,13 @@ public class TickUtilsTest
 		homeAssistUtils = mock(HomeAssistUtils.class);
 		HAExporterConfig config = mock(HAExporterConfig.class);
 		when(config.sendRate()).thenReturn(SEND_RATE);
+		Client client = mock(Client.class);
+		when(client.getWorldType()).thenReturn(EnumSet.of(WorldType.MEMBERS));
 
 		// Providers.of avoids Guice member-injecting the mocks' inherited @Inject fields
 		Injector injector = Guice.createInjector(binder ->
 		{
+			binder.bind(Client.class).toProvider(Providers.of(client));
 			binder.bind(HomeAssistUtils.class).toProvider(Providers.of(homeAssistUtils));
 			binder.bind(HAExporterConfig.class).toProvider(Providers.of(config));
 			binder.bind(Gson.class).toInstance(gson);
