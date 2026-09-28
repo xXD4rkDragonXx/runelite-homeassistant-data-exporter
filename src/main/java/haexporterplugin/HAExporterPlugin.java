@@ -124,6 +124,7 @@ public class HAExporterPlugin extends Plugin
 	{
 		messageBuilder.setState(gameStateChanged.getGameState());
 		levelNotifier.onGameStateChanged(gameStateChanged);
+		collectionNotifier.onGameStateChanged(gameStateChanged);
 		if (gameStateChanged.getGameState() == GameState.HOPPING)
 		{
 			initialized = false;
@@ -208,6 +209,7 @@ public class HAExporterPlugin extends Plugin
 	@Subscribe
 	public void onScriptPreFired(ScriptPreFired event) {
 		deathNotifier.onScript(event);
+		collectionNotifier.onScript(event);
 	}
 
 	@Subscribe

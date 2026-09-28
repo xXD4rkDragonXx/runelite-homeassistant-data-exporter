@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 public class LootNotifier extends BaseNotifier{
 
     private @Inject ItemManager itemManager;
+    private @Inject KillCountTracker killCountTracker;
 
     public LootData lastDrop = null;
 
@@ -124,6 +125,9 @@ public class LootNotifier extends BaseNotifier{
     private final Collection<String> sourceDenylist = new CopyOnWriteArraySet<>();
 
     private void handleNotify(Collection<ItemData> items, String dropper, LootRecordType type, Integer npcId) {
+        // Recorded before any filtering: collection log items use the kill count of the drop they came from
+        killCountTracker.onDrop(client.getTickCount());
+
         if (type != LootRecordType.PLAYER && sourceDenylist.contains(dropper.toLowerCase())) {
             log.debug("Skipping loot notif for denied loot source: {} ({})", dropper, type);
             return;

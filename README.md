@@ -181,8 +181,10 @@ Every event is sent exactly once. Events that trigger an immediate message go ou
 | `achievementDiary` | `{ "region", "tier" }` |
 | `combatTask` | `{ "taskName", "tier" }` |
 | `superiorSpawn` | `{ "name", "npcId", "location": { "x", "y", "plane" } }` |
-| `collectionLog` | `{ "itemName", "itemId", "value", "killCount" }` (`killCount` may be absent) |
+| `collectionLog` | `{ "itemName", "itemId", "value", "killCount" }` (`itemId` is `-1` when the name can't be matched to an item; `killCount` is the kill count of the loot drop the item came from, absent when there is none) |
 | `clientShutdown` | `"Logout"`, `"Shutdown"` or `"Disabled"` (plugin turned off) |
+
+`collectionLog` events come from the game's own new-item notification, so the in-game setting **Collection log - New addition notification** must be on. Chat and popup both work; with the setting off, the game doesn't announce new items and no event is sent.
 
 ### Account identity & world types
 
