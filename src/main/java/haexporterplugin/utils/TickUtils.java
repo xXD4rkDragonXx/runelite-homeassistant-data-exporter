@@ -29,20 +29,23 @@ public class TickUtils {
     public void sendOnSendRate(){
         if (tickCount >= config.sendRate()){
             tickCount = 0;
-            String json = messageBuilder.build();
-            homeAssistUtils.sendMessage(json);
+            send();
         }
     }
 
     public void sendNow(){
         tickCount = 0;
-        String json = messageBuilder.build();
-        homeAssistUtils.sendMessage(json);
-        messageBuilder.resetEvents();
+        send();
     }
 
     public void sendShutdown(){
+        send();
+    }
+
+    // Events are cleared as soon as they're serialized, so each event is sent exactly once
+    private void send(){
         String json = messageBuilder.build();
+        messageBuilder.resetEvents();
         homeAssistUtils.sendMessage(json);
     }
 }
