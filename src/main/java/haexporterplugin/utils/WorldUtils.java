@@ -18,9 +18,7 @@ import net.runelite.api.widgets.Widget;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @UtilityClass
 public class WorldUtils {
@@ -87,11 +85,11 @@ public class WorldUtils {
     /**
      * @return the names of the given world types in enum order, e.g. ["MEMBERS", "SEASONAL"]
      */
-    public List<String> getWorldTypeNames(Set<WorldType> worldTypes) {
+    public String[] getWorldTypeNames(Set<WorldType> worldTypes) {
         return worldTypes.stream()
                 .sorted()
                 .map(WorldType::name)
-                .collect(Collectors.toList());
+                .toArray(String[]::new);
     }
 
     public boolean isIgnoredWorld(Set<WorldType> worldType) {

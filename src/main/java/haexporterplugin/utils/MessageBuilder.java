@@ -9,7 +9,6 @@ import net.runelite.api.GameState;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -60,9 +59,7 @@ public class MessageBuilder {
                 player.setWorld((String) data);
                 break;
             case "worldtypes":
-                @SuppressWarnings("unchecked")
-                List<String> worldTypes = (List<String>) data;
-                player.setWorldTypes(worldTypes);
+                player.setWorldTypes((String[]) data);
                 break;
             case "location":
                 player.setLocation((PlayerLocation) data);

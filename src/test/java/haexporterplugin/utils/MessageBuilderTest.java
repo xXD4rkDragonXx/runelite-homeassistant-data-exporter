@@ -7,7 +7,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Map;
@@ -67,8 +66,8 @@ public class MessageBuilderTest
 	@Test
 	public void testSetDataWorldTypes()
 	{
-		messageBuilder.setData("worldtypes", Arrays.asList("MEMBERS", "SEASONAL"));
-		assertEquals(Arrays.asList("MEMBERS", "SEASONAL"), messageBuilder.getPlayer().getWorldTypes());
+		messageBuilder.setData("worldtypes", new String[]{"MEMBERS", "SEASONAL"});
+		assertArrayEquals(new String[]{"MEMBERS", "SEASONAL"}, messageBuilder.getPlayer().getWorldTypes());
 	}
 
 	@Test

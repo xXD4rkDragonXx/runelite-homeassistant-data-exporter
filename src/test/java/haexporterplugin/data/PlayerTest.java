@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 
 import static org.junit.Assert.*;
@@ -123,7 +122,7 @@ public class PlayerTest
 	{
 		Player player = new Player();
 		player.setAccountHash(ACCOUNT_HASH);
-		player.setWorldTypes(Collections.singletonList("SEASONAL"));
+		player.setWorldTypes(new String[]{"SEASONAL"});
 		String json = new Gson().toJson(player);
 		assertTrue(json.contains("\"accountHash\":\"" + ACCOUNT_HASH + "\""));
 		assertTrue(json.contains("\"worldTypes\":[\"SEASONAL\"]"));
@@ -133,7 +132,7 @@ public class PlayerTest
 	public void testSerializeEmptyWorldTypes()
 	{
 		Player player = new Player();
-		player.setWorldTypes(Collections.emptyList());
+		player.setWorldTypes(new String[0]);
 		String json = new Gson().toJson(player);
 		assertTrue(json.contains("\"worldTypes\":[]"));
 	}
