@@ -92,7 +92,7 @@ public class ItemUtils {
         return new ItemData(
                 ic.getName(),
                 ic.getId(),
-                itemManager.getItemPrice(ic.getId()),
+                getPrice(ic.getId(), itemManager),
                 ic.getHaPrice(),
                 quantity
         );
@@ -104,7 +104,7 @@ public class ItemUtils {
         return NEVER_KEPT_ITEMS.contains(itemId);
     }
 
-    public int getPrice(int id, ItemManager itemManager){
+    public long getPrice(int id, ItemManager itemManager){
         return itemManager.getItemPrice(id);
     }
 
@@ -117,7 +117,7 @@ public class ItemUtils {
     public long getStackGePrice(List<ItemData> items){
         long totalPrice = 0;
         for (ItemData item : items){
-            int stackPrice = item.getGePrice() * item.getQuantity();
+            long stackPrice = item.getGePrice() * item.getQuantity();
             totalPrice += stackPrice;
         }
         return totalPrice;
