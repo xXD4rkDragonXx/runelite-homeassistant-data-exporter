@@ -72,7 +72,7 @@ public class CollectionNotifier extends BaseNotifier {
 
     private void handleCollectionLog(String itemName) {
         int itemId = resolveItemId(itemName);
-        long value = itemId > 0 ? (long) itemManager.getItemPrice(itemId) : 0L;
+        long value = itemId > 0 ? itemManager.getItemPrice(itemId) : 0L;
 
         // Kill count and collection log messages arrive on the same (or adjacent) tick.
         Integer killCount = (client.getTickCount() - lastKillCountTick) <= 1 ? lastKillCount : null;

@@ -1,5 +1,6 @@
 package haexporterplugin.data;
 
+import com.google.gson.Gson;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -58,6 +59,16 @@ public class ItemDataTest
 		assertEquals(1, item.getHaPrice());
 		assertEquals(10000, item.getQuantity());
 		assertNull(item.getEquipmentSlot());
+	}
+
+	@Test
+	public void testPriceAboveIntMaxIsKeptAndSerialized()
+	{
+		ItemData item = new ItemData("Pricey", 1, 3_000_000_000L, 1000, 1);
+
+		assertEquals(3_000_000_000L, item.getGePrice());
+		assertEquals(3_000_000_000L, new ItemData(item).getGePrice());
+		assertTrue(new Gson().toJson(item).contains("\"gePrice\":3000000000"));
 	}
 
 	@Test

@@ -104,9 +104,8 @@ public class ItemUtils {
         return NEVER_KEPT_ITEMS.contains(itemId);
     }
 
-    public int getPrice(int id, ItemManager itemManager){
-        // RuneLite 1.13 returns a long; a single item's GE price always fits in an int
-        return (int) itemManager.getItemPrice(id);
+    public long getPrice(int id, ItemManager itemManager){
+        return itemManager.getItemPrice(id);
     }
 
     public long getStackGePrice(ItemData items){
@@ -118,7 +117,7 @@ public class ItemUtils {
     public long getStackGePrice(List<ItemData> items){
         long totalPrice = 0;
         for (ItemData item : items){
-            long stackPrice = (long) item.getGePrice() * item.getQuantity();
+            long stackPrice = item.getGePrice() * item.getQuantity();
             totalPrice += stackPrice;
         }
         return totalPrice;
