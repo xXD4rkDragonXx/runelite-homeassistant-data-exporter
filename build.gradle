@@ -33,7 +33,7 @@ dependencies {
 }
 
 group = 'jksolutions'
-version = '1.4'
+version = '1.5'
 
 tasks.withType(JavaCompile).configureEach {
 	options.encoding = 'UTF-8'
