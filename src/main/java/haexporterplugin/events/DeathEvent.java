@@ -10,7 +10,7 @@ import java.util.Collection;
 import java.util.List;
 
 public class DeathEvent implements HAExporterEvent{
-    private final Integer valueLost;
+    private final long valueLost;
     private final Danger danger;
     @Nullable
     private final String killerName;
@@ -23,7 +23,7 @@ public class DeathEvent implements HAExporterEvent{
 
     WorldPoint location;
 
-    public DeathEvent(Integer valueLost, Danger danger, @Nullable String killerName, @Nullable Integer killerNpcId, List<ItemData> keptItems, List<ItemData> lostItems, WorldPoint location) {
+    public DeathEvent(long valueLost, Danger danger, @Nullable String killerName, @Nullable Integer killerNpcId, List<ItemData> keptItems, List<ItemData> lostItems, WorldPoint location) {
         this.valueLost = valueLost;
         this.danger = danger;
         this.killerName = killerName;

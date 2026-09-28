@@ -156,9 +156,7 @@ public class DeathNotifier extends BaseNotifier {
         List<ItemData> keptItems = split.getLeft();
         List<ItemData> lostItems = split.getRight();
 
-        Integer losePrice = lostItems.stream()
-                .mapToInt(pair -> pair.getGePrice() * pair.getQuantity())
-                .sum();
+        long losePrice = ItemUtils.getStackGePrice(lostItems);
 
         Actor killer = identifyKiller();
         boolean npc = killer instanceof NPC;
