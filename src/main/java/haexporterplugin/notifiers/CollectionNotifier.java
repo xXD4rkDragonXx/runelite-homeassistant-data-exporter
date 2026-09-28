@@ -74,6 +74,12 @@ public class CollectionNotifier extends BaseNotifier {
         int itemId = resolveItemId(itemName);
         long value = itemId > 0 ? itemManager.getItemPrice(itemId) : 0L;
 
+        // Items without a price (pets, untradeables, unresolved names) are always sent.
+        if (value > 0 && value < config.clogMinValue()) {
+            log.debug("Skipping collection log item below minimum value: {} ({} gp)", itemName, value);
+            return;
+        }
+
         // Kill count and collection log messages arrive on the same (or adjacent) tick.
         Integer killCount = (client.getTickCount() - lastKillCountTick) <= 1 ? lastKillCount : null;
 

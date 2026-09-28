@@ -86,7 +86,7 @@ public class LootNotifier extends BaseNotifier{
     }
 
     public void onPlayerLootReceived(PlayerLootReceived playerLootReceived) {
-        if (WorldUtils.isSafeArea(client))
+        if (!config.lootIncludePlayer() || WorldUtils.isSafeArea(client))
             return;
         var items = ItemUtils.itemsToItemDataList(playerLootReceived.getItems(), itemManager);
         handleNotify(items, playerLootReceived.getPlayer().getName(), LootRecordType.PLAYER, null);
@@ -104,6 +104,9 @@ public class LootNotifier extends BaseNotifier{
         var items = ItemUtils.itemsToItemDataList(lootReceived.getItems(), itemManager);
         // only consider non-NPC and non-PK loot
         if (lootReceived.getType() == LootRecordType.EVENT || lootReceived.getType() == LootRecordType.PICKPOCKET) {
+            if (lootReceived.getType() == LootRecordType.PICKPOCKET && !config.lootIncludePickpocket()) {
+                return;
+            }
             if ("Barbarian Assault high gamble".equals(lootReceived.getName())) {
                 // skip ba gambles
                 return;
@@ -216,7 +219,7 @@ public class LootNotifier extends BaseNotifier{
             );
             messageBuilder.addEvent("loot", lootData);
             tickUtils.sendNow();
-        } else if (totalStackValue >= minValue && max != null && "Loot Chest".equalsIgnoreCase(dropper)) {
+        } else if (config.lootIncludePkChest() && totalStackValue >= minValue && max != null && "Loot Chest".equalsIgnoreCase(dropper)) {
             // Special case: PK loot keys should trigger notification if total value exceeds configured minimum even
             // if no single item itself would exceed the min value config
             LootData lootData = new LootData(

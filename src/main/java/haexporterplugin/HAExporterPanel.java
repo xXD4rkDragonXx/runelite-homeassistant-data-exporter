@@ -709,7 +709,7 @@ public class HAExporterPanel extends PluginPanel
         checkBox.setEnabled(globallyEnabled);
 
         if (!globallyEnabled) {
-            checkBox.setToolTipText("Globally disabled");
+            checkBox.setToolTipText("Turned off in the HA Exporter config tab");
         }
 
         checkBox.setAlignmentX(Component.LEFT_ALIGNMENT);

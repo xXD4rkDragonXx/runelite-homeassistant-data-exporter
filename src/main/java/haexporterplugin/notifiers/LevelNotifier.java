@@ -86,11 +86,22 @@ public class LevelNotifier extends BaseNotifier {
             int currentLevel = currentLevels.get(skillName);
             int previousLevel = previousLevels.getOrDefault(skillName, currentLevel);
             if (currentLevel != previousLevel) {
-                changedLevels.add(new LevelEvent(skillName, currentLevel));
                 previousLevels.put(skillName, currentLevel);
+                if (shouldSend(skillName, currentLevel, config.levelMinValue(),
+                        config.levelInterval(), config.levelIncludeVirtual(), config.levelIncludeCombat())) {
+                    changedLevels.add(new LevelEvent(skillName, currentLevel));
+                }
             }
         }
         return changedLevels;
+    }
+
+    static boolean shouldSend(String skillName, int level, int minLevel, int interval, boolean includeVirtual, boolean includeCombat) {
+        boolean combat = COMBAT_NAME.equals(skillName);
+        if (combat && !includeCombat) return false;
+        if (!combat && level > MAX_REAL_LEVEL && !includeVirtual) return false;
+        if (level < minLevel) return false;
+        return level == MAX_REAL_LEVEL || level % Math.max(interval, 1) == 0;
     }
 
     private Stats buildStats() {
