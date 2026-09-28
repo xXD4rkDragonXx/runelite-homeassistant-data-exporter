@@ -1,6 +1,9 @@
 package haexporterplugin.utils;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import haexporterplugin.data.*;
 import net.runelite.api.GameState;
 import org.junit.Before;
@@ -8,8 +11,11 @@ import org.junit.Test;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 
@@ -227,5 +233,67 @@ public class MessageBuilderTest
 	{
 		messageBuilder.setTickDelay(100);
 		// No exception should be thrown
+	}
+
+	@Test
+	public void testAddEventWrapsTypeDataIdAndTimestamp()
+	{
+		long before = System.currentTimeMillis();
+		messageBuilder.addEvent("achievementDiary", "some-data");
+		long after = System.currentTimeMillis();
+
+		JsonObject event = builtEvents().get(0).getAsJsonObject();
+		assertEquals("achievementDiary", event.get("type").getAsString());
+		assertEquals("some-data", event.get("data").getAsString());
+
+		String eventId = event.get("eventId").getAsString();
+		assertEquals(eventId, UUID.fromString(eventId).toString());
+
+		long timestamp = event.get("timestamp").getAsLong();
+		assertTrue(timestamp >= before && timestamp <= after);
+	}
+
+	@Test
+	public void testEventIdsAreUnique()
+	{
+		int count = 1000;
+		for (int i = 0; i < count; i++)
+		{
+			// identical events are legitimate (e.g. two diary tasks), so ids must still differ
+			messageBuilder.addEvent("achievementDiary", "same-data");
+		}
+
+		Set<String> eventIds = new HashSet<>();
+		for (JsonElement event : builtEvents())
+		{
+			eventIds.add(event.getAsJsonObject().get("eventId").getAsString());
+		}
+		assertEquals(count, eventIds.size());
+	}
+
+	@Test
+	public void testBuildSetsRootTimestamp()
+	{
+		long before = System.currentTimeMillis();
+		JsonObject root = new Gson().fromJson(messageBuilder.build(), JsonObject.class);
+		long after = System.currentTimeMillis();
+
+		long timestamp = root.get("timestamp").getAsLong();
+		assertTrue(timestamp >= before && timestamp <= after);
+	}
+
+	@Test
+	public void testRootTimestampIsSetAtBuildTime()
+	{
+		messageBuilder.addEvent("combatTask", "data");
+		long eventTimestamp = builtEvents().get(0).getAsJsonObject().get("timestamp").getAsLong();
+
+		JsonObject root = new Gson().fromJson(messageBuilder.build(), JsonObject.class);
+		assertTrue(root.get("timestamp").getAsLong() >= eventTimestamp);
+	}
+
+	private JsonArray builtEvents()
+	{
+		return new Gson().fromJson(messageBuilder.build(), JsonObject.class).getAsJsonArray("events");
 	}
 }

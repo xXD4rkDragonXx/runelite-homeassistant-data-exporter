@@ -97,18 +97,18 @@ Every message sent to Home Assistant follows this structure:
 {
   "player": {
     "name": "PlayerName",
-    "accountType": "0",           // 0 = Normal, 1 = Ironman, 2 = Group Ironman, …
+    "accountType": "0",           // 0 = Normal, 1 = Ironman, 2 = Ultimate Ironman, 3 = Hardcore Ironman, 4 = Group Ironman, …
     "world": "302",
-    "location": { "x": 3222, "y": 3218, "plane": 0 },
+    "location": { "x": 3222, "y": 3218, "plane": 0, "isOnBoat": false },
     "health": { "current": 85, "max": 99 },
     "prayerPoints": { "current": 52, "max": 70 },
-    "spellbook": { "id": 0 },
+    "spellbook": { "id": 0, "name": "standard" },
     "stats": {
       "skills": {
-        "Attack":    { "level": 99, "xp": 200000000 },
-        "Strength":  { "level": 99, "xp": 200000000 },
-        "Defence":   { "level": 75, "xp": 1210421 },
-        // … all 23 skills
+        "Attack":    { "xp": 200000000, "level": 99 },
+        "Strength":  { "xp": 200000000, "level": 99 },
+        "Defence":   { "xp": 1210421, "level": 75 },
+        // … every skill
       }
     },
     "inventory": {
@@ -123,25 +123,52 @@ Every message sent to Home Assistant follows this structure:
     }
   },
   "events": [
-    // Only present when something noteworthy happened:
-    // Level-up
-    { "skill": "Attack", "level": 99 },
-    // Loot drop
-    { "items": [ … ], "highestValueItem": { … }, "totalValue": 150000, "source": "Zulrah", "type": "NPC" },
-    // Death
-    { "valueLost": 500000, "danger": "SAFE", "killerName": "Jad", "keptItems": [ … ], "lostItems": [ … ] }
+    // Empty unless something noteworthy happened since the previous message. Every event has the same envelope:
+    {
+      "type": "levelUp",                                   // event type, see the table below
+      "data": [ { "skill": "Attack", "level": 99 } ],      // type-specific payload
+      "eventId": "3f2c9a4e-8d1b-4c6e-9f0a-2b7d5e1c8a90",   // random UUID, unique per event
+      "timestamp": 1735689600000                           // when the event happened (epoch millis, UTC)
+    }
   ],
   "state": "LOGGED_IN",
-  "tickDelay": 100
+  "tickDelay": 100,
+  "timestamp": 1735689600123                               // when this message was built (epoch millis, UTC)
 }
 ```
 
 | Field | Description |
 |-------|-------------|
+| `timestamp` | When this message was built, in epoch milliseconds (UTC) |
 | `player` | Full snapshot of the player's current state |
 | `events` | Array of events that fired since the last message (may be empty) |
 | `state` | Current `GameState` (e.g. `LOGGED_IN`, `HOPPING`, `LOGIN_SCREEN`) |
 | `tickDelay` | Number of game ticks between periodic base messages |
+
+### Events
+
+Each event is an object `{ "type", "data", "eventId", "timestamp" }`:
+
+| Field | Description |
+|-------|-------------|
+| `type` | Event type (see below) |
+| `data` | Type-specific payload |
+| `eventId` | Random UUID. Identical events can legitimately repeat (e.g. two diary tasks in a row), so use this to tell a genuine repeat from a duplicate delivery |
+| `timestamp` | When the event happened, in epoch milliseconds (UTC). Can be earlier than the message `timestamp` when the event waited for the next periodic message |
+
+Every event is sent exactly once. Events that trigger an immediate message go out right away; the others (`achievementDiary`, `combatTask`) are included in the next periodic message. Events that happen on a special world are dropped unless **Send data from special worlds** is enabled (see below).
+
+| `type` | `data` |
+|--------|--------|
+| `levelUp` | Array of `{ "skill", "level" }` (`skill` can also be `"Combat"`) |
+| `loot` | `{ "items", "highestValueItem", "totalValue", "source": { "text", "link" }, "type", "npcId", "criteria" }` — items with known drop rates also carry `rarity` |
+| `pkLoot` | Same as `loot`, for PK loot chests whose total value exceeds the minimum |
+| `death` | `{ "valueLost", "danger", "killerName", "killerNpcId", "keptItems", "lostItems", "location": { "x", "y", "plane" } }` |
+| `achievementDiary` | `{ "region", "tier" }` |
+| `combatTask` | `{ "taskName", "tier" }` |
+| `superiorSpawn` | `{ "name", "npcId", "location": { "x", "y", "plane" } }` |
+| `collectionLog` | `{ "itemName", "itemId", "value", "killCount" }` (`killCount` may be absent) |
+| `clientShutdown` | `"Logout"`, `"Shutdown"` or `"Disabled"` (plugin turned off) |
 
 ### Account identity & world types
 
@@ -176,7 +203,7 @@ Open **RuneLite Settings → HA Exporter** to find these options:
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| **Min Loot Value** | `0` | Minimum GP value for a loot drop to trigger an event |
+| **Min Loot Value** | `25000` | Minimum GP value for a loot drop to trigger an event |
 | **Item Allowlist** | _(empty)_ | Regex patterns — matching items are **always** reported |
 | **Item Denylist** | _(empty)_ | Regex patterns — matching items are **never** reported |
 | **Source Denylist** | _(empty)_ | NPC / source names to ignore (e.g. `Farmer`) |

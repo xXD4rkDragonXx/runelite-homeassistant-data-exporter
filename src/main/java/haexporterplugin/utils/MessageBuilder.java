@@ -10,6 +10,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Singleton
@@ -84,6 +85,9 @@ public class MessageBuilder {
         Map<String, Object> eventMap = new LinkedHashMap<>();
         eventMap.put("type", category);
         eventMap.put("data", event);
+        // Identical events can legitimately repeat (e.g. two diary tasks), so receivers dedupe on eventId
+        eventMap.put("eventId", UUID.randomUUID().toString());
+        eventMap.put("timestamp", System.currentTimeMillis());
         root.addEvent(eventMap);
     }
 
@@ -98,6 +102,7 @@ public class MessageBuilder {
 
     public String build()
     {
+        root.setTimestamp(System.currentTimeMillis());
         return gson.toJson(root);
     }
 

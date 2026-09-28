@@ -1,5 +1,7 @@
 package haexporterplugin.data;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import net.runelite.api.GameState;
 import org.junit.Before;
 import org.junit.Test;
@@ -78,5 +80,20 @@ public class RootTest
 	{
 		root.setTickDelay(100);
 		// tickDelay has a setter but no getter exposed, so we just ensure no exception is thrown
+	}
+
+	@Test
+	public void testSetAndGetTimestamp()
+	{
+		root.setTimestamp(1700000000000L);
+		assertEquals(1700000000000L, root.getTimestamp());
+	}
+
+	@Test
+	public void testTimestampSerializedAtRootLevel()
+	{
+		root.setTimestamp(1700000000000L);
+		JsonObject json = new Gson().fromJson(new Gson().toJson(root), JsonObject.class);
+		assertEquals(1700000000000L, json.get("timestamp").getAsLong());
 	}
 }
