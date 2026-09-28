@@ -16,6 +16,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Singleton
@@ -25,6 +27,7 @@ public class HomeAssistUtils {
     private static final String TOKEN_HEADER = "X-Osrs-Token";
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String APPLICATION_JSON = "application/json";
+    private static final String RETRY_AFTER_HEADER = "Retry-After";
 
     @Inject
     protected HAExporterConfig config;
@@ -35,32 +38,118 @@ public class HomeAssistUtils {
     @Inject
     private OkHttpClient okHttpClient;
 
+    @Inject
+    private ScheduledExecutorService executor;
+
     private @Inject Gson gson;
+
+    private final ConnectionBackoff backoff = new ConnectionBackoff();
 
     public void sendMessage(String jsonPayload) {
         sendPayload(jsonPayload);
     }
 
+    public long getPausedUntil(HAConnection connection) {
+        return backoff.getPausedUntil(connectionKey(connection));
+    }
+
+    public int getQueuedCount(HAConnection connection) {
+        return backoff.getQueuedCount(connectionKey(connection));
+    }
 
     private void sendPayload(String jsonPayload) {
         List<HAConnection> connections = configUtils.getStoredConnections();
 
         for (HAConnection connection : connections) {
+            String key = connectionKey(connection);
             if (!connection.isEnabled()) {
                 log.debug("Skipping disabled connection: {}", connection.getDisplayName());
+                backoff.clear(key);
                 continue;
             }
 
             String filteredPayload = applyConnectionFilters(jsonPayload, connection);
-            String apiUrl = connection.getBaseUrl() + DATA_ENDPOINT;
-            Request request = buildRequest(apiUrl, filteredPayload, connection.token);
 
-            if (log.isDebugEnabled()){
-                log.debug("{} ({}): {}",connection.getDisplayName(), apiUrl, filteredPayload);
+            if (backoff.isPaused(key)) {
+                // Events wait for the pause to end; plain snapshots are dropped, the next one carries the full state anyway
+                if (payloadHasEvents(filteredPayload)) {
+                    backoff.enqueue(key, filteredPayload);
+                    log.debug("{} is paused, queued payload for retry", connection.getDisplayName());
+                } else {
+                    log.debug("{} is paused, dropped snapshot", connection.getDisplayName());
+                }
+                continue;
             }
 
-            okHttpClient.newCall(request).enqueue(createCallback(filteredPayload, connection));
+            if (backoff.getQueuedCount(key) > 0 && payloadHasEvents(filteredPayload)) {
+                // Line up behind the payloads still waiting to be resent, so events arrive in order
+                backoff.enqueue(key, filteredPayload);
+            } else {
+                sendToConnection(connection, key, filteredPayload, false);
+            }
+
+            // Resends queued payloads once a pause has ended; a no-op when nothing is queued or a resend is in flight
+            drainQueued(key);
         }
+    }
+
+    private void sendToConnection(HAConnection connection, String key, String payload, boolean drained) {
+        String apiUrl = connection.getBaseUrl() + DATA_ENDPOINT;
+        Request request = buildRequest(apiUrl, payload, connection.token);
+
+        if (log.isDebugEnabled()){
+            log.debug("{} ({}): {}",connection.getDisplayName(), apiUrl, payload);
+        }
+
+        okHttpClient.newCall(request).enqueue(createCallback(payload, connection, key, drained));
+    }
+
+    private void drainQueued(String key) {
+        String payload = backoff.beginDrain(key);
+        if (payload == null) {
+            return;
+        }
+
+        HAConnection connection = findConnection(key);
+        if (connection == null || !connection.isEnabled()) {
+            // Removed or disabled since the payload was queued
+            backoff.clear(key);
+            return;
+        }
+
+        sendToConnection(connection, key, payload, true);
+    }
+
+    private void scheduleDrain(String key, long pausedUntil) {
+        long delay = Math.max(0, pausedUntil - System.currentTimeMillis());
+        executor.schedule(() -> {
+            long stillPausedUntil = backoff.getPausedUntil(key);
+            if (stillPausedUntil > 0) {
+                // Woke up slightly early, or the pause was extended meanwhile
+                scheduleDrain(key, stillPausedUntil);
+            } else {
+                drainQueued(key);
+            }
+        }, delay, TimeUnit.MILLISECONDS);
+    }
+
+    private HAConnection findConnection(String key) {
+        for (HAConnection connection : configUtils.getStoredConnections()) {
+            if (connectionKey(connection).equals(key)) {
+                return connection;
+            }
+        }
+        return null;
+    }
+
+    private static String connectionKey(HAConnection connection) {
+        return connection.getBaseUrl() + '\n' + connection.getToken();
+    }
+
+    private boolean payloadHasEvents(String payload) {
+        JsonObject root = gson.fromJson(payload, JsonObject.class);
+        JsonElement events = root != null ? root.get("events") : null;
+        return events != null && events.isJsonArray() && events.getAsJsonArray().size() > 0;
     }
 
     private String applyConnectionFilters(String jsonPayload, HAConnection connection) {
@@ -147,21 +236,49 @@ public class HomeAssistUtils {
                 .build();
     }
 
-    private Callback createCallback(String jsonPayload, HAConnection connection) {
+    private Callback createCallback(String jsonPayload, HAConnection connection, String key, boolean drained) {
         return new Callback() {
             @Override
             @EverythingIsNonNull
             public void onFailure(Call call, IOException e) {
-                log.error("Error submitting the entity to homeassistant ", e);
+                retryLater(connection, key, jsonPayload, drained, null, e.toString());
             }
 
             @Override
             @EverythingIsNonNull
             public void onResponse(Call call, Response response) {
                 try {
-                    if (response.code() == 401) {
-                        log.warn("Received 401 Unauthorized from {}. Disabling connection.", connection.getDisplayName());
-                        disableConnection(connection, "Unauthorized (401): Token may have been revoked.");
+                    int code = response.code();
+                    switch (ConnectionBackoff.classify(code)) {
+                        case SUCCESS:
+                            backoff.recordSuccess(key);
+                            if (drained) {
+                                backoff.completeDrain(key, true);
+                            }
+                            drainQueued(key);
+                            break;
+                        case UNAUTHORIZED:
+                            log.warn("Received 401 Unauthorized from {}. Disabling connection.", connection.getDisplayName());
+                            disableConnection(connection, "Unauthorized (401): Token may have been revoked.");
+                            break;
+                        case GONE:
+                            log.warn("Received 410 Gone from {}. Disabling connection.", connection.getDisplayName());
+                            disableConnection(connection, "Endpoint gone (410): this endpoint no longer accepts data.");
+                            break;
+                        case RETRY_AFTER:
+                            Long retryAt = ConnectionBackoff.parseRetryAfter(response.header(RETRY_AFTER_HEADER), System.currentTimeMillis());
+                            retryLater(connection, key, jsonPayload, drained, retryAt, "HTTP " + code);
+                            break;
+                        case BACKOFF:
+                            retryLater(connection, key, jsonPayload, drained, null, "HTTP " + code);
+                            break;
+                        default:
+                            log.debug("{} rejected a payload with HTTP {}, not retrying it", connection.getDisplayName(), code);
+                            if (drained) {
+                                backoff.completeDrain(key, true);
+                                drainQueued(key);
+                            }
+                            break;
                     }
                 } finally {
                     response.close();
@@ -170,7 +287,35 @@ public class HomeAssistUtils {
         };
     }
 
+    /**
+     * Pauses the connection after a failed delivery and keeps the payload for a retry when it carries events.
+     * Receivers dedupe on eventId, so resending a payload that did arrive (e.g. after a timeout) is harmless.
+     */
+    private void retryLater(HAConnection connection, String key, String payload, boolean drained, Long retryAt, String cause) {
+        boolean firstFailure = retryAt != null
+                ? backoff.recordRetryAfter(key, retryAt)
+                : backoff.recordFailure(key);
+        long pausedUntil = backoff.getPausedUntil(key);
+
+        if (drained) {
+            backoff.completeDrain(key, false);
+        } else if (payloadHasEvents(payload)) {
+            backoff.enqueue(key, payload);
+        }
+
+        long pauseSeconds = (Math.max(0, pausedUntil - System.currentTimeMillis()) + 999) / 1000;
+        if (firstFailure) {
+            log.warn("Could not deliver data to {} ({}). Pausing for {}s before retrying.", connection.getDisplayName(), cause, pauseSeconds);
+        } else {
+            log.debug("Could not deliver data to {} ({}). Pausing for {}s before retrying.", connection.getDisplayName(), cause, pauseSeconds);
+        }
+
+        scheduleDrain(key, pausedUntil);
+    }
+
     private void disableConnection(HAConnection connection, String reason) {
+        backoff.clear(connectionKey(connection));
+
         List<HAConnection> connections = configUtils.getStoredConnections();
         for (HAConnection c : connections) {
             if (c.getBaseUrl().equals(connection.getBaseUrl())
