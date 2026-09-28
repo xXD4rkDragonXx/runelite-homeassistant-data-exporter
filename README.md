@@ -233,6 +233,36 @@ Open **RuneLite Settings → HA Exporter** to find these options:
 
 ---
 
+## 🔁 Delivery & Backoff
+
+Every connection is handled on its own. When an endpoint (Home Assistant or any other receiver) can't be reached or asks the plugin to slow down, the plugin pauses sending to that connection for a while instead of continuing to send every update.
+
+| Response | What the plugin does |
+|----------|----------------------|
+| `2xx` | Delivered — any pause is lifted and the backoff resets to 30 s |
+| `401 Unauthorized` | Connection is disabled (the token may have been revoked) |
+| `410 Gone` | Connection is disabled (the endpoint no longer accepts data) |
+| `429` / `503` with `Retry-After` | Paused until the time the server asks for (seconds or an HTTP date), capped at 10 minutes |
+| `429` / `503` without a valid `Retry-After` | Exponential backoff |
+| Other `5xx`, network errors & timeouts | Exponential backoff |
+| Other `4xx` | Payload is dropped and not retried — no pause |
+
+**Exponential backoff:** the first failure pauses the connection for 30 s, and every failed retry doubles the pause (30 s → 1 min → 2 min → 4 min → 8 min) up to a maximum of 10 minutes. A successful delivery resets it.
+
+While a connection is paused:
+
+- Periodic snapshots **without events** are dropped — the next snapshot carries the full state anyway.
+- Payloads **with events** (loot, level-ups, deaths, …) are queued: at most 50 payloads per connection and nothing older than 10 minutes, dropping the oldest first.
+- When the pause ends, the queued payloads are resent one at a time, in their original order.
+
+Pauses and queued payloads live in memory only: they are never saved to your RuneLite config, and restarting the client or turning the plugin off clears them.
+
+> **Duplicates:** after a network error or timeout the plugin can't tell whether the endpoint already received a payload, so it sends it again. Receivers may therefore occasionally get the same event twice and should de-duplicate on each event's `eventId`.
+
+The side panel shows a paused connection under its name, e.g. `⏸ Paused — retrying in 2m 05s (3 queued)`, counting down live until sending resumes.
+
+---
+
 ## 🏗️ Building from Source
 
 ```bash
