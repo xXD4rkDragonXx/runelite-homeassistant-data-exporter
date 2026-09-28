@@ -164,7 +164,7 @@ Two `player` fields help receivers tell accounts and worlds apart:
 ```
 
 - Key accounts on `accountHash`, and fall back to `name` when it is absent.
-- If you track XP or levels, ignore stats while `worldTypes` contains `SEASONAL`, `DEADMAN`, `TOURNAMENT_WORLD`, `BETA_WORLD`, `QUEST_SPEEDRUNNING`, `NOSAVE_MODE` or `PVP_ARENA`. The plugin treats these as special worlds: they use separate or temporary characters (Leagues, Deadman, beta, tournament, speedrunning, …), so their stats don't belong to the main account.
+- Special worlds (`SEASONAL`, `DEADMAN`, `TOURNAMENT_WORLD`, `BETA_WORLD`, `QUEST_SPEEDRUNNING`, `NOSAVE_MODE`, `PVP_ARENA`) use separate or temporary characters. By default the plugin sends **nothing** while you're on one, so their stats never mix with your main account. Enabling **Send data from special worlds** sends them anyway, and `worldTypes` then tells receivers which world the data came from.
 
 ---
 
@@ -187,6 +187,7 @@ Open **RuneLite Settings → HA Exporter** to find these options:
 
 | Option | Default | Description |
 |--------|---------|-------------|
+| **Send data from special worlds** | `false` | Send data while on special or event worlds (Leagues, Deadman, tournament, beta, quest speedrunning, PvP Arena). When off, nothing at all is sent from those worlds — not even a logout — so receivers keep the last state from a normal world |
 | **Send Rate** | `100` ticks (~60 s) | How often a full state snapshot is sent |
 
 ---

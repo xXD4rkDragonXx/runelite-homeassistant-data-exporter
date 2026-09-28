@@ -25,6 +25,9 @@ public class WorldUtils {
 
     private final Set<WorldType> IGNORED_WORLDS = EnumSet.of(WorldType.PVP_ARENA, WorldType.QUEST_SPEEDRUNNING, WorldType.BETA_WORLD, WorldType.NOSAVE_MODE, WorldType.TOURNAMENT_WORLD);
 
+    // Worlds that use separate or temporary characters (Leagues, Deadman, tournament, beta, …); same set as LevelNotifier
+    private final Set<WorldType> SPECIAL_WORLDS = EnumSet.of(WorldType.PVP_ARENA, WorldType.QUEST_SPEEDRUNNING, WorldType.BETA_WORLD, WorldType.NOSAVE_MODE, WorldType.TOURNAMENT_WORLD, WorldType.DEADMAN, WorldType.SEASONAL);
+
     private final Set<Integer> BA_REGIONS = ImmutableSet.of(7508, 7509, 10322);
     private final Set<Integer> CASTLE_WARS_REGIONS = ImmutableSet.of(9520, 9620);
     private final Set<Integer> CLAN_WARS_REGIONS = ImmutableSet.of(12621, 12622, 12623, 13130, 13131, 13133, 13134, 13135, 13386, 13387, 13390, 13641, 13642, 13643, 13644, 13645, 13646, 13647, 13899, 13900, 14155, 14156);
@@ -90,6 +93,10 @@ public class WorldUtils {
                 .sorted()
                 .map(WorldType::name)
                 .toArray(String[]::new);
+    }
+
+    public boolean isSpecialWorld(Set<WorldType> worldTypes) {
+        return !Collections.disjoint(SPECIAL_WORLDS, worldTypes);
     }
 
     public boolean isIgnoredWorld(Set<WorldType> worldType) {
