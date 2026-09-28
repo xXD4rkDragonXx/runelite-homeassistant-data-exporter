@@ -56,6 +56,21 @@ public class MessageBuilderTest
 	}
 
 	@Test
+	public void testSetDataAccountHash()
+	{
+		String hash = Utils.accountHash(1234567890123456789L);
+		messageBuilder.setData("accounthash", hash);
+		assertEquals(hash, messageBuilder.getPlayer().getAccountHash());
+	}
+
+	@Test
+	public void testSetDataWorldTypes()
+	{
+		messageBuilder.setData("worldtypes", new String[]{"MEMBERS", "SEASONAL"});
+		assertArrayEquals(new String[]{"MEMBERS", "SEASONAL"}, messageBuilder.getPlayer().getWorldTypes());
+	}
+
+	@Test
 	public void testSetDataAccountType()
 	{
 		messageBuilder.setData("accounttype", "IRONMAN");

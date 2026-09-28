@@ -143,6 +143,29 @@ Every message sent to Home Assistant follows this structure:
 | `state` | Current `GameState` (e.g. `LOGGED_IN`, `HOPPING`, `LOGIN_SCREEN`) |
 | `tickDelay` | Number of game ticks between periodic base messages |
 
+### Account identity & world types
+
+Two `player` fields help receivers tell accounts and worlds apart:
+
+| Field | Description |
+|-------|-------------|
+| `player.accountHash` | Salted SHA-224 hex digest of the RuneLite account hash. Stays the same when the display name changes. Omitted when not logged in. It cannot be reversed and cannot be matched against hashes sent by other plugins. |
+| `player.worldTypes` | RuneLite `WorldType` names of the current world: `[]` on free-to-play worlds, `["MEMBERS"]` on normal members worlds. |
+
+```json
+{
+  "player": {
+    "name": "PlayerName",
+    "accountHash": "de731bc0f710567a6a0e852bbe79eb5fa8daf37d4140440a774591f0",
+    "world": "302",
+    "worldTypes": ["MEMBERS"]
+  }
+}
+```
+
+- Key accounts on `accountHash`, and fall back to `name` when it is absent.
+- Special worlds (`SEASONAL`, `DEADMAN`, `TOURNAMENT_WORLD`, `BETA_WORLD`, `QUEST_SPEEDRUNNING`, `NOSAVE_MODE`, `PVP_ARENA`) use separate or temporary characters. By default the plugin sends **nothing** while you're on one, so their stats never mix with your main account. Enabling **Send data from special worlds** sends them anyway, and `worldTypes` then tells receivers which world the data came from.
+
 ---
 
 ## ⚙️ Configuration
@@ -164,6 +187,7 @@ Open **RuneLite Settings → HA Exporter** to find these options:
 
 | Option | Default | Description |
 |--------|---------|-------------|
+| **Send data from special worlds** | `false` | Send data while on special or event worlds (Leagues, Deadman, tournament, beta, quest speedrunning, PvP Arena). When off, nothing at all is sent from those worlds — not even a logout — so receivers keep the last state from a normal world |
 | **Send Rate** | `100` ticks (~60 s) | How often a full state snapshot is sent |
 
 ---

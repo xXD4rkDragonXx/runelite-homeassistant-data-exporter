@@ -40,6 +40,9 @@ public class MessageBuilder {
             case "name":
                 player.setName((String) data);
                 break;
+            case "accounthash":
+                player.setAccountHash((String) data);
+                break;
             case "accounttype":
                 player.setAccountType((String) data);
                 break;
@@ -54,6 +57,9 @@ public class MessageBuilder {
                 break;
             case "world":
                 player.setWorld((String) data);
+                break;
+            case "worldtypes":
+                player.setWorldTypes((String[]) data);
                 break;
             case "location":
                 player.setLocation((PlayerLocation) data);
