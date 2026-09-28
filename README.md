@@ -49,10 +49,10 @@ The plugin uses a **code-based pairing** flow to securely link your RuneLite cli
 1. In Home Assistant, open the [**OSRS Data**](https://github.com/RedFirebreak/ha-osrs-data) integration and click **Add Device** — you'll receive a **5-digit pairing code**.
 2. In RuneLite, open the **HA Exporter** side panel (icon in the toolbar).
 3. Click **Connect New Device**.
-4. Enter the 5-digit code and your Home Assistant base URL (e.g. `https://ha.example.com`).
-5. Click **Submit**. The plugin exchanges the code for a long-lived token and stores the connection.
+4. Enter the 5-digit code and, under **Endpoint URL**, your Home Assistant URL — or any compatible endpoint (e.g. `https://ha.example.com`).
+5. Click **Submit**. The plugin exchanges the code for a long-lived token and stores the connection. If the endpoint sends a name, it becomes the connection's default friendly name (rename it anytime via ⚙). If pairing fails, the endpoint's own error message (e.g. "Code expired") is shown when it provides one.
 
-You can pair **multiple** Home Assistant instances — each connection is stored independently.
+You can pair **multiple** Home Assistant instances (or other compatible endpoints) — each connection is stored independently.
 
 ### 3. Play the game!
 
@@ -62,10 +62,13 @@ Once paired, the plugin automatically sends data on a configurable tick interval
 
 ## 🔗 Data Pairing — How It Works
 
+Home Assistant (with the OSRS Data integration) is the primary target, but any endpoint that implements these two requests can be paired:
+
 ```text
 RuneLite                                Home Assistant
    │                                          │
    │  POST /api/osrs-data/pair                │
+   │  Header: X-Osrs-Exporter-Version: 1.4    │
    │  Body: { "code": "12345" }        ──────►│
    │                                          │
    │  Response: { "token": "abc123…" } ◄──────│
@@ -74,16 +77,27 @@ RuneLite                                Home Assistant
    │                                          │
    │  POST /api/osrs-data/events              │
    │  Header: X-Osrs-Token: abc123…    ──────►│
+   │  Header: X-Osrs-Exporter-Version: 1.4    │
    │  Body: <JSON payload>                    │
    │                                          │
 ```
 
+Both requests carry an `X-Osrs-Exporter-Version` header with the plugin version (e.g. `1.4`).
+
+**Pair response** — `token` is required on success; these fields are optional:
+
+| Outcome | Example body | Optional field |
+|---------|--------------|----------------|
+| Success (2xx) | `{ "token": "abc123…", "name": "My Server" }` | `name` — used as the connection's default friendly name (max 64 characters) |
+| Failure (non-2xx) | `{ "error": "Code expired" }` | `error` — shown to the user instead of the generic "Connection failed" message (max 200 characters) |
+
 Each stored connection contains:
 
-```json
+```jsonc
 {
   "baseUrl": "https://ha.example.com",
-  "token": "abc123def456…"
+  "token": "abc123def456…",
+  "friendlyName": "My Server"   // optional — defaults to the pair response's "name"
 }
 ```
 
@@ -97,18 +111,18 @@ Every message sent to Home Assistant follows this structure:
 {
   "player": {
     "name": "PlayerName",
-    "accountType": "0",           // 0 = Normal, 1 = Ironman, 2 = Group Ironman, …
+    "accountType": "0",           // 0 = Normal, 1 = Ironman, 2 = Ultimate Ironman, 3 = Hardcore Ironman, 4 = Group Ironman, …
     "world": "302",
-    "location": { "x": 3222, "y": 3218, "plane": 0 },
+    "location": { "x": 3222, "y": 3218, "plane": 0, "isOnBoat": false },
     "health": { "current": 85, "max": 99 },
     "prayerPoints": { "current": 52, "max": 70 },
-    "spellbook": { "id": 0 },
+    "spellbook": { "id": 0, "name": "standard" },
     "stats": {
       "skills": {
-        "Attack":    { "level": 99, "xp": 200000000 },
-        "Strength":  { "level": 99, "xp": 200000000 },
-        "Defence":   { "level": 75, "xp": 1210421 },
-        // … all 23 skills
+        "Attack":    { "xp": 200000000, "level": 99 },
+        "Strength":  { "xp": 200000000, "level": 99 },
+        "Defence":   { "xp": 1210421, "level": 75 },
+        // … every skill
       }
     },
     "inventory": {
@@ -123,25 +137,77 @@ Every message sent to Home Assistant follows this structure:
     }
   },
   "events": [
-    // Only present when something noteworthy happened:
-    // Level-up
-    { "skill": "Attack", "level": 99 },
-    // Loot drop
-    { "items": [ … ], "highestValueItem": { … }, "totalValue": 150000, "source": "Zulrah", "type": "NPC" },
-    // Death
-    { "valueLost": 500000, "danger": "SAFE", "killerName": "Jad", "keptItems": [ … ], "lostItems": [ … ] }
+    // Empty unless something noteworthy happened since the previous message. Every event has the same envelope:
+    {
+      "type": "levelUp",                                   // event type, see the table below
+      "data": [ { "skill": "Attack", "level": 99 } ],      // type-specific payload
+      "eventId": "3f2c9a4e-8d1b-4c6e-9f0a-2b7d5e1c8a90",   // random UUID, unique per event
+      "timestamp": 1735689600000                           // when the event happened (epoch millis, UTC)
+    }
   ],
   "state": "LOGGED_IN",
-  "tickDelay": 100
+  "tickDelay": 100,
+  "timestamp": 1735689600123                               // when this message was built (epoch millis, UTC)
 }
 ```
 
 | Field | Description |
 |-------|-------------|
+| `timestamp` | When this message was built, in epoch milliseconds (UTC) |
 | `player` | Full snapshot of the player's current state |
 | `events` | Array of events that fired since the last message (may be empty) |
 | `state` | Current `GameState` (e.g. `LOGGED_IN`, `HOPPING`, `LOGIN_SCREEN`) |
 | `tickDelay` | Number of game ticks between periodic base messages |
+
+### Events
+
+Each event is an object `{ "type", "data", "eventId", "timestamp" }`:
+
+| Field | Description |
+|-------|-------------|
+| `type` | Event type (see below) |
+| `data` | Type-specific payload |
+| `eventId` | Random UUID. Identical events can legitimately repeat (e.g. two diary tasks in a row), so use this to tell a genuine repeat from a duplicate delivery |
+| `timestamp` | When the event happened, in epoch milliseconds (UTC). Can be earlier than the message `timestamp` when the event waited for the next periodic message |
+
+Every event is sent exactly once. Events that trigger an immediate message go out right away; the others (`achievementDiary`, `combatTask`) are included in the next periodic message. Events that happen on a special world are dropped unless **Send data from special worlds** is enabled (see below).
+
+| `type` | `data` |
+|--------|--------|
+| `levelUp` | Array of `{ "skill", "level" }` (`skill` can also be `"Combat"`) |
+| `loot` | `{ "items", "highestValueItem", "totalValue", "source": { "text", "link" }, "type", "npcId", "criteria" }` — items with known drop rates also carry `rarity` |
+| `pkLoot` | Same as `loot`, for PK loot chests whose total value exceeds the minimum |
+| `death` | `{ "valueLost", "danger", "killerName", "killerNpcId", "keptItems", "lostItems", "location": { "x", "y", "plane" } }` |
+| `achievementDiary` | `{ "region", "tier" }` |
+| `combatTask` | `{ "taskName", "tier" }` |
+| `superiorSpawn` | `{ "name", "npcId", "location": { "x", "y", "plane" } }` |
+| `collectionLog` | `{ "itemName", "itemId", "value", "killCount" }` (`itemId` is `-1` when the name can't be matched to an item; `killCount` is the kill count of the loot drop the item came from, absent when there is none) |
+| `clientShutdown` | `"Logout"`, `"Shutdown"` or `"Disabled"` (plugin turned off) |
+
+`collectionLog` events come from the game's own new-item notification, so the in-game setting **Collection log - New addition notification** must be on. Chat and popup both work; with the setting off, the game doesn't announce new items and no event is sent.
+
+### Account identity & world types
+
+Two `player` fields help receivers tell accounts and worlds apart:
+
+| Field | Description |
+|-------|-------------|
+| `player.accountHash` | Salted SHA-224 hex digest of the RuneLite account hash. Stays the same when the display name changes. Omitted when not logged in. It cannot be reversed and cannot be matched against hashes sent by other plugins. |
+| `player.worldTypes` | RuneLite `WorldType` names of the current world: `[]` on free-to-play worlds, `["MEMBERS"]` on normal members worlds. |
+
+```json
+{
+  "player": {
+    "name": "PlayerName",
+    "accountHash": "de731bc0f710567a6a0e852bbe79eb5fa8daf37d4140440a774591f0",
+    "world": "302",
+    "worldTypes": ["MEMBERS"]
+  }
+}
+```
+
+- Key accounts on `accountHash`, and fall back to `name` when it is absent.
+- Special worlds (`SEASONAL`, `DEADMAN`, `TOURNAMENT_WORLD`, `BETA_WORLD`, `QUEST_SPEEDRUNNING`, `NOSAVE_MODE`, `PVP_ARENA`) use separate or temporary characters. By default the plugin sends **nothing** while you're on one, so their stats never mix with your main account. Enabling **Send data from special worlds** sends them anyway, and `worldTypes` then tells receivers which world the data came from.
 
 ---
 
@@ -155,6 +221,7 @@ Open **RuneLite Settings → HA Exporter** to find these options. Every event ty
 |--------|---------|-------------|
 | **Update interval (ticks)** | `100` (~60 s) | How often a full state update is sent. Events are always sent right away |
 | **Send health / prayer changes instantly** | `on` | Send every HP / prayer change right away instead of waiting for the next update |
+| **Send data from special worlds** | `off` | Send data while on special or event worlds (Leagues, Deadman, tournament, beta, quest speedrunning, PvP Arena). When off, nothing at all is sent from those worlds — not even a logout — so receivers keep the last state from a normal world |
 
 ### Data Sharing
 
@@ -204,8 +271,35 @@ Open **RuneLite Settings → HA Exporter** to find these options. Every event ty
 | **Send death events** | `on` | Master switch for death events |
 | **Send superior spawn events** | `on` | Master switch for superior slayer monster spawns |
 
---------|---------|-------------|
-| **Send Rate** | `100` ticks (~60 s) | How often a full state snapshot is sent |
+---
+
+## 🔁 Delivery & Backoff
+
+Every connection is handled on its own. When an endpoint (Home Assistant or any other receiver) can't be reached or asks the plugin to slow down, the plugin pauses sending to that connection for a while instead of continuing to send every update.
+
+| Response | What the plugin does |
+|----------|----------------------|
+| `2xx` | Delivered — any pause is lifted and the backoff resets to 30 s |
+| `401 Unauthorized` | Connection is disabled (the token may have been revoked) |
+| `410 Gone` | Connection is disabled (the endpoint no longer accepts data) |
+| `429` / `503` with `Retry-After` | Paused until the time the server asks for (seconds or an HTTP date), capped at 10 minutes |
+| `429` / `503` without a valid `Retry-After` | Exponential backoff |
+| Other `5xx`, network errors & timeouts | Exponential backoff |
+| Other `4xx` | Payload is dropped and not retried — no pause |
+
+**Exponential backoff:** the first failure pauses the connection for 30 s, and every failed retry doubles the pause (30 s → 1 min → 2 min → 4 min → 8 min) up to a maximum of 10 minutes. A successful delivery resets it.
+
+While a connection is paused:
+
+- Periodic snapshots **without events** are dropped — the next snapshot carries the full state anyway.
+- Payloads **with events** (loot, level-ups, deaths, …) are queued: at most 50 payloads per connection and nothing older than 10 minutes, dropping the oldest first.
+- When the pause ends, the queued payloads are resent one at a time, in their original order.
+
+Pauses and queued payloads live in memory only: they are never saved to your RuneLite config, and restarting the client or turning the plugin off clears them.
+
+> **Duplicates:** after a network error or timeout the plugin can't tell whether the endpoint already received a payload, so it sends it again. Receivers may therefore occasionally get the same event twice and should de-duplicate on each event's `eventId`.
+
+The side panel shows a paused connection under its name, e.g. `⏸ Paused — retrying in 2m 05s (3 queued)`, counting down live until sending resumes.
 
 ---
 

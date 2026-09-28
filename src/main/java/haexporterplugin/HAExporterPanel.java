@@ -2,10 +2,13 @@ package haexporterplugin;
 
 import com.google.gson.Gson;
 import haexporterplugin.data.HAConnection;
+import haexporterplugin.data.PairingException;
 import haexporterplugin.data.TokenCallback;
 import haexporterplugin.utils.ConfigUtils;
 import haexporterplugin.utils.HomeAssistUtils;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 
 import javax.inject.Inject;
@@ -13,7 +16,9 @@ import javax.swing.*;
 import javax.swing.text.*;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 public class HAExporterPanel extends PluginPanel
@@ -34,6 +39,10 @@ public class HAExporterPanel extends PluginPanel
 
     public final int CODE_LENGTH = 5;
 
+    // Pause indicators on the home view, refreshed every second while it is shown
+    private final Map<JLabel, HAConnection> pauseLabels = new HashMap<>();
+    private final Timer pauseTimer = new Timer(1000, e -> updatePauseLabels());
+
     public HAExporterPanel()
     {
         setLayout(new BorderLayout());
@@ -45,6 +54,13 @@ public class HAExporterPanel extends PluginPanel
     {
         super.onActivate();
         showHomeView(); // Rebuild the UI every time the panel is opened
+    }
+
+    @Override
+    public void onDeactivate()
+    {
+        super.onDeactivate();
+        pauseTimer.stop();
     }
 
     public void initialize()
@@ -108,6 +124,9 @@ public class HAExporterPanel extends PluginPanel
         wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
         wrapper.setBorder(BorderFactory.createTitledBorder("Connected Devices"));
 
+        pauseTimer.stop();
+        pauseLabels.clear();
+
         List<HAConnection> connections = configUtils.getStoredConnections();
 
         if (connections.isEmpty())
@@ -143,6 +162,17 @@ public class HAExporterPanel extends PluginPanel
 
             card.add(headerPanel);
 
+            // Pause indicator, hidden while the connection is delivering normally
+            if (connection.isEnabled())
+            {
+                JLabel pauseLabel = new JLabel();
+                pauseLabel.setBorder(BorderFactory.createEmptyBorder(3, 0, 0, 0));
+                pauseLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                updatePauseLabel(pauseLabel, connection);
+                card.add(pauseLabel);
+                pauseLabels.put(pauseLabel, connection);
+            }
+
             // Show warning if connection is disabled
             if (!connection.isEnabled())
             {
@@ -175,7 +205,56 @@ public class HAExporterPanel extends PluginPanel
             }
         }
 
+        if (!pauseLabels.isEmpty())
+        {
+            pauseTimer.restart();
+        }
+
         return wrapper;
+    }
+
+    private void updatePauseLabels()
+    {
+        boolean homeViewShowing = false;
+        for (Map.Entry<JLabel, HAConnection> entry : pauseLabels.entrySet())
+        {
+            Container card = entry.getKey().getParent();
+            if (card != null && card.isShowing())
+            {
+                homeViewShowing = true;
+                updatePauseLabel(entry.getKey(), entry.getValue());
+            }
+        }
+
+        if (!homeViewShowing)
+        {
+            // Switched to the settings or pairing view, or the panel is hidden
+            pauseTimer.stop();
+        }
+    }
+
+    private void updatePauseLabel(JLabel label, HAConnection connection)
+    {
+        long remaining = homeAssistUtils.getPausedUntil(connection) - System.currentTimeMillis();
+        if (remaining <= 0)
+        {
+            label.setVisible(false);
+            return;
+        }
+
+        int queued = homeAssistUtils.getQueuedCount(connection);
+        String text = "\u23F8 Paused \u2014 retrying in " + formatRemaining(remaining)
+                + (queued > 0 ? " (" + queued + " queued)" : "");
+        label.setText("<html><span style='color:orange;'>" + text + "</span></html>");
+        label.setVisible(true);
+    }
+
+    private static String formatRemaining(long millis)
+    {
+        long seconds = (millis + 999) / 1000;
+        return seconds < 60
+                ? seconds + "s"
+                : String.format("%dm %02ds", seconds / 60, seconds % 60);
     }
 
     private String buildStatusIndicators(HAConnection connection)
@@ -501,10 +580,22 @@ public class HAExporterPanel extends PluginPanel
             submitButton.setEnabled(true);
         };
 
-        baseUrlField.addKeyListener(new java.awt.event.KeyAdapter()
+        baseUrlField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener()
         {
             @Override
-            public void keyTyped(java.awt.event.KeyEvent e)
+            public void insertUpdate(javax.swing.event.DocumentEvent e)
+            {
+                updateSubmitState.run();
+            }
+
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e)
+            {
+                updateSubmitState.run();
+            }
+
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e)
             {
                 updateSubmitState.run();
             }
@@ -608,10 +699,18 @@ public class HAExporterPanel extends PluginPanel
 
         topPanel.add(Box.createVerticalStrut(15)); // spacing
 
-        // Base URL label + input
-        JLabel urlLabel = new JLabel("Base URL:");
+        // Endpoint URL label + helper text + input
+        JLabel urlLabel = new JLabel("Endpoint URL");
         urlLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         topPanel.add(urlLabel);
+
+        JLabel urlHelpLabel = new JLabel("Home Assistant or any compatible endpoint");
+        urlHelpLabel.setFont(FontManager.getRunescapeSmallFont());
+        urlHelpLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+        urlHelpLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        topPanel.add(urlHelpLabel);
+        topPanel.add(Box.createVerticalStrut(3));
+
         topPanel.add(baseUrlField);
 
         container.add(topPanel, BorderLayout.CENTER);
@@ -644,11 +743,11 @@ public class HAExporterPanel extends PluginPanel
             homeAssistUtils.getToken(baseUrl, code.toString(), new TokenCallback()
             {
                 @Override
-                public void onSuccess(String token)
+                public void onSuccess(String token, String name)
                 {
                     SwingUtilities.invokeLater(() ->
                     {
-                        handleSuccessfulConnection(baseUrl, token);
+                        handleSuccessfulConnection(baseUrl, token, name);
                         submitButton.setEnabled(true);
                     });
                 }
@@ -661,7 +760,7 @@ public class HAExporterPanel extends PluginPanel
                         submitButton.setEnabled(true);
                         JOptionPane.showMessageDialog(
                                 HAExporterPanel.this,
-                                "Connection failed, try again.\n" + e.getMessage(),
+                                buildPairingFailureMessage(e),
                                 "Failure",
                                 JOptionPane.ERROR_MESSAGE
                         );
@@ -686,9 +785,9 @@ public class HAExporterPanel extends PluginPanel
         repaint();
     }
 
-    private void handleSuccessfulConnection(String baseUrl, String token)
+    private void handleSuccessfulConnection(String baseUrl, String token, String name)
     {
-        configUtils.addStoredConnection(baseUrl, token);
+        configUtils.addStoredConnection(baseUrl, token, name);
 
         JOptionPane.showMessageDialog(
                 this,
@@ -698,6 +797,17 @@ public class HAExporterPanel extends PluginPanel
         );
 
         showHomeView();
+    }
+
+    private static String buildPairingFailureMessage(Exception e)
+    {
+        // Prefer the endpoint's own (sanitized) explanation, e.g. "Code expired"
+        if (e instanceof PairingException && ((PairingException) e).getServerMessage() != null)
+        {
+            return ((PairingException) e).getServerMessage();
+        }
+
+        return "Connection failed, try again.\n" + e.getMessage();
     }
 
     private JCheckBox createCheckbox(String label, boolean selected, boolean globallyEnabled) {

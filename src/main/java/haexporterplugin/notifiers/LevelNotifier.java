@@ -5,9 +5,11 @@ import haexporterplugin.data.Stats;
 import haexporterplugin.events.LevelEvent;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Experience;
+import net.runelite.api.GameState;
 
 import net.runelite.api.Skill;
 import net.runelite.api.WorldType;
+import net.runelite.api.events.GameStateChanged;
 
 import javax.inject.Singleton;
 import java.util.*;
@@ -26,6 +28,8 @@ public class LevelNotifier extends BaseNotifier {
     private final Map<Skill, Integer> currentXp = new EnumMap<>(Skill.class);
     static final int INIT_GAME_TICKS = 1; // ~10s
     private Set<WorldType> specialWorldType = null;
+    // Ticks since login or the last hop, while waiting to take the baseline
+    private int ticksSinceReset = 0;
 
     private void updateSkillsFromGameState() {
         for (Skill skill : Skill.values()) {
@@ -117,10 +121,20 @@ public class LevelNotifier extends BaseNotifier {
         return new Stats(skillsMap);
     }
 
-    public void onTick(){
-        int tickCount = tickUtils.getTickCount();
+    public void onGameStateChanged(GameStateChanged event) {
+        // A hop or re-login can switch to a character with different stats (e.g. a special world or another
+        // account), so take a new baseline instead of reporting the difference as level-ups
+        if (event.getGameState() == GameState.HOPPING || event.getGameState() == GameState.LOGIN_SCREEN) {
+            currentLevels.clear();
+            previousLevels.clear();
+            currentXp.clear();
+            ticksSinceReset = 0;
+        }
+    }
 
-        if ((tickCount > INIT_GAME_TICKS || tickCount >= config.sendRate()) && previousLevels.isEmpty()) {
+    public void onTick(){
+        // Give the client a moment after login or a hop to report the new character's stats
+        if (previousLevels.isEmpty() && ++ticksSinceReset > INIT_GAME_TICKS) {
             initLevels();
             return;
         }

@@ -135,6 +135,18 @@ public interface HAExporterConfig extends Config
 		return true;
 	}
 
+	@ConfigItem(
+			keyName = "sendSpecialWorldData",
+			name = "Send data from special worlds",
+			description = "Send data while playing on special or event worlds (Leagues, Deadman, tournament, beta, quest speedrunning, PvP Arena).<br/>" +
+					"These use separate or temporary characters, so this is off by default: nothing is sent from them.",
+			position = 104,
+			section = generalSection
+	)
+	default boolean sendSpecialWorldData() {
+		return false;
+	}
+
 	/* ============================
        Data Sharing
        ============================ */

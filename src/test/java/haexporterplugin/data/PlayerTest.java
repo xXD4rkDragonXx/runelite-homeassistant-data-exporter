@@ -1,5 +1,6 @@
 package haexporterplugin.data;
 
+import com.google.gson.Gson;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -9,13 +10,17 @@ import static org.junit.Assert.*;
 
 public class PlayerTest
 {
+	private static final String ACCOUNT_HASH = "de731bc0f710567a6a0e852bbe79eb5fa8daf37d4140440a774591f0";
+
 	@Test
 	public void testDefaultConstructor()
 	{
 		Player player = new Player();
 		assertNull(player.getName());
+		assertNull(player.getAccountHash());
 		assertNull(player.getAccountType());
 		assertNull(player.getWorld());
+		assertNull(player.getWorldTypes());
 		assertNull(player.getLocation());
 		assertNull(player.getHealth());
 		assertNull(player.getPrayerPoints());
@@ -110,5 +115,36 @@ public class PlayerTest
 		PlayerLocation location = new PlayerLocation(3222, 3218, 0, false);
 		player.setLocation(location);
 		assertNotNull(player.getLocation());
+	}
+
+	@Test
+	public void testSerializeAccountHashAndWorldTypes()
+	{
+		Player player = new Player();
+		player.setAccountHash(ACCOUNT_HASH);
+		player.setWorldTypes(new String[]{"SEASONAL"});
+		String json = new Gson().toJson(player);
+		assertTrue(json.contains("\"accountHash\":\"" + ACCOUNT_HASH + "\""));
+		assertTrue(json.contains("\"worldTypes\":[\"SEASONAL\"]"));
+	}
+
+	@Test
+	public void testSerializeEmptyWorldTypes()
+	{
+		Player player = new Player();
+		player.setWorldTypes(new String[0]);
+		String json = new Gson().toJson(player);
+		assertTrue(json.contains("\"worldTypes\":[]"));
+	}
+
+	@Test
+	public void testSerializeOmitsNullAccountHash()
+	{
+		Player player = new Player();
+		player.setName("TestPlayer");
+		player.setAccountHash(null);
+		String json = new Gson().toJson(player);
+		assertTrue(json.contains("\"name\":\"TestPlayer\""));
+		assertFalse(json.contains("accountHash"));
 	}
 }

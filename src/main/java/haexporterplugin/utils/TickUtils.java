@@ -3,6 +3,7 @@ package haexporterplugin.utils;
 import haexporterplugin.HAExporterConfig;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Client;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -22,6 +23,9 @@ public class TickUtils {
     @Inject
     private HAExporterConfig config;
 
+    @Inject
+    private Client client;
+
     public void onTick(){
         tickCount++;
     }
@@ -29,20 +33,34 @@ public class TickUtils {
     public void sendOnSendRate(){
         if (tickCount >= config.sendRate()){
             tickCount = 0;
-            String json = messageBuilder.build();
-            homeAssistUtils.sendMessage(json);
+            send();
         }
     }
 
     public void sendNow(){
         tickCount = 0;
-        String json = messageBuilder.build();
-        homeAssistUtils.sendMessage(json);
-        messageBuilder.resetEvents();
+        send();
     }
 
     public void sendShutdown(){
+        send();
+    }
+
+    // Events are cleared as soon as they're serialized, so each event is sent exactly once
+    private void send(){
+        if (dropOnSpecialWorld()) return;
         String json = messageBuilder.build();
+        messageBuilder.resetEvents();
         homeAssistUtils.sendMessage(json);
+    }
+
+    // Nothing is sent from special worlds unless the user opted in. Pending events are dropped too,
+    // so they can't show up later in a message from a normal world.
+    private boolean dropOnSpecialWorld(){
+        if (config.sendSpecialWorldData() || !WorldUtils.isSpecialWorld(client.getWorldType())){
+            return false;
+        }
+        messageBuilder.resetEvents();
+        return true;
     }
 }
