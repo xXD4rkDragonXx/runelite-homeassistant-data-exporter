@@ -2,10 +2,13 @@ package haexporterplugin;
 
 import com.google.gson.Gson;
 import haexporterplugin.data.HAConnection;
+import haexporterplugin.data.PairingException;
 import haexporterplugin.data.TokenCallback;
 import haexporterplugin.utils.ConfigUtils;
 import haexporterplugin.utils.HomeAssistUtils;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.ui.ColorScheme;
+import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
 
 import javax.inject.Inject;
@@ -608,10 +611,18 @@ public class HAExporterPanel extends PluginPanel
 
         topPanel.add(Box.createVerticalStrut(15)); // spacing
 
-        // Base URL label + input
-        JLabel urlLabel = new JLabel("Base URL:");
+        // Endpoint URL label + helper text + input
+        JLabel urlLabel = new JLabel("Endpoint URL");
         urlLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         topPanel.add(urlLabel);
+
+        JLabel urlHelpLabel = new JLabel("Home Assistant or any compatible endpoint");
+        urlHelpLabel.setFont(FontManager.getRunescapeSmallFont());
+        urlHelpLabel.setForeground(ColorScheme.LIGHT_GRAY_COLOR);
+        urlHelpLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        topPanel.add(urlHelpLabel);
+        topPanel.add(Box.createVerticalStrut(3));
+
         topPanel.add(baseUrlField);
 
         container.add(topPanel, BorderLayout.CENTER);
@@ -644,11 +655,11 @@ public class HAExporterPanel extends PluginPanel
             homeAssistUtils.getToken(baseUrl, code.toString(), new TokenCallback()
             {
                 @Override
-                public void onSuccess(String token)
+                public void onSuccess(String token, String name)
                 {
                     SwingUtilities.invokeLater(() ->
                     {
-                        handleSuccessfulConnection(baseUrl, token);
+                        handleSuccessfulConnection(baseUrl, token, name);
                         submitButton.setEnabled(true);
                     });
                 }
@@ -661,7 +672,7 @@ public class HAExporterPanel extends PluginPanel
                         submitButton.setEnabled(true);
                         JOptionPane.showMessageDialog(
                                 HAExporterPanel.this,
-                                "Connection failed, try again.\n" + e.getMessage(),
+                                buildPairingFailureMessage(e),
                                 "Failure",
                                 JOptionPane.ERROR_MESSAGE
                         );
@@ -686,9 +697,9 @@ public class HAExporterPanel extends PluginPanel
         repaint();
     }
 
-    private void handleSuccessfulConnection(String baseUrl, String token)
+    private void handleSuccessfulConnection(String baseUrl, String token, String name)
     {
-        configUtils.addStoredConnection(baseUrl, token);
+        configUtils.addStoredConnection(baseUrl, token, name);
 
         JOptionPane.showMessageDialog(
                 this,
@@ -698,6 +709,17 @@ public class HAExporterPanel extends PluginPanel
         );
 
         showHomeView();
+    }
+
+    private static String buildPairingFailureMessage(Exception e)
+    {
+        // Prefer the endpoint's own (sanitized) explanation, e.g. "Code expired"
+        if (e instanceof PairingException && ((PairingException) e).getServerMessage() != null)
+        {
+            return ((PairingException) e).getServerMessage();
+        }
+
+        return "Connection failed, try again.\n" + e.getMessage();
     }
 
     private JCheckBox createCheckbox(String label, boolean selected, boolean globallyEnabled) {

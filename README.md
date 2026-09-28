@@ -49,10 +49,10 @@ The plugin uses a **code-based pairing** flow to securely link your RuneLite cli
 1. In Home Assistant, open the [**OSRS Data**](https://github.com/RedFirebreak/ha-osrs-data) integration and click **Add Device** — you'll receive a **5-digit pairing code**.
 2. In RuneLite, open the **HA Exporter** side panel (icon in the toolbar).
 3. Click **Connect New Device**.
-4. Enter the 5-digit code and your Home Assistant base URL (e.g. `https://ha.example.com`).
-5. Click **Submit**. The plugin exchanges the code for a long-lived token and stores the connection.
+4. Enter the 5-digit code and, under **Endpoint URL**, your Home Assistant URL — or any compatible endpoint (e.g. `https://ha.example.com`).
+5. Click **Submit**. The plugin exchanges the code for a long-lived token and stores the connection. If the endpoint sends a name, it becomes the connection's default friendly name (rename it anytime via ⚙). If pairing fails, the endpoint's own error message (e.g. "Code expired") is shown when it provides one.
 
-You can pair **multiple** Home Assistant instances — each connection is stored independently.
+You can pair **multiple** Home Assistant instances (or other compatible endpoints) — each connection is stored independently.
 
 ### 3. Play the game!
 
@@ -62,10 +62,13 @@ Once paired, the plugin automatically sends data on a configurable tick interval
 
 ## 🔗 Data Pairing — How It Works
 
+Home Assistant (with the OSRS Data integration) is the primary target, but any endpoint that implements these two requests can be paired:
+
 ```text
 RuneLite                                Home Assistant
    │                                          │
    │  POST /api/osrs-data/pair                │
+   │  Header: X-Osrs-Exporter-Version: 1.4    │
    │  Body: { "code": "12345" }        ──────►│
    │                                          │
    │  Response: { "token": "abc123…" } ◄──────│
@@ -74,16 +77,27 @@ RuneLite                                Home Assistant
    │                                          │
    │  POST /api/osrs-data/events              │
    │  Header: X-Osrs-Token: abc123…    ──────►│
+   │  Header: X-Osrs-Exporter-Version: 1.4    │
    │  Body: <JSON payload>                    │
    │                                          │
 ```
 
+Both requests carry an `X-Osrs-Exporter-Version` header with the plugin version (e.g. `1.4`).
+
+**Pair response** — `token` is required on success; these fields are optional:
+
+| Outcome | Example body | Optional field |
+|---------|--------------|----------------|
+| Success (2xx) | `{ "token": "abc123…", "name": "My Server" }` | `name` — used as the connection's default friendly name (max 64 characters) |
+| Failure (non-2xx) | `{ "error": "Code expired" }` | `error` — shown to the user instead of the generic "Connection failed" message (max 200 characters) |
+
 Each stored connection contains:
 
-```json
+```jsonc
 {
   "baseUrl": "https://ha.example.com",
-  "token": "abc123def456…"
+  "token": "abc123def456…",
+  "friendlyName": "My Server"   // optional — defaults to the pair response's "name"
 }
 ```
 
