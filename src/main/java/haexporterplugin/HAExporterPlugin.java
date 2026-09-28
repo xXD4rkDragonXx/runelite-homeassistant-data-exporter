@@ -115,6 +115,7 @@ public class HAExporterPlugin extends Plugin
 	public void onGameStateChanged(GameStateChanged gameStateChanged)
 	{
 		messageBuilder.setState(gameStateChanged.getGameState());
+		levelNotifier.onGameStateChanged(gameStateChanged);
 		if (gameStateChanged.getGameState() == GameState.HOPPING)
 		{
 			initialized = false;
