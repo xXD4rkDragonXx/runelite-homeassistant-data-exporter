@@ -124,6 +124,7 @@ public class HAExporterPlugin extends Plugin
 	{
 		messageBuilder.setState(gameStateChanged.getGameState());
 		levelNotifier.onGameStateChanged(gameStateChanged);
+		collectionNotifier.onGameStateChanged(gameStateChanged);
 		if (gameStateChanged.getGameState() == GameState.HOPPING)
 		{
 			initialized = false;
@@ -161,7 +162,6 @@ public class HAExporterPlugin extends Plugin
 	@Subscribe(priority = 1) // run before the base loot tracker plugin
 	public void onChatMessage(ChatMessage chatMessage) {
 		String source = chatMessage.getName() != null && !chatMessage.getName().isEmpty() ? chatMessage.getName() : chatMessage.getSender();
-
 		switch (chatMessage.getType()){
 			case GAMEMESSAGE:
 				if ("runelite".equals(source)) {
