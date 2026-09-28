@@ -6,6 +6,7 @@ import haexporterplugin.HAExporterConfig;
 import haexporterplugin.data.HAConnection;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.lang.reflect.Type;
@@ -35,7 +36,7 @@ public class ConfigUtils {
         }
     }
 
-    public void addStoredConnection(String baseUrl, String token){
+    public void addStoredConnection(String baseUrl, String token, @Nullable String friendlyName){
         Type listType = new TypeToken<List<HAConnection>>() {}.getType();
 
         List<HAConnection> connections;
@@ -51,7 +52,11 @@ public class ConfigUtils {
             connections = new ArrayList<>();
         }
 
-        connections.add(new HAConnection(baseUrl, token));
+        HAConnection connection = new HAConnection(baseUrl, token);
+        if (friendlyName != null)
+            connection.setFriendlyName(friendlyName);
+
+        connections.add(connection);
         config.setHomeassistantConnections(gson.toJson(connections));
     }
 
