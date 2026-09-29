@@ -17,6 +17,9 @@ public class ItemData {
     private int quantity;
     @Getter
     private String equipmentSlot;
+    // Boxed so Gson omits it for non-inventory items
+    @Getter
+    private Integer inventorySlot;
 
     public ItemData() {
         this.quantity = 1;
@@ -37,5 +40,6 @@ public class ItemData {
         this.haPrice = itemData.getHaPrice();
         this.quantity = itemData.getQuantity();
         this.equipmentSlot = itemData.getEquipmentSlot();
+        this.inventorySlot = itemData.getInventorySlot();
     }
 }

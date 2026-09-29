@@ -72,6 +72,25 @@ public class ItemDataTest
 	}
 
 	@Test
+	public void testCopyConstructorKeepsInventorySlot()
+	{
+		ItemData original = new ItemData("Hammer", 2347, 144, 0, 1);
+		original.setInventorySlot(5);
+
+		assertEquals(Integer.valueOf(5), new ItemData(original).getInventorySlot());
+	}
+
+	@Test
+	public void testInventorySlotSerializedOnlyWhenSet()
+	{
+		ItemData item = new ItemData("Hammer", 2347, 144, 0, 1);
+		assertFalse(new Gson().toJson(item).contains("inventorySlot"));
+
+		item.setInventorySlot(0);
+		assertTrue(new Gson().toJson(item).contains("\"inventorySlot\":0"));
+	}
+
+	@Test
 	public void testCopyConstructorIsDeepEnough()
 	{
 		ItemData original = new ItemData("Test", 1, 100, 50, 5);

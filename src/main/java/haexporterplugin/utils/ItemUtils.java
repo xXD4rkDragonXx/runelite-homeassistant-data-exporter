@@ -49,10 +49,14 @@ public class ItemUtils {
 
         var invContainer = client.getItemContainer(InventoryID.INV);
         if (invContainer != null) {
-            for (var item : invContainer.getItems()) {
-                if (item.getId() <= 0) continue;
+            var items = invContainer.getItems();
+            // Array index is the inventory slot (0-27, left to right, top to bottom)
+            for (int slotIndex = 0; slotIndex < items.length; slotIndex++) {
+                var item = items[slotIndex];
+                if (item.getId() <= 0) continue; // Skip empty slots
                 ItemComposition ic = itemManager.getItemComposition(item.getId());
                 ItemData itemData = createItemData(ic, item.getQuantity(), itemManager);
+                itemData.setInventorySlot(slotIndex);
                 inventoryItems.add(itemData);
             }
         }

@@ -1,12 +1,17 @@
 package haexporterplugin.utils;
 
 import haexporterplugin.data.ItemData;
+import net.runelite.api.Client;
+import net.runelite.api.Item;
 import net.runelite.api.ItemComposition;
+import net.runelite.api.ItemContainer;
+import net.runelite.api.gameval.InventoryID;
 import net.runelite.client.game.ItemManager;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -88,5 +93,72 @@ public class ItemUtilsTest
 		assertEquals(ABOVE_INT_MAX, item.getGePrice());
 		assertEquals(1000, item.getHaPrice());
 		assertEquals(3, item.getQuantity());
+	}
+
+	@Test
+	public void testGetInventoryItemsSetsSlotIndexAndSkipsEmptySlots()
+	{
+		Client client = mock(Client.class);
+		ItemContainer container = mock(ItemContainer.class);
+		when(client.getItemContainer(InventoryID.INV)).thenReturn(container);
+		when(container.getItems()).thenReturn(new Item[]{
+			new Item(6739, 1),
+			new Item(-1, 0),
+			new Item(-1, 0),
+			new Item(-1, 0),
+			new Item(-1, 0),
+			new Item(2347, 1)
+		});
+		ItemManager itemManager = mockItemManager(6739, "Dragon axe", 2347, "Hammer");
+
+		List<ItemData> items = ItemUtils.getInventoryItems(client, itemManager);
+
+		assertEquals(2, items.size());
+		assertEquals("Dragon axe", items.get(0).getName());
+		assertEquals(Integer.valueOf(0), items.get(0).getInventorySlot());
+		assertEquals("Hammer", items.get(1).getName());
+		assertEquals(Integer.valueOf(5), items.get(1).getInventorySlot());
+	}
+
+	@Test
+	public void testGetInventoryItemsWithoutContainerReturnsEmptyList()
+	{
+		Client client = mock(Client.class);
+		when(client.getItemContainer(InventoryID.INV)).thenReturn(null);
+
+		assertTrue(ItemUtils.getInventoryItems(client, mock(ItemManager.class)).isEmpty());
+	}
+
+	@Test
+	public void testGetEquippedItemsHasNoInventorySlot()
+	{
+		Client client = mock(Client.class);
+		ItemContainer container = mock(ItemContainer.class);
+		when(client.getItemContainer(InventoryID.WORN)).thenReturn(container);
+		when(container.getItems()).thenReturn(new Item[]{new Item(6739, 1)});
+		ItemManager itemManager = mockItemManager(6739, "Dragon axe", 0, null);
+
+		List<ItemData> items = ItemUtils.getEquippedItems(client, itemManager);
+
+		assertEquals(1, items.size());
+		assertEquals("HEAD", items.get(0).getEquipmentSlot());
+		assertNull(items.get(0).getInventorySlot());
+	}
+
+	private static ItemManager mockItemManager(int firstId, String firstName, int secondId, String secondName)
+	{
+		ItemManager itemManager = mock(ItemManager.class);
+		ItemComposition first = mock(ItemComposition.class);
+		when(first.getId()).thenReturn(firstId);
+		when(first.getName()).thenReturn(firstName);
+		when(itemManager.getItemComposition(firstId)).thenReturn(first);
+		if (secondName != null)
+		{
+			ItemComposition second = mock(ItemComposition.class);
+			when(second.getId()).thenReturn(secondId);
+			when(second.getName()).thenReturn(secondName);
+			when(itemManager.getItemComposition(secondId)).thenReturn(second);
+		}
+		return itemManager;
 	}
 }
