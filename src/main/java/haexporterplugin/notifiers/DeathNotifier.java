@@ -144,6 +144,8 @@ public class DeathNotifier extends BaseNotifier {
         Danger danger = dangerOverride != null ? dangerOverride : WorldUtils.getDangerLevel(client, regionId, Set.of(ExceptionalDeath.values()));
 
         Collection<ItemData> items = ItemUtils.getInventoryItems(client, itemManager);
+        // Slots are meaningless once stacks are split and merged into kept/lost lists
+        items.forEach(item -> item.setInventorySlot(null));
         List<ItemData> itemsByPrice = getPricedItems(items);
 
         Pair<List<ItemData>, List<ItemData>> split;

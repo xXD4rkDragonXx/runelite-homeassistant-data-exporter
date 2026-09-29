@@ -126,8 +126,9 @@ Every message sent to Home Assistant follows this structure:
       }
     },
     "inventory": {
+      // Empty slots are omitted. inventorySlot is 0-27, left to right then top to bottom (row = slot / 4, column = slot % 4)
       "items": [
-        { "name": "Abyssal whip", "id": 4151, "gePrice": 1650000, "haPrice": 72000, "quantity": 1 }
+        { "name": "Abyssal whip", "id": 4151, "gePrice": 1650000, "haPrice": 72000, "quantity": 1, "inventorySlot": 0 }
       ]
     },
     "equipment": {
