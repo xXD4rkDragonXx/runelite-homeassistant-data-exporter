@@ -17,6 +17,8 @@ import net.runelite.api.coords.WorldPoint;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Set;
+
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -68,9 +70,17 @@ public class LocationNotifierTest
 		assertEquals(3218, point.get("y").getAsInt());
 		assertEquals(0, point.get("plane").getAsInt());
 		assertFalse(point.get("isOnBoat").getAsBoolean());
-		assertFalse(point.get("teleport").getAsBoolean());
 		long timestamp = point.get("timestamp").getAsLong();
 		assertTrue(timestamp >= before && timestamp <= after);
+	}
+
+	@Test
+	public void testTrailPointHoldsOnlyPositionAndTime()
+	{
+		walkTo(3222, 3218, 0);
+
+		JsonObject point = trail().get(0).getAsJsonObject();
+		assertEquals(Set.of("x", "y", "plane", "isOnBoat", "timestamp"), point.keySet());
 	}
 
 	@Test
@@ -109,7 +119,7 @@ public class LocationNotifierTest
 	}
 
 	@Test
-	public void testPlaneChangeIsRecordedWithoutTeleport()
+	public void testPlaneChangeIsRecorded()
 	{
 		walkTo(3205, 3209, 0);
 		walkTo(3205, 3209, 1);
@@ -117,8 +127,6 @@ public class LocationNotifierTest
 		JsonArray trail = trail();
 		assertEquals(2, trail.size());
 		assertPoint(trail, 1, 3205, 3209, 1);
-		assertFalse(isTeleport(trail, 1));
-		assertNoTeleportSent();
 	}
 
 	@Test
@@ -130,6 +138,20 @@ public class LocationNotifierTest
 		JsonArray trail = trail();
 		assertEquals(2, trail.size());
 		assertTrue(trail.get(1).getAsJsonObject().get("isOnBoat").getAsBoolean());
+	}
+
+	@Test
+	public void testTeleportIsJustAnotherPoint()
+	{
+		// Grand Exchange -> a cave. Receivers work out for themselves that these two tiles don't connect
+		walkTo(3164, 3487, 0);
+		walkTo(1640, 9562, 1);
+
+		JsonArray trail = trail();
+		assertEquals(2, trail.size());
+		assertPoint(trail, 1, 1640, 9562, 1);
+		assertEquals(0, events().size());
+		verify(tickUtils, never()).sendNow();
 	}
 
 	@Test
@@ -147,139 +169,15 @@ public class LocationNotifierTest
 		assertPoint(trail, max - 1, 3000 + max, 3218, 0);
 	}
 
-	/* ============================
-	   TELEPORTS
-	   ============================ */
-
 	@Test
-	public void testRunningIsNotATeleport()
+	public void testSameTileIsRecordedAgainAfterReset()
 	{
+		// After logging back in on the same tile, the trail still starts with that tile
 		walkTo(3222, 3218, 0);
-		walkTo(3224, 3220, 0);
-
-		assertFalse(isTeleport(trail(), 1));
-		assertNoTeleportSent();
-	}
-
-	@Test
-	public void testFiveTilesInOneTickIsNotATeleport()
-	{
-		walkTo(3222, 3218, 0);
-		walkTo(3227, 3213, 0);
-
-		assertFalse(isTeleport(trail(), 1));
-		assertNoTeleportSent();
-	}
-
-	@Test
-	public void testSixTilesInOneTickIsATeleport()
-	{
-		walkTo(3222, 3218, 0);
-		walkTo(3222, 3224, 0);
-
-		assertTrue(isTeleport(trail(), 1));
-		assertEquals(1, events().size());
-	}
-
-	@Test
-	public void testTeleportSendsEventWithFromAndToRightAway()
-	{
-		// Grand Exchange -> a cave
-		walkTo(3164, 3487, 0);
-		walkTo(1640, 9562, 1);
-
-		JsonArray events = events();
-		assertEquals(1, events.size());
-		JsonObject event = events.get(0).getAsJsonObject();
-		assertEquals("teleport", event.get("type").getAsString());
-
-		JsonObject from = event.getAsJsonObject("data").getAsJsonObject("from");
-		assertEquals(3164, from.get("x").getAsInt());
-		assertEquals(3487, from.get("y").getAsInt());
-		assertEquals(0, from.get("plane").getAsInt());
-
-		JsonObject to = event.getAsJsonObject("data").getAsJsonObject("to");
-		assertEquals(1640, to.get("x").getAsInt());
-		assertEquals(9562, to.get("y").getAsInt());
-		assertEquals(1, to.get("plane").getAsInt());
-
-		verify(tickUtils).sendNow();
-	}
-
-	@Test
-	public void testTeleportArrivalIsFlaggedInTheTrail()
-	{
-		walkTo(3164, 3487, 0);
-		walkTo(1640, 9562, 0);
-		walkTo(1641, 9562, 0);
-
-		JsonArray trail = trail();
-		assertFalse(isTeleport(trail, 0));
-		assertTrue(isTeleport(trail, 1));
-		assertPoint(trail, 1, 1640, 9562, 0);
-		assertFalse(isTeleport(trail, 2));
-	}
-
-	@Test
-	public void testBoardingABoatIsNotATeleport()
-	{
-		// The boat's position is its centre, which can be several tiles from the dock
-		walkTo(3050, 3193, 0);
-		locationNotifier.recordLocation(new WorldPoint(3058, 3193, 0), true);
-
-		assertFalse(isTeleport(trail(), 1));
-		assertNoTeleportSent();
-	}
-
-	@Test
-	public void testFastBoatIsNotATeleport()
-	{
-		locationNotifier.recordLocation(new WorldPoint(3058, 3193, 0), true);
-		locationNotifier.recordLocation(new WorldPoint(3064, 3193, 0), true);
-
-		assertFalse(isTeleport(trail(), 1));
-		assertNoTeleportSent();
-	}
-
-	@Test
-	public void testTwentyTilesOnABoatIsNotATeleport()
-	{
-		locationNotifier.recordLocation(new WorldPoint(3058, 3193, 0), true);
-		locationNotifier.recordLocation(new WorldPoint(3078, 3193, 0), true);
-
-		assertFalse(isTeleport(trail(), 1));
-		assertNoTeleportSent();
-	}
-
-	@Test
-	public void testTwentyOneTilesOnABoatIsATeleport()
-	{
-		locationNotifier.recordLocation(new WorldPoint(3058, 3193, 0), true);
-		locationNotifier.recordLocation(new WorldPoint(3058, 3214, 0), true);
-
-		assertTrue(isTeleport(trail(), 1));
-		assertEquals(1, events().size());
-	}
-
-	@Test
-	public void testTeleportingOffABoatIsATeleport()
-	{
-		locationNotifier.recordLocation(new WorldPoint(3058, 3193, 0), true);
-		walkTo(3164, 3487, 0);
-
-		assertTrue(isTeleport(trail(), 1));
-		assertEquals(1, events().size());
-	}
-
-	@Test
-	public void testNoTeleportAcrossReset()
-	{
-		walkTo(3164, 3487, 0);
 		locationNotifier.reset();
-		walkTo(1640, 9562, 0);
+		walkTo(3222, 3218, 0);
 
-		assertFalse(isTeleport(trail(), 1));
-		assertNoTeleportSent();
+		assertEquals(2, trail().size());
 	}
 
 	/* ============================
@@ -292,25 +190,23 @@ public class LocationNotifierTest
 		when(config.includeLocation()).thenReturn(false);
 
 		walkTo(3164, 3487, 0);
-		walkTo(1640, 9562, 0);
+		walkTo(3165, 3487, 0);
 
 		assertEquals(0, trail().size());
-		assertNoTeleportSent();
 	}
 
 	@Test
-	public void testNoTeleportWhenLocationSharingIsTurnedOn()
+	public void testCurrentTileIsRecordedWhenLocationSharingIsTurnedOn()
 	{
 		when(config.includeLocation()).thenReturn(false);
 		walkTo(3164, 3487, 0);
 
 		when(config.includeLocation()).thenReturn(true);
-		walkTo(1640, 9562, 0);
+		walkTo(3164, 3487, 0);
 
 		JsonArray trail = trail();
 		assertEquals(1, trail.size());
-		assertFalse(isTeleport(trail, 0));
-		assertNoTeleportSent();
+		assertPoint(trail, 0, 3164, 3487, 0);
 	}
 
 	/* ============================
@@ -335,17 +231,6 @@ public class LocationNotifierTest
 	private JsonArray events()
 	{
 		return gson.fromJson(messageBuilder.build(), JsonObject.class).getAsJsonArray("events");
-	}
-
-	private void assertNoTeleportSent()
-	{
-		assertEquals(0, events().size());
-		verify(tickUtils, never()).sendNow();
-	}
-
-	private static boolean isTeleport(JsonArray trail, int index)
-	{
-		return trail.get(index).getAsJsonObject().get("teleport").getAsBoolean();
 	}
 
 	private static void assertPoint(JsonArray trail, int index, int x, int y, int plane)

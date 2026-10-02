@@ -22,10 +22,9 @@ public class HomeAssistUtilsFilterTest
 		+ "\"player\":{"
 		+ "\"name\":\"PlayerName\","
 		+ "\"location\":{\"x\":1640,\"y\":9562,\"plane\":0,\"isOnBoat\":false},"
-		+ "\"locationTrail\":[{\"x\":1640,\"y\":9562,\"plane\":0,\"isOnBoat\":false,\"timestamp\":1735689600000,\"teleport\":true}]"
+		+ "\"locationTrail\":[{\"x\":1640,\"y\":9562,\"plane\":0,\"isOnBoat\":false,\"timestamp\":1735689600000}]"
 		+ "},"
 		+ "\"events\":["
-		+ "{\"type\":\"teleport\",\"data\":{\"from\":{\"x\":3164,\"y\":3487,\"plane\":0},\"to\":{\"x\":1640,\"y\":9562,\"plane\":0}}},"
 		+ "{\"type\":\"levelUp\",\"data\":[{\"skill\":\"Attack\",\"level\":99}]}"
 		+ "]}";
 
@@ -60,17 +59,17 @@ public class HomeAssistUtilsFilterTest
 	}
 
 	@Test
-	public void testTrailAndTeleportEventSentWhenLocationIsShared()
+	public void testTrailSentWhenLocationIsShared()
 	{
 		JsonObject filtered = filter();
 
 		assertTrue(filtered.getAsJsonObject("player").has("location"));
 		assertEquals(1, filtered.getAsJsonObject("player").getAsJsonArray("locationTrail").size());
-		assertEquals(List.of("teleport", "levelUp"), eventTypes(filtered));
+		assertEquals(List.of("levelUp"), eventTypes(filtered));
 	}
 
 	@Test
-	public void testConnectionWithoutLocationGetsNoTrailOrTeleportEvent()
+	public void testConnectionWithoutLocationGetsNoTrail()
 	{
 		connection.setIncludeLocation(false);
 
@@ -82,7 +81,7 @@ public class HomeAssistUtilsFilterTest
 	}
 
 	@Test
-	public void testGlobalLocationSwitchRemovesTrailAndTeleportEvent()
+	public void testGlobalLocationSwitchRemovesTrail()
 	{
 		when(config.includeLocation()).thenReturn(false);
 
@@ -94,7 +93,7 @@ public class HomeAssistUtilsFilterTest
 	}
 
 	@Test
-	public void testTrailAndTeleportEventKeptWhenOtherDataIsFiltered()
+	public void testTrailKeptWhenOtherDataIsFiltered()
 	{
 		connection.setIncludeInventory(false);
 		connection.setIncludeLevelUpEvents(false);
@@ -102,7 +101,7 @@ public class HomeAssistUtilsFilterTest
 		JsonObject filtered = filter();
 
 		assertEquals(1, filtered.getAsJsonObject("player").getAsJsonArray("locationTrail").size());
-		assertEquals(List.of("teleport"), eventTypes(filtered));
+		assertEquals(List.of(), eventTypes(filtered));
 	}
 
 	private JsonObject filter()

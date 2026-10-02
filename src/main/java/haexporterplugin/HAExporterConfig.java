@@ -176,7 +176,7 @@ public interface HAExporterConfig extends Config
 	@ConfigItem(
 			keyName = "includeLocation",
 			name = "Share location",
-			description = "Send your in-game coordinates, the trail of tiles you visited and teleport events." + MASTER_SWITCH_NOTE,
+			description = "Send your in-game coordinates and the trail of tiles you visited." + MASTER_SWITCH_NOTE,
 			position = 203,
 			section = dataSection
 	)
