@@ -83,7 +83,7 @@ public class TickUtilsSpecialWorldTest
 	public void testSpecialWorldTrailDoesNotLeakIntoLaterMessages()
 	{
 		onWorld(WorldType.MEMBERS, WorldType.DEADMAN);
-		messageBuilder.addLocationTrailPoint(new TrailPoint(new WorldPoint(3222, 3218, 0), false, 1735689600000L, false));
+		messageBuilder.addLocationTrailPoint(new TrailPoint(new WorldPoint(3222, 3218, 0), false, 1735689600000L));
 		tickUtils.sendNow();
 
 		onWorld(WorldType.MEMBERS);

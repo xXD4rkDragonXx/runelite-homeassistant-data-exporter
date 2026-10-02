@@ -116,8 +116,8 @@ Every message sent to Home Assistant follows this structure:
     "location": { "x": 3222, "y": 3218, "plane": 0, "isOnBoat": false },
     "locationTrail": [
       // Every tile visited since the previous message, oldest first. See "Location trail" below
-      { "x": 3221, "y": 3218, "plane": 0, "isOnBoat": false, "timestamp": 1735689599400, "teleport": false },
-      { "x": 3222, "y": 3218, "plane": 0, "isOnBoat": false, "timestamp": 1735689600000, "teleport": false }
+      { "x": 3221, "y": 3218, "plane": 0, "isOnBoat": false, "timestamp": 1735689599400 },
+      { "x": 3222, "y": 3218, "plane": 0, "isOnBoat": false, "timestamp": 1735689600000 }
     ],
     "health": { "current": 85, "max": 99 },
     "prayerPoints": { "current": 52, "max": 70 },
@@ -188,7 +188,6 @@ Every event is sent exactly once. Events that trigger an immediate message go ou
 | `combatTask` | `{ "taskName", "tier" }` |
 | `superiorSpawn` | `{ "name", "npcId", "location": { "x", "y", "plane" } }` |
 | `collectionLog` | `{ "itemName", "itemId", "value", "killCount" }` (`itemId` is `-1` when the name can't be matched to an item; `killCount` is the kill count of the loot drop the item came from, absent when there is none) |
-| `teleport` | `{ "from": { "x", "y", "plane", "isOnBoat" }, "to": { "x", "y", "plane", "isOnBoat" } }` — the player jumped instead of walking (teleport, cave or dungeon entrance, entering a house, …) |
 | `clientShutdown` | `"Logout"`, `"Shutdown"` or `"Disabled"` (plugin turned off) |
 
 `collectionLog` events come from the game's own new-item notification, so the in-game setting **Collection log - New addition notification** must be on. Chat and popup both work; with the setting off, the game doesn't announce new items and no event is sent.
@@ -201,15 +200,17 @@ Every event is sent exactly once. Events that trigger an immediate message go ou
 |-------|-------------|
 | `x`, `y`, `plane`, `isOnBoat` | Same meaning as in `player.location` |
 | `timestamp` | When the player was seen on this tile, in epoch milliseconds (UTC) |
-| `teleport` | `true` when the player jumped to this tile instead of walking there. Don't draw a line from the previous point to this one |
 
 - The position is checked every game tick, and a point is added whenever the tile, plane or boat state changed. Standing still adds nothing, so the array can be empty.
 - Points are ordered oldest first and each point is sent exactly once. To draw a path, append every message's trail to the points you already have.
-- A move of more than 5 tiles in one tick counts as a jump (more than 20 when a boat is involved). The arrival point gets `teleport: true`, and a `teleport` event with the departure and arrival tile is sent right away. Changing plane on the spot (a ladder or staircase) is not a jump.
-- The first point after logging in or hopping worlds is never a jump.
+- After logging in or hopping worlds, the trail starts with the tile the player is on.
+- Teleports are not marked, and a teleport doesn't trigger a message of its own. A player on foot moves at most 2 tiles per game tick (0.6 s), so two consecutive points that are much further apart were not walked. Don't draw a line between them. Allow a few tiles of margin, because the position can catch up several tiles at once after lag, and boats (`isOnBoat`) are faster. Such a gap can be:
+  - a teleport, or a cave or dungeon entrance;
+  - a room change inside an instance such as a player-owned house, where the coordinates are those of the map area each room was copied from, so neighbouring rooms can be far apart;
+  - a part of the trail that was never delivered (see the last point below).
 - A message holds at most 300 points; beyond that the oldest are dropped.
-- The trail and `teleport` events follow the **Share location** switches. A connection that doesn't receive `location` doesn't receive these either.
-- While a connection is paused after a failed delivery, messages without events are dropped, so that part of the trail is lost for that connection. `teleport` events are still queued and resent.
+- The trail follows the **Share location** switches. A connection that doesn't receive `location` doesn't receive the trail either.
+- While a connection is paused after a failed delivery, messages without events are dropped, so that part of the trail is lost for that connection.
 
 ### Account identity & world types
 
@@ -252,7 +253,7 @@ Open **RuneLite Settings → HA Exporter** to find these options. Every event ty
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| **Share inventory / equipment / location** | `on` | Include these in every update. Location also covers the location trail and `teleport` events |
+| **Share inventory / equipment / location** | `on` | Include these in every update. Location also covers the location trail |
 
 ### Loot
 

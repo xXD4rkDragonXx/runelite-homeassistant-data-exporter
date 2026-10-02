@@ -2,7 +2,6 @@ package haexporterplugin.notifiers;
 
 import haexporterplugin.data.PlayerLocation;
 import haexporterplugin.data.TrailPoint;
-import haexporterplugin.events.TeleportEvent;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Actor;
 import net.runelite.api.WorldEntity;
@@ -12,11 +11,6 @@ import net.runelite.api.coords.WorldPoint;
 
 @Slf4j
 public class LocationNotifier extends BaseNotifier{
-    // Running covers 2 tiles per tick; moving further than this in one tick is a jump (teleport, cave entrance, ...)
-    private static final int TELEPORT_DISTANCE = 5;
-    // A boat is tracked by its centre and can outrun a player on foot, so moves involving one get a wider margin
-    private static final int BOAT_TELEPORT_DISTANCE = 20;
-
     // Where the player was on the previous tick; null until the first tick after a reset
     private WorldPoint previousPoint;
     private boolean previousOnBoat;
@@ -46,7 +40,7 @@ public class LocationNotifier extends BaseNotifier{
         messageBuilder.setData("location", playerLocation);
 
         if (!config.includeLocation()) {
-            // Forget the previous tile, so switching location sharing back on isn't reported as a jump
+            // Forget the previous tile, so the trail starts with the current one when sharing is switched back on
             reset();
             return;
         }
@@ -60,26 +54,14 @@ public class LocationNotifier extends BaseNotifier{
             return;
         }
 
-        boolean teleport = previous != null && isTeleport(previous, wasOnBoat, worldPoint, isOnBoat);
-        messageBuilder.addLocationTrailPoint(new TrailPoint(worldPoint, isOnBoat, System.currentTimeMillis(), teleport));
-
-        if (teleport) {
-            messageBuilder.addEvent("teleport", new TeleportEvent(new PlayerLocation(previous, wasOnBoat), playerLocation));
-            tickUtils.sendNow();
-        }
+        // Teleports aren't marked: receivers see two points that are far apart and decide for themselves
+        messageBuilder.addLocationTrailPoint(new TrailPoint(worldPoint, isOnBoat, System.currentTimeMillis()));
     }
 
-    // Called when the player logs out or hops, so the first tile afterwards isn't compared to the old one
+    // Called when the player logs out or hops, so the first tile afterwards is always recorded
     public void reset()
     {
         previousPoint = null;
         previousOnBoat = false;
-    }
-
-    private static boolean isTeleport(WorldPoint from, boolean fromBoat, WorldPoint to, boolean toBoat)
-    {
-        int distance = Math.max(Math.abs(to.getX() - from.getX()), Math.abs(to.getY() - from.getY()));
-        int limit = fromBoat || toBoat ? BOAT_TELEPORT_DISTANCE : TELEPORT_DISTANCE;
-        return distance > limit;
     }
 }

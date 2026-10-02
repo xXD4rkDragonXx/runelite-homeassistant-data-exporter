@@ -214,8 +214,7 @@ public class HomeAssistUtils {
             }
         }
 
-        // Teleport events follow the location toggle, so they need filtering even when every event toggle is on
-        if ((!allEventsEnabled || !locationEnabled) && root.has("events")) {
+        if (!allEventsEnabled && root.has("events")) {
             JsonArray filtered = new JsonArray();
             for (JsonElement element : root.getAsJsonArray("events")) {
                 JsonObject event = element.getAsJsonObject();
@@ -247,8 +246,6 @@ public class HomeAssistUtils {
                 return connection.isIncludeSuperiorEvents() && config.includeSuperiorEvents();
             case "collectionLog":
                 return connection.isIncludeCollectionLogEvents() && config.includeCollectionLogEvents();
-            case "teleport":
-                return connection.isIncludeLocation() && config.includeLocation();
             default:
                 // clientShutdown and any unknown events are always forwarded
                 return true;
