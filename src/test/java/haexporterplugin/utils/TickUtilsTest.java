@@ -7,8 +7,10 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.util.Providers;
 import haexporterplugin.HAExporterConfig;
+import haexporterplugin.data.TrailPoint;
 import net.runelite.api.Client;
 import net.runelite.api.WorldType;
+import net.runelite.api.coords.WorldPoint;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -108,6 +110,20 @@ public class TickUtilsTest
 		assertEquals(2, payloads.size());
 		assertEquals("first", onlyEvent(payloads.get(0)).get("data").getAsString());
 		assertEquals("second", onlyEvent(payloads.get(1)).get("data").getAsString());
+	}
+
+	@Test
+	public void testLocationTrailSentOnceAcrossSends()
+	{
+		messageBuilder.addLocationTrailPoint(new TrailPoint(new WorldPoint(3222, 3218, 0), false, 1735689600000L, false));
+
+		tickUtils.sendNow();
+		tickUntilPeriodicSend();
+
+		List<JsonObject> payloads = sentPayloads();
+		assertEquals(2, payloads.size());
+		assertEquals(1, payloads.get(0).getAsJsonObject("player").getAsJsonArray("locationTrail").size());
+		assertEquals(0, payloads.get(1).getAsJsonObject("player").getAsJsonArray("locationTrail").size());
 	}
 
 	@Test

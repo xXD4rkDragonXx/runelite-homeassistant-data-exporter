@@ -177,13 +177,14 @@ public class HomeAssistUtils {
         return events != null && events.isJsonArray() && events.getAsJsonArray().size() > 0;
     }
 
-    private String applyConnectionFilters(String jsonPayload, HAConnection connection) {
+    String applyConnectionFilters(String jsonPayload, HAConnection connection) {
+        boolean locationEnabled = connection.isIncludeLocation() && config.includeLocation();
+
         boolean allDataEnabled = connection.isIncludeInventory()
                 && connection.isIncludeEquipment()
-                && connection.isIncludeLocation()
                 && config.includeInventory()
                 && config.includeEquipment()
-                && config.includeLocation();
+                && locationEnabled;
 
         boolean allEventsEnabled = connection.isIncludeLootEvents() && config.includeLootEvents()
                 && connection.isIncludeDeathEvents() && config.includeDeathEvents()
@@ -207,12 +208,14 @@ public class HomeAssistUtils {
             if (!connection.isIncludeEquipment() || !config.includeEquipment()) {
                 player.remove("equipment");
             }
-            if (!connection.isIncludeLocation() || !config.includeLocation()) {
+            if (!locationEnabled) {
                 player.remove("location");
+                player.remove("locationTrail");
             }
         }
 
-        if (!allEventsEnabled && root.has("events")) {
+        // Teleport events follow the location toggle, so they need filtering even when every event toggle is on
+        if ((!allEventsEnabled || !locationEnabled) && root.has("events")) {
             JsonArray filtered = new JsonArray();
             for (JsonElement element : root.getAsJsonArray("events")) {
                 JsonObject event = element.getAsJsonObject();
@@ -244,6 +247,8 @@ public class HomeAssistUtils {
                 return connection.isIncludeSuperiorEvents() && config.includeSuperiorEvents();
             case "collectionLog":
                 return connection.isIncludeCollectionLogEvents() && config.includeCollectionLogEvents();
+            case "teleport":
+                return connection.isIncludeLocation() && config.includeLocation();
             default:
                 // clientShutdown and any unknown events are always forwarded
                 return true;
