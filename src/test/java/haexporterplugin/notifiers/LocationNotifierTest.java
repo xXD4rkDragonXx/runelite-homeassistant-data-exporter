@@ -162,20 +162,20 @@ public class LocationNotifierTest
 	}
 
 	@Test
-	public void testFourTilesInOneTickIsNotATeleport()
+	public void testFiveTilesInOneTickIsNotATeleport()
 	{
 		walkTo(3222, 3218, 0);
-		walkTo(3226, 3214, 0);
+		walkTo(3227, 3213, 0);
 
 		assertFalse(isTeleport(trail(), 1));
 		assertNoTeleportSent();
 	}
 
 	@Test
-	public void testFiveTilesInOneTickIsATeleport()
+	public void testSixTilesInOneTickIsATeleport()
 	{
 		walkTo(3222, 3218, 0);
-		walkTo(3222, 3223, 0);
+		walkTo(3222, 3224, 0);
 
 		assertTrue(isTeleport(trail(), 1));
 		assertEquals(1, events().size());
@@ -239,6 +239,26 @@ public class LocationNotifierTest
 
 		assertFalse(isTeleport(trail(), 1));
 		assertNoTeleportSent();
+	}
+
+	@Test
+	public void testTwentyTilesOnABoatIsNotATeleport()
+	{
+		locationNotifier.recordLocation(new WorldPoint(3058, 3193, 0), true);
+		locationNotifier.recordLocation(new WorldPoint(3078, 3193, 0), true);
+
+		assertFalse(isTeleport(trail(), 1));
+		assertNoTeleportSent();
+	}
+
+	@Test
+	public void testTwentyOneTilesOnABoatIsATeleport()
+	{
+		locationNotifier.recordLocation(new WorldPoint(3058, 3193, 0), true);
+		locationNotifier.recordLocation(new WorldPoint(3058, 3214, 0), true);
+
+		assertTrue(isTeleport(trail(), 1));
+		assertEquals(1, events().size());
 	}
 
 	@Test

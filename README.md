@@ -205,7 +205,7 @@ Every event is sent exactly once. Events that trigger an immediate message go ou
 
 - The position is checked every game tick, and a point is added whenever the tile, plane or boat state changed. Standing still adds nothing, so the array can be empty.
 - Points are ordered oldest first and each point is sent exactly once. To draw a path, append every message's trail to the points you already have.
-- A move of more than 4 tiles in one tick counts as a jump (more than 16 when a boat is involved). The arrival point gets `teleport: true`, and a `teleport` event with the departure and arrival tile is sent right away. Changing plane on the spot (a ladder or staircase) is not a jump.
+- A move of more than 5 tiles in one tick counts as a jump (more than 20 when a boat is involved). The arrival point gets `teleport: true`, and a `teleport` event with the departure and arrival tile is sent right away. Changing plane on the spot (a ladder or staircase) is not a jump.
 - The first point after logging in or hopping worlds is never a jump.
 - A message holds at most 300 points; beyond that the oldest are dropped.
 - The trail and `teleport` events follow the **Share location** switches. A connection that doesn't receive `location` doesn't receive these either.

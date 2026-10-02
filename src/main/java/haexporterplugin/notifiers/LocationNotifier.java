@@ -13,9 +13,9 @@ import net.runelite.api.coords.WorldPoint;
 @Slf4j
 public class LocationNotifier extends BaseNotifier{
     // Running covers 2 tiles per tick; moving further than this in one tick is a jump (teleport, cave entrance, ...)
-    private static final int TELEPORT_DISTANCE = 4;
+    private static final int TELEPORT_DISTANCE = 5;
     // A boat is tracked by its centre and can outrun a player on foot, so moves involving one get a wider margin
-    private static final int BOAT_TELEPORT_DISTANCE = 16;
+    private static final int BOAT_TELEPORT_DISTANCE = 20;
 
     // Where the player was on the previous tick; null until the first tick after a reset
     private WorldPoint previousPoint;
