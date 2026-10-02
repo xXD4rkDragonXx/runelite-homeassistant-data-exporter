@@ -201,11 +201,13 @@ Every event is sent exactly once. Events that trigger an immediate message go ou
 |-------|-------------|
 | `x`, `y`, `plane`, `isOnBoat` | Same meaning as in `player.location` |
 | `timestamp` | When the player was seen on this tile, in epoch milliseconds (UTC) |
-| `teleport` | `true` when the player jumped to this tile instead of walking there. Don't draw a line from the previous point to this one |
+| `teleport` | `true` when this tile doesn't connect to the previous one, so don't draw a line between them. Set after a teleport, and when walking between rooms of an instance (see below) |
 
 - The position is checked every game tick, and a point is added whenever the tile, plane or boat state changed. Standing still adds nothing, so the array can be empty.
 - Points are ordered oldest first and each point is sent exactly once. To draw a path, append every message's trail to the points you already have.
-- A move of more than 5 tiles in one tick counts as a jump (more than 20 when a boat is involved). The arrival point gets `teleport: true`, and a `teleport` event with the departure and arrival tile is sent right away. Changing plane on the spot (a ladder or staircase) is not a jump.
+- A move of more than 5 tiles in one tick counts as a jump (more than 20 when a boat is involved). The arrival point gets `teleport: true`. Changing plane on the spot (a ladder or staircase) is not a jump.
+- A `teleport` event with the departure and arrival tile is sent one tick after the player arrives. A teleport that takes several hops gives one event for the whole trip: a house teleport puts the player outside the portal for a tick, and the event runs from where they left to the tile inside the house. Each hop is still a flagged point in the trail.
+- Inside an instance (a player-owned house, a raid) the coordinates are those of the map area each room was copied from. Rooms that are next to each other in the instance can be far apart there, so walking from one room to the next flags the trail point but sends no `teleport` event.
 - The first point after logging in or hopping worlds is never a jump.
 - A message holds at most 300 points; beyond that the oldest are dropped.
 - The trail and `teleport` events follow the **Share location** switches. A connection that doesn't receive `location` doesn't receive these either.

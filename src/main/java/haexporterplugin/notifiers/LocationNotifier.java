@@ -22,6 +22,11 @@ public class LocationNotifier extends BaseNotifier{
     private WorldPoint previousScenePoint;
     private boolean previousOnBoat;
 
+    // A teleport that hasn't been sent yet. It can take several hops (a house teleport lands outside the portal
+    // first), so the event waits for the first tick without a jump and then covers the whole trip.
+    private PlayerLocation teleportFrom;
+    private PlayerLocation teleportTo;
+
     public void onTick()
     {
         Actor player = client.getLocalPlayer();
@@ -64,16 +69,21 @@ public class LocationNotifier extends BaseNotifier{
         boolean boat = wasOnBoat || isOnBoat;
         boolean teleport = previous != null && isJump(previousScene, scenePoint, boat);
 
-        if (worldPoint.equals(previous) && isOnBoat == wasOnBoat && !teleport) {
-            return;
+        if (!worldPoint.equals(previous) || isOnBoat != wasOnBoat || teleport) {
+            // Walking between rooms of an instance is no teleport, but the reported tile still jumps, so the trail breaks there
+            boolean disconnected = teleport || (previous != null && isJump(previous, worldPoint, boat));
+            messageBuilder.addLocationTrailPoint(new TrailPoint(worldPoint, isOnBoat, System.currentTimeMillis(), disconnected));
         }
 
-        // Walking between rooms of an instance is no teleport, but the reported tile still jumps, so the trail breaks there
-        boolean disconnected = teleport || (previous != null && isJump(previous, worldPoint, boat));
-        messageBuilder.addLocationTrailPoint(new TrailPoint(worldPoint, isOnBoat, System.currentTimeMillis(), disconnected));
-
         if (teleport) {
-            messageBuilder.addEvent("teleport", new TeleportEvent(new PlayerLocation(previous, wasOnBoat), playerLocation));
+            if (teleportFrom == null) {
+                teleportFrom = new PlayerLocation(previous, wasOnBoat);
+            }
+            teleportTo = playerLocation;
+        } else if (teleportFrom != null) {
+            messageBuilder.addEvent("teleport", new TeleportEvent(teleportFrom, teleportTo));
+            teleportFrom = null;
+            teleportTo = null;
             tickUtils.sendNow();
         }
     }
@@ -84,6 +94,8 @@ public class LocationNotifier extends BaseNotifier{
         previousPoint = null;
         previousScenePoint = null;
         previousOnBoat = false;
+        teleportFrom = null;
+        teleportTo = null;
     }
 
     private static boolean isJump(WorldPoint from, WorldPoint to, boolean boat)

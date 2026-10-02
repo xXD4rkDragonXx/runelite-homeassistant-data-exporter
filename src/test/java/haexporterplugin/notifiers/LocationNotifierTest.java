@@ -28,6 +28,11 @@ public class LocationNotifierTest
 	private MessageBuilder messageBuilder;
 	private LocationNotifier locationNotifier;
 
+	// The position of the most recent tick, see standStill()
+	private WorldPoint lastPoint;
+	private WorldPoint lastScenePoint;
+	private boolean lastOnBoat;
+
 	@Before
 	public void setUp()
 	{
@@ -176,17 +181,28 @@ public class LocationNotifierTest
 	{
 		walkTo(3222, 3218, 0);
 		walkTo(3222, 3224, 0);
+		standStill();
 
 		assertTrue(isTeleport(trail(), 1));
 		assertEquals(1, events().size());
 	}
 
 	@Test
-	public void testTeleportSendsEventWithFromAndToRightAway()
+	public void testTeleportEventWaitsForTheNextTick()
+	{
+		walkTo(3164, 3487, 0);
+		walkTo(1640, 9562, 1);
+
+		assertNoTeleportSent();
+	}
+
+	@Test
+	public void testTeleportSendsEventWithFromAndTo()
 	{
 		// Grand Exchange -> a cave
 		walkTo(3164, 3487, 0);
 		walkTo(1640, 9562, 1);
+		standStill();
 
 		JsonArray events = events();
 		assertEquals(1, events.size());
@@ -256,6 +272,7 @@ public class LocationNotifierTest
 	{
 		sailTo(3058, 3193);
 		sailTo(3058, 3214);
+		standStill();
 
 		assertTrue(isTeleport(trail(), 1));
 		assertEquals(1, events().size());
@@ -266,6 +283,7 @@ public class LocationNotifierTest
 	{
 		sailTo(3058, 3193);
 		walkTo(3164, 3487, 0);
+		standStill();
 
 		assertTrue(isTeleport(trail(), 1));
 		assertEquals(1, events().size());
@@ -295,9 +313,73 @@ public class LocationNotifierTest
 	{
 		walkInInstance(1943, 7053, 6471, 6420);
 		walkInInstance(1864, 5092, 6440, 6452);
+		standStill();
 
 		assertTrue(isTeleport(trail(), 1));
 		assertEquals(1, events().size());
+	}
+
+	@Test
+	public void testHouseTeleportViaThePortalSendsOneEvent()
+	{
+		// A house teleport puts the player outside the portal for one tick before loading the house
+		walkTo(3209, 3428, 0);
+		walkTo(2954, 3224, 0);
+		walkInInstance(1939, 7053, 6500, 6500);
+		standStill();
+
+		JsonArray events = events();
+		assertEquals(1, events.size());
+		JsonObject data = events.get(0).getAsJsonObject().getAsJsonObject("data");
+		assertEquals(3209, data.getAsJsonObject("from").get("x").getAsInt());
+		assertEquals(3428, data.getAsJsonObject("from").get("y").getAsInt());
+		assertEquals(1939, data.getAsJsonObject("to").get("x").getAsInt());
+		assertEquals(7053, data.getAsJsonObject("to").get("y").getAsInt());
+		verify(tickUtils, times(1)).sendNow();
+
+		JsonArray trail = trail();
+		assertEquals(3, trail.size());
+		assertTrue(isTeleport(trail, 1));
+		assertTrue(isTeleport(trail, 2));
+	}
+
+	@Test
+	public void testTeleportEventPointsAtTheArrivalTileWhenWalkingOn()
+	{
+		walkTo(3164, 3487, 0);
+		walkTo(1640, 9562, 0);
+		walkTo(1642, 9562, 0);
+
+		JsonArray events = events();
+		assertEquals(1, events.size());
+		JsonObject to = events.get(0).getAsJsonObject().getAsJsonObject("data").getAsJsonObject("to");
+		assertEquals(1640, to.get("x").getAsInt());
+		assertEquals(3, trail().size());
+	}
+
+	@Test
+	public void testTeleportEventIsSentOnlyOnce()
+	{
+		walkTo(3164, 3487, 0);
+		walkTo(1640, 9562, 0);
+		standStill();
+		standStill();
+		walkTo(1641, 9562, 0);
+
+		assertEquals(1, events().size());
+		verify(tickUtils, times(1)).sendNow();
+	}
+
+	@Test
+	public void testResetDropsATeleportThatWasNotSentYet()
+	{
+		walkTo(3164, 3487, 0);
+		walkTo(1640, 9562, 0);
+		locationNotifier.reset();
+		walkTo(1640, 9562, 0);
+		standStill();
+
+		assertNoTeleportSent();
 	}
 
 	@Test
@@ -349,19 +431,33 @@ public class LocationNotifierTest
 	private void walkTo(int x, int y, int plane)
 	{
 		WorldPoint point = new WorldPoint(x, y, plane);
-		locationNotifier.recordLocation(point, point, false);
+		tick(point, point, false);
 	}
 
 	private void sailTo(int x, int y)
 	{
 		WorldPoint point = new WorldPoint(x, y, 0);
-		locationNotifier.recordLocation(point, point, true);
+		tick(point, point, true);
 	}
 
 	// Inside an instance the reported tile is the template's, while the player really stands on the scene tile
 	private void walkInInstance(int templateX, int templateY, int sceneX, int sceneY)
 	{
-		locationNotifier.recordLocation(new WorldPoint(templateX, templateY, 1), new WorldPoint(sceneX, sceneY, 1), false);
+		tick(new WorldPoint(templateX, templateY, 1), new WorldPoint(sceneX, sceneY, 1), false);
+	}
+
+	// One more game tick on the same tile
+	private void standStill()
+	{
+		tick(lastPoint, lastScenePoint, lastOnBoat);
+	}
+
+	private void tick(WorldPoint point, WorldPoint scenePoint, boolean isOnBoat)
+	{
+		lastPoint = point;
+		lastScenePoint = scenePoint;
+		lastOnBoat = isOnBoat;
+		locationNotifier.recordLocation(point, scenePoint, isOnBoat);
 	}
 
 	private JsonObject player()
