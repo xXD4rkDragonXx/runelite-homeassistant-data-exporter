@@ -125,7 +125,7 @@ public class LocationNotifierTest
 	public void testBoatStateChangeIsRecorded()
 	{
 		walkTo(3050, 3193, 0);
-		locationNotifier.recordLocation(new WorldPoint(3050, 3193, 0), true);
+		sailTo(3050, 3193);
 
 		JsonArray trail = trail();
 		assertEquals(2, trail.size());
@@ -225,7 +225,7 @@ public class LocationNotifierTest
 	{
 		// The boat's position is its centre, which can be several tiles from the dock
 		walkTo(3050, 3193, 0);
-		locationNotifier.recordLocation(new WorldPoint(3058, 3193, 0), true);
+		sailTo(3058, 3193);
 
 		assertFalse(isTeleport(trail(), 1));
 		assertNoTeleportSent();
@@ -234,8 +234,8 @@ public class LocationNotifierTest
 	@Test
 	public void testFastBoatIsNotATeleport()
 	{
-		locationNotifier.recordLocation(new WorldPoint(3058, 3193, 0), true);
-		locationNotifier.recordLocation(new WorldPoint(3064, 3193, 0), true);
+		sailTo(3058, 3193);
+		sailTo(3064, 3193);
 
 		assertFalse(isTeleport(trail(), 1));
 		assertNoTeleportSent();
@@ -244,8 +244,8 @@ public class LocationNotifierTest
 	@Test
 	public void testTwentyTilesOnABoatIsNotATeleport()
 	{
-		locationNotifier.recordLocation(new WorldPoint(3058, 3193, 0), true);
-		locationNotifier.recordLocation(new WorldPoint(3078, 3193, 0), true);
+		sailTo(3058, 3193);
+		sailTo(3078, 3193);
 
 		assertFalse(isTeleport(trail(), 1));
 		assertNoTeleportSent();
@@ -254,8 +254,8 @@ public class LocationNotifierTest
 	@Test
 	public void testTwentyOneTilesOnABoatIsATeleport()
 	{
-		locationNotifier.recordLocation(new WorldPoint(3058, 3193, 0), true);
-		locationNotifier.recordLocation(new WorldPoint(3058, 3214, 0), true);
+		sailTo(3058, 3193);
+		sailTo(3058, 3214);
 
 		assertTrue(isTeleport(trail(), 1));
 		assertEquals(1, events().size());
@@ -264,8 +264,37 @@ public class LocationNotifierTest
 	@Test
 	public void testTeleportingOffABoatIsATeleport()
 	{
-		locationNotifier.recordLocation(new WorldPoint(3058, 3193, 0), true);
+		sailTo(3058, 3193);
 		walkTo(3164, 3487, 0);
+
+		assertTrue(isTeleport(trail(), 1));
+		assertEquals(1, events().size());
+	}
+
+	@Test
+	public void testWalkingBetweenHouseRoomsSendsNoTeleportEvent()
+	{
+		// Two rooms next to each other in the house, built from templates that are far apart on the map
+		walkInInstance(1943, 7053, 6471, 6420);
+		walkInInstance(1864, 5092, 6472, 6420);
+
+		assertNoTeleportSent();
+	}
+
+	@Test
+	public void testWalkingBetweenHouseRoomsStillBreaksTheTrail()
+	{
+		walkInInstance(1943, 7053, 6471, 6420);
+		walkInInstance(1864, 5092, 6472, 6420);
+
+		assertTrue(isTeleport(trail(), 1));
+	}
+
+	@Test
+	public void testTeleportInsideAnInstanceIsATeleport()
+	{
+		walkInInstance(1943, 7053, 6471, 6420);
+		walkInInstance(1864, 5092, 6440, 6452);
 
 		assertTrue(isTeleport(trail(), 1));
 		assertEquals(1, events().size());
@@ -319,7 +348,20 @@ public class LocationNotifierTest
 
 	private void walkTo(int x, int y, int plane)
 	{
-		locationNotifier.recordLocation(new WorldPoint(x, y, plane), false);
+		WorldPoint point = new WorldPoint(x, y, plane);
+		locationNotifier.recordLocation(point, point, false);
+	}
+
+	private void sailTo(int x, int y)
+	{
+		WorldPoint point = new WorldPoint(x, y, 0);
+		locationNotifier.recordLocation(point, point, true);
+	}
+
+	// Inside an instance the reported tile is the template's, while the player really stands on the scene tile
+	private void walkInInstance(int templateX, int templateY, int sceneX, int sceneY)
+	{
+		locationNotifier.recordLocation(new WorldPoint(templateX, templateY, 1), new WorldPoint(sceneX, sceneY, 1), false);
 	}
 
 	private JsonObject player()
