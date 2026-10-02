@@ -9,12 +9,15 @@ import net.runelite.api.GameState;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
 @Singleton
 public class MessageBuilder {
+    // Upper bound on the location trail of one message; the oldest points are dropped beyond it
+    public static final int MAX_LOCATION_TRAIL_POINTS = 300;
 
     @Inject
     private Gson gson;
@@ -94,6 +97,22 @@ public class MessageBuilder {
     public void resetEvents()
     {
         root.resetEvents();
+    }
+
+    public void addLocationTrailPoint(TrailPoint point)
+    {
+        List<TrailPoint> trail = getPlayer().getLocationTrail();
+        if (trail.size() >= MAX_LOCATION_TRAIL_POINTS) {
+            trail.remove(0);
+        }
+        trail.add(point);
+    }
+
+    public void resetLocationTrail()
+    {
+        if (root.getPlayer() != null) {
+            root.getPlayer().getLocationTrail().clear();
+        }
     }
 
     public void setState(GameState state){

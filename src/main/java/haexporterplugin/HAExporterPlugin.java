@@ -94,6 +94,7 @@ public class HAExporterPlugin extends Plugin
 		tickUtils.sendNow();
 		// Stop resending queued payloads; the "Disabled" message above is still attempted once
 		homeAssistUtils.shutDown();
+		locationNotifier.reset();
 		easterEggUtils.shutDown();
 		clientToolbar.removeNavigation(navButton);
 	}
@@ -128,6 +129,7 @@ public class HAExporterPlugin extends Plugin
 		if (gameStateChanged.getGameState() == GameState.HOPPING)
 		{
 			initialized = false;
+			locationNotifier.reset();
 		}
 		if (gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
 		{
@@ -135,6 +137,7 @@ public class HAExporterPlugin extends Plugin
 			tickUtils.sendNow();
 			initialized = false;
 			messageBuilder.resetData();
+			locationNotifier.reset();
 		}
 	}
 

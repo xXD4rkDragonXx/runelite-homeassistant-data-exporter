@@ -3,6 +3,9 @@ package haexporterplugin.data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 public class Player {
@@ -12,6 +15,8 @@ public class Player {
     private String world;
     private String[] worldTypes;
     private PlayerLocation location;
+    // Tiles visited since the previous message, oldest first
+    private List<TrailPoint> locationTrail = new ArrayList<>();
     private HealthData health;
     private PrayerData prayerPoints;
     private SpellbookData spellbook;

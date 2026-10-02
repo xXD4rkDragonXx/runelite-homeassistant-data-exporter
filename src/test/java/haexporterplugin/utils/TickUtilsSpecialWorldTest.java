@@ -6,8 +6,10 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.util.Providers;
 import haexporterplugin.HAExporterConfig;
+import haexporterplugin.data.TrailPoint;
 import net.runelite.api.Client;
 import net.runelite.api.WorldType;
+import net.runelite.api.coords.WorldPoint;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -75,6 +77,19 @@ public class TickUtilsSpecialWorldTest
 		tickUtils.sendNow();
 
 		assertEquals(0, onlySentPayload().getAsJsonArray("events").size());
+	}
+
+	@Test
+	public void testSpecialWorldTrailDoesNotLeakIntoLaterMessages()
+	{
+		onWorld(WorldType.MEMBERS, WorldType.DEADMAN);
+		messageBuilder.addLocationTrailPoint(new TrailPoint(new WorldPoint(3222, 3218, 0), false, 1735689600000L, false));
+		tickUtils.sendNow();
+
+		onWorld(WorldType.MEMBERS);
+		tickUtils.sendNow();
+
+		assertEquals(0, onlySentPayload().getAsJsonObject("player").getAsJsonArray("locationTrail").size());
 	}
 
 	@Test
