@@ -68,7 +68,7 @@ Home Assistant (with the OSRS Data integration) is the primary target, but any e
 RuneLite                                Home Assistant
    │                                          │
    │  POST /api/osrs-data/pair                │
-   │  Header: X-Osrs-Exporter-Version: 1.6.0  │
+   │  Header: X-Osrs-Exporter-Version: 1.6.1  │
    │  Body: { "code": "12345" }        ──────►│
    │                                          │
    │  Response: { "token": "abc123…" } ◄──────│
@@ -77,12 +77,12 @@ RuneLite                                Home Assistant
    │                                          │
    │  POST /api/osrs-data/events              │
    │  Header: X-Osrs-Token: abc123…    ──────►│
-   │  Header: X-Osrs-Exporter-Version: 1.6.0  │
+   │  Header: X-Osrs-Exporter-Version: 1.6.1  │
    │  Body: <JSON payload>                    │
    │                                          │
 ```
 
-Both requests carry an `X-Osrs-Exporter-Version` header with the plugin version (e.g. `1.6.0`).
+Both requests carry an `X-Osrs-Exporter-Version` header with the plugin version (e.g. `1.6.1`).
 
 **Pair response** — `token` is required on success; these fields are optional:
 
