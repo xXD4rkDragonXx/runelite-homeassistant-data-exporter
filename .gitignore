@@ -9,3 +9,7 @@ nb-configuration.xml
 nbproject/
 bin/
 lib/
+
+## Ignore local AI config
+CLAUDE.md
+.claude
