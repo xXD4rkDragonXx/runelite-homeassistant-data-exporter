@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.FontManager;
 import net.runelite.client.ui.PluginPanel;
+import net.runelite.client.util.ImageUtil;
 
 import javax.inject.Inject;
 import javax.swing.*;
@@ -38,6 +39,14 @@ public class HAExporterPanel extends PluginPanel
     private final JLabel authorLabel = new JLabel("xXD4rkDragonXx & RedFireBreak");
 
     public final int CODE_LENGTH = 5;
+
+    // Bundled images rather than Unicode symbols: the RuneScape font has no glyphs for those,
+    // and macOS has no fallback font to borrow them from
+    private static final ImageIcon SETTINGS_ICON = loadIcon("settings");
+    private static final ImageIcon WARNING_ICON = loadIcon("warning");
+    private static final ImageIcon PAUSE_ICON = loadIcon("pause");
+    private static final ImageIcon CHECK_ICON = loadIcon("check");
+    private static final ImageIcon CROSS_ICON = loadIcon("cross");
 
     // Pause indicators on the home view, refreshed every second while it is shown
     private final Map<JLabel, HAConnection> pauseLabels = new HashMap<>();
@@ -153,7 +162,7 @@ public class HAExporterPanel extends PluginPanel
             JLabel nameLabel = new JLabel(connection.getDisplayName());
             headerPanel.add(nameLabel, BorderLayout.WEST);
 
-            JButton settingsButton = new JButton("\u2699"); // Gear icon (⚙)
+            JButton settingsButton = new JButton(SETTINGS_ICON);
             settingsButton.setPreferredSize(new Dimension(30, 20));
             settingsButton.setMargin(new Insets(0, 0, 0, 0));
             settingsButton.setToolTipText("Settings");
@@ -162,35 +171,37 @@ public class HAExporterPanel extends PluginPanel
 
             card.add(headerPanel);
 
-            // Pause indicator, hidden while the connection is delivering normally
             if (connection.isEnabled())
             {
-                JLabel pauseLabel = new JLabel();
+                // Pause indicator, hidden while the connection is delivering normally
+                JLabel pauseLabel = new JLabel(PAUSE_ICON, SwingConstants.LEADING);
                 pauseLabel.setBorder(BorderFactory.createEmptyBorder(3, 0, 0, 0));
                 pauseLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
                 updatePauseLabel(pauseLabel, connection);
                 card.add(pauseLabel);
                 pauseLabels.put(pauseLabel, connection);
-            }
 
-            // Show warning if connection is disabled
-            if (!connection.isEnabled())
+                card.add(Box.createVerticalStrut(3));
+
+                JLabel statusLabel = buildStatusLabel(connection);
+                statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                card.add(statusLabel);
+            }
+            else
             {
+                // A disabled connection sends nothing, so the warning replaces the toggle status
                 card.add(Box.createVerticalStrut(3));
                 String reason = connection.getDisabledReason() != null
                         ? connection.getDisabledReason()
                         : "Disabled";
-                JLabel disabledLabel = new JLabel("<html><span style='color:orange;'>\u26A0 " + reason + "</span></html>");
+                JLabel disabledLabel = new JLabel(
+                        "<html><span style='color:orange;'>" + reason + "</span></html>",
+                        WARNING_ICON,
+                        SwingConstants.LEADING
+                );
                 disabledLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
                 card.add(disabledLabel);
             }
-
-            card.add(Box.createVerticalStrut(3));
-
-            JLabel statusLabel = new JLabel(buildStatusIndicators(connection));
-            statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            card.add(statusLabel);
-
 
             wrapper.add(card);
 
@@ -243,7 +254,7 @@ public class HAExporterPanel extends PluginPanel
         }
 
         int queued = homeAssistUtils.getQueuedCount(connection);
-        String text = "\u23F8 Paused \u2014 retrying in " + formatRemaining(remaining)
+        String text = "Paused \u2014 retrying in " + formatRemaining(remaining)
                 + (queued > 0 ? " (" + queued + " queued)" : "");
         label.setText("<html><span style='color:orange;'>" + text + "</span></html>");
         label.setVisible(true);
@@ -257,7 +268,7 @@ public class HAExporterPanel extends PluginPanel
                 : String.format("%dm %02ds", seconds / 60, seconds % 60);
     }
 
-    private String buildStatusIndicators(HAConnection connection)
+    private JLabel buildStatusLabel(HAConnection connection)
     {
         List<String> disabled = new ArrayList<>();
 
@@ -274,10 +285,10 @@ public class HAExporterPanel extends PluginPanel
 
         if (disabled.isEmpty())
         {
-            return "<html><span style='color:green;'>\u2713</span> All enabled</html>";
+            return new JLabel("All enabled", CHECK_ICON, SwingConstants.LEADING);
         }
 
-        return "<html><span style='color:red;'>\u2717</span> Disabled: " + String.join(", ", disabled) + "</html>";
+        return new JLabel("<html>Disabled: " + String.join(", ", disabled) + "</html>", CROSS_ICON, SwingConstants.LEADING);
     }
 
     private void removeConnection(HAConnection connection)
@@ -392,9 +403,11 @@ public class HAExporterPanel extends PluginPanel
 
         if (!connection.isEnabled() && connection.getDisabledReason() != null)
         {
-            int warningWidth = Math.max(minStatusWidth - 16, 180);
-            JLabel warningLabel = new JLabel(
-                    "<html><div style='width:" + warningWidth + "px;color:orange;'>\u26A0 "
+            JLabel warningLabel = new JLabel(WARNING_ICON, SwingConstants.LEADING);
+            int warningWidth = Math.max(minStatusWidth - 16, 180)
+                    - WARNING_ICON.getIconWidth() - warningLabel.getIconTextGap();
+            warningLabel.setText(
+                    "<html><div style='width:" + warningWidth + "px;color:orange;'>"
                             + connection.getDisabledReason() +
                             "</div></html>"
             );
@@ -824,6 +837,11 @@ public class HAExporterPanel extends PluginPanel
 
         checkBox.setAlignmentX(Component.LEFT_ALIGNMENT);
         return checkBox;
+    }
+
+    private static ImageIcon loadIcon(String name)
+    {
+        return new ImageIcon(ImageUtil.loadImageResource(HAExporterPanel.class, "/icons/" + name + ".png"));
     }
 
     private static String normalizeBaseUrl(String url)

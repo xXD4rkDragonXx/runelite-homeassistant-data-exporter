@@ -37,7 +37,7 @@ import net.runelite.client.util.ImageUtil;
 public class HAExporterPlugin extends Plugin
 {
 	// Sent to endpoints as X-Osrs-Exporter-Version. Must match `version` in build.gradle (checked by PluginVersionTest).
-	public static final String PLUGIN_VERSION = "1.6.0";
+	public static final String PLUGIN_VERSION = "1.6.1";
 
 	@Inject
 	private Client client;
