@@ -176,6 +176,80 @@ public class ConnectionBackoffTest
 	}
 
 	@Test
+	public void testPayloadIsMergedIntoNewestQueuedPayload()
+	{
+		backoff.enqueue(KEY, "a");
+		backoff.enqueue(KEY, "b");
+		backoff.enqueue(KEY, "c", (queued, payload) -> queued + "+" + payload);
+
+		assertEquals(2, backoff.getQueuedCount(KEY));
+		assertEquals("a", backoff.beginDrain(KEY));
+		backoff.completeDrain(KEY, true);
+		assertEquals("b+c", backoff.beginDrain(KEY));
+	}
+
+	@Test
+	public void testPayloadIsQueuedSeparatelyWhenMergeDeclines()
+	{
+		backoff.enqueue(KEY, "a");
+		backoff.enqueue(KEY, "b", (queued, payload) -> null);
+
+		assertEquals(2, backoff.getQueuedCount(KEY));
+		assertEquals("a", backoff.beginDrain(KEY));
+	}
+
+	@Test
+	public void testFirstPayloadIsQueuedWithoutMerging()
+	{
+		backoff.enqueue(KEY, "a", (queued, payload) -> queued + "+" + payload);
+
+		assertEquals(1, backoff.getQueuedCount(KEY));
+		assertEquals("a", backoff.beginDrain(KEY));
+	}
+
+	@Test
+	public void testPayloadIsNotMergedIntoPayloadBeingResent()
+	{
+		backoff.enqueue(KEY, "a");
+		assertEquals("a", backoff.beginDrain(KEY));
+
+		backoff.enqueue(KEY, "b", (queued, payload) -> queued + "+" + payload);
+		backoff.completeDrain(KEY, true);
+
+		assertEquals(1, backoff.getQueuedCount(KEY));
+		assertEquals("b", backoff.beginDrain(KEY));
+	}
+
+	@Test
+	public void testPayloadIsOnlyMergedWithinAMinute()
+	{
+		backoff.enqueue(KEY, "a");
+
+		now += MINUTE - 1;
+		backoff.enqueue(KEY, "b", (queued, payload) -> queued + "+" + payload);
+		assertEquals(1, backoff.getQueuedCount(KEY));
+
+		now += 1;
+		backoff.enqueue(KEY, "c", (queued, payload) -> queued + "+" + payload);
+		assertEquals(2, backoff.getQueuedCount(KEY));
+		assertEquals("a+b", backoff.beginDrain(KEY));
+	}
+
+	@Test
+	public void testMergedPayloadKeepsItsQueueTime()
+	{
+		backoff.enqueue(KEY, "a");
+		now += 30 * SECOND;
+		backoff.enqueue(KEY, "b", (queued, payload) -> queued + "+" + payload);
+
+		now += 9 * MINUTE + 30 * SECOND;
+		assertEquals(1, backoff.getQueuedCount(KEY));
+
+		now += 1;
+		assertEquals(0, backoff.getQueuedCount(KEY));
+	}
+
+	@Test
 	public void testDrainIsFifo()
 	{
 		backoff.enqueue(KEY, "a");

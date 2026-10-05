@@ -8,17 +8,20 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BinaryOperator;
 import java.util.function.LongSupplier;
 
 /**
  * Per-connection delivery state: when sending is paused, how long the next backoff lasts, and which
- * payloads with events are waiting to be resent. Kept in memory only and safe to use from any thread.
+ * payloads are waiting to be resent. Kept in memory only and safe to use from any thread.
  */
 public class ConnectionBackoff {
     static final long INITIAL_BACKOFF_MS = TimeUnit.SECONDS.toMillis(30);
     static final long MAX_BACKOFF_MS = TimeUnit.MINUTES.toMillis(10);
     static final int MAX_QUEUED_PAYLOADS = 50;
     static final long MAX_QUEUE_AGE_MS = TimeUnit.MINUTES.toMillis(10);
+    // How long a queued payload can still take in a later one, see enqueue with a merge function
+    static final long MERGE_WINDOW_MS = TimeUnit.MINUTES.toMillis(1);
     // Lower bound for Retry-After pauses, so "Retry-After: 0" can't cause a tight retry loop
     static final long MIN_RETRY_AFTER_MS = TimeUnit.SECONDS.toMillis(1);
 
@@ -176,8 +179,29 @@ public class ConnectionBackoff {
      * and any older than {@link #MAX_QUEUE_AGE_MS}.
      */
     public synchronized void enqueue(String key, String payload) {
+        enqueue(key, payload, (queued, added) -> null);
+    }
+
+    /**
+     * Like {@link #enqueue(String, String)}, but first offers {@code merge} the newest queued payload and
+     * this one, when that payload was queued less than {@link #MERGE_WINDOW_MS} ago and is not being resent.
+     * A non-null result replaces the newest queued payload and keeps its place and age in the queue;
+     * null queues this payload on its own.
+     */
+    public synchronized void enqueue(String key, String payload, BinaryOperator<String> merge) {
         State state = states.computeIfAbsent(key, k -> new State());
         prune(state);
+
+        QueuedPayload newest = state.queue.peekLast();
+        if (newest != null && newest != state.inFlight && newest.enqueuedAt > clock.getAsLong() - MERGE_WINDOW_MS) {
+            String merged = merge.apply(newest.payload, payload);
+            if (merged != null) {
+                state.queue.removeLast();
+                state.queue.addLast(new QueuedPayload(merged, newest.enqueuedAt));
+                return;
+            }
+        }
+
         state.queue.addLast(new QueuedPayload(payload, clock.getAsLong()));
         while (state.queue.size() > MAX_QUEUED_PAYLOADS) {
             state.queue.removeFirst();

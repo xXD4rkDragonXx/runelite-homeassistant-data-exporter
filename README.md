@@ -202,7 +202,7 @@ Every event is sent exactly once. Events that trigger an immediate message go ou
 | `timestamp` | When the player was seen on this tile, in epoch milliseconds (UTC) |
 
 - The position is checked every game tick, and a point is added whenever the tile, plane or boat state changed. Standing still adds nothing, so the array can be empty.
-- Points are ordered oldest first and each point is sent exactly once. To draw a path, append every message's trail to the points you already have.
+- Points are ordered oldest first and each point is put in one message. To draw a path, add every message's trail to the points you already have. A message that could not be delivered is sent again later (see [Delivery & Backoff](#-delivery--backoff)), so the same point can arrive twice and an older message can arrive after a newer one: de-duplicate points on `timestamp` and order them by it.
 - After logging in or hopping worlds, the trail starts with the tile the player is on.
 - Teleports are not marked, and a teleport doesn't trigger a message of its own. A player on foot moves at most 2 tiles per game tick (0.6 s), so two consecutive points that are much further apart were not walked. Don't draw a line between them. Allow a few tiles of margin, because the position can catch up several tiles at once after lag, and boats (`isOnBoat`) are faster. Such a gap can be:
   - a teleport, or a cave or dungeon entrance;
@@ -210,7 +210,7 @@ Every event is sent exactly once. Events that trigger an immediate message go ou
   - a part of the trail that was never delivered (see the last point below).
 - A message holds at most 300 points; beyond that the oldest are dropped.
 - The trail follows the **Share location** switches. A connection that doesn't receive `location` doesn't receive the trail either.
-- While a connection is paused after a failed delivery, messages without events are dropped, so that part of the trail is lost for that connection.
+- A message with trail points that fails to deliver, or is built while the connection is paused, is kept and sent once the connection works again. That part of the trail is only lost for a connection when the outage outlasts the retry queue (10 minutes or 50 payloads), when the endpoint rejects the message with a `4xx` that isn't retried, or when the client is closed first.
 
 ### Account identity & world types
 
@@ -317,13 +317,14 @@ Every connection is handled on its own. When an endpoint (Home Assistant or any 
 
 While a connection is paused:
 
-- Periodic snapshots **without events** are dropped — the next snapshot carries the full state anyway.
-- Payloads **with events** (loot, level-ups, deaths, …) are queued: at most 50 payloads per connection and nothing older than 10 minutes, dropping the oldest first.
+- Periodic snapshots **without events or location trail points** are dropped — the next snapshot carries the full state anyway.
+- Payloads **with events** (loot, level-ups, deaths, …) **or location trail points** are queued, starting with the one whose delivery failed: at most 50 payloads per connection and nothing older than 10 minutes, dropping the oldest first. No later message repeats an event or a trail point, so these have to arrive themselves.
+- Snapshots without events that are queued within a minute of each other are combined into one payload: the newest snapshot, carrying the trail points of all of them (at most 300). Frequent snapshots, such as instant health updates, therefore don't fill the queue.
 - When the pause ends, the queued payloads are resent one at a time, in their original order.
 
 Pauses and queued payloads live in memory only: they are never saved to your RuneLite config, and restarting the client or turning the plugin off clears them.
 
-> **Duplicates:** after a network error or timeout the plugin can't tell whether the endpoint already received a payload, so it sends it again. Receivers may therefore occasionally get the same event twice and should de-duplicate on each event's `eventId`.
+> **Duplicates:** after a network error or timeout the plugin can't tell whether the endpoint already received a payload, so it sends it again. Receivers may therefore occasionally get the same event or location trail point twice and should de-duplicate events on `eventId` and trail points on `timestamp`.
 
 The side panel shows a paused connection under its name, e.g. `⏸ Paused — retrying in 2m 05s (3 queued)`, counting down live until sending resumes.
 
