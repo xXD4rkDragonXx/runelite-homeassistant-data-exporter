@@ -1,6 +1,7 @@
 package haexporterplugin.utils;
 
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -10,6 +11,7 @@ import okhttp3.Dispatcher;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Protocol;
+import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.Buffer;
@@ -19,6 +21,7 @@ import org.junit.Test;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -77,13 +80,7 @@ public class HomeAssistUtilsDeliveryTest
 				Buffer body = new Buffer();
 				chain.request().body().writeTo(body);
 				sentBodies.add(body.readUtf8());
-				return new Response.Builder()
-					.request(chain.request())
-					.protocol(Protocol.HTTP_1_1)
-					.code(responseCode)
-					.message("Test")
-					.body(ResponseBody.create(MediaType.get("application/json"), "{}"))
-					.build();
+				return response(chain.request(), responseCode);
 			})
 			.build();
 
@@ -102,6 +99,41 @@ public class HomeAssistUtilsDeliveryTest
 		setField("okHttpClient", okHttpClient);
 		setField("executor", executor);
 		setField("backoff", new ConnectionBackoff(() -> now));
+	}
+
+	/* ============================
+	   CALLING THREAD
+	   ============================ */
+
+	// sendMessage runs on the game thread, which must never wait for an endpoint
+	@Test(timeout = 10_000)
+	public void testSendMessageDoesNotWaitForTheEndpoint() throws Exception
+	{
+		CountDownLatch requestStarted = new CountDownLatch(1);
+		CountDownLatch answer = new CountDownLatch(1);
+		OkHttpClient unansweredClient = new OkHttpClient.Builder()
+			.addInterceptor(chain ->
+			{
+				requestStarted.countDown();
+				Uninterruptibles.awaitUninterruptibly(answer);
+				return response(chain.request(), 200);
+			})
+			.build();
+		setField("okHttpClient", unansweredClient);
+
+		try
+		{
+			homeAssistUtils.sendMessage(snapshot(T0, T0 - TICK));
+			assertTrue(requestStarted.await(5, TimeUnit.SECONDS));
+
+			// The first request is still unanswered
+			homeAssistUtils.sendMessage(snapshot(T0 + 10 * SECOND, T0 + 9 * SECOND));
+		}
+		finally
+		{
+			answer.countDown();
+			unansweredClient.dispatcher().executorService().shutdown();
+		}
 	}
 
 	/* ============================
@@ -272,6 +304,17 @@ public class HomeAssistUtilsDeliveryTest
 	/* ============================
 	   HELPERS
 	   ============================ */
+
+	private static Response response(Request request, int code)
+	{
+		return new Response.Builder()
+			.request(request)
+			.protocol(Protocol.HTTP_1_1)
+			.code(code)
+			.message("Test")
+			.body(ResponseBody.create(MediaType.get("application/json"), "{}"))
+			.build();
+	}
 
 	// Moves the clock to the end of the current pause and runs the retries that were scheduled for it
 	private void endPause()

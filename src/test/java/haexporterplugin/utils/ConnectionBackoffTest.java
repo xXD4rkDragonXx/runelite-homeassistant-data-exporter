@@ -176,11 +176,14 @@ public class ConnectionBackoffTest
 	}
 
 	@Test
-	public void testPayloadIsMergedIntoNewestQueuedPayload()
+	public void testNewestQueuedPayloadCanBeReplacedByAMergedOne()
 	{
 		backoff.enqueue(KEY, "a");
 		backoff.enqueue(KEY, "b");
-		backoff.enqueue(KEY, "c", (queued, payload) -> queued + "+" + payload);
+
+		String candidate = backoff.getMergeCandidate(KEY);
+		assertEquals("b", candidate);
+		assertTrue(backoff.replaceNewest(KEY, candidate, "b+c"));
 
 		assertEquals(2, backoff.getQueuedCount(KEY));
 		assertEquals("a", backoff.beginDrain(KEY));
@@ -189,50 +192,58 @@ public class ConnectionBackoffTest
 	}
 
 	@Test
-	public void testPayloadIsQueuedSeparatelyWhenMergeDeclines()
+	public void testNoMergeCandidateWhenNothingIsQueued()
+	{
+		assertNull(backoff.getMergeCandidate(KEY));
+		assertFalse(backoff.replaceNewest(KEY, "a", "a+b"));
+		assertEquals(0, backoff.getQueuedCount(KEY));
+	}
+
+	@Test
+	public void testPayloadBeingResentIsNoMergeCandidate()
 	{
 		backoff.enqueue(KEY, "a");
-		backoff.enqueue(KEY, "b", (queued, payload) -> null);
+		assertEquals("a", backoff.beginDrain(KEY));
+
+		assertNull(backoff.getMergeCandidate(KEY));
+	}
+
+	@Test
+	public void testReplaceFailsWhenTheCandidateStartedBeingResent()
+	{
+		backoff.enqueue(KEY, "a");
+		String candidate = backoff.getMergeCandidate(KEY);
+		assertEquals("a", backoff.beginDrain(KEY));
+
+		assertFalse(backoff.replaceNewest(KEY, candidate, "a+b"));
+
+		backoff.completeDrain(KEY, true);
+		assertEquals(0, backoff.getQueuedCount(KEY));
+	}
+
+	@Test
+	public void testReplaceFailsWhenAnotherPayloadWasQueuedMeanwhile()
+	{
+		backoff.enqueue(KEY, "a");
+		String candidate = backoff.getMergeCandidate(KEY);
+		backoff.enqueue(KEY, "b");
+
+		assertFalse(backoff.replaceNewest(KEY, candidate, "a+c"));
 
 		assertEquals(2, backoff.getQueuedCount(KEY));
 		assertEquals("a", backoff.beginDrain(KEY));
 	}
 
 	@Test
-	public void testFirstPayloadIsQueuedWithoutMerging()
-	{
-		backoff.enqueue(KEY, "a", (queued, payload) -> queued + "+" + payload);
-
-		assertEquals(1, backoff.getQueuedCount(KEY));
-		assertEquals("a", backoff.beginDrain(KEY));
-	}
-
-	@Test
-	public void testPayloadIsNotMergedIntoPayloadBeingResent()
-	{
-		backoff.enqueue(KEY, "a");
-		assertEquals("a", backoff.beginDrain(KEY));
-
-		backoff.enqueue(KEY, "b", (queued, payload) -> queued + "+" + payload);
-		backoff.completeDrain(KEY, true);
-
-		assertEquals(1, backoff.getQueuedCount(KEY));
-		assertEquals("b", backoff.beginDrain(KEY));
-	}
-
-	@Test
-	public void testPayloadIsOnlyMergedWithinAMinute()
+	public void testPayloadIsOnlyAMergeCandidateForAMinute()
 	{
 		backoff.enqueue(KEY, "a");
 
 		now += MINUTE - 1;
-		backoff.enqueue(KEY, "b", (queued, payload) -> queued + "+" + payload);
-		assertEquals(1, backoff.getQueuedCount(KEY));
+		assertEquals("a", backoff.getMergeCandidate(KEY));
 
 		now += 1;
-		backoff.enqueue(KEY, "c", (queued, payload) -> queued + "+" + payload);
-		assertEquals(2, backoff.getQueuedCount(KEY));
-		assertEquals("a+b", backoff.beginDrain(KEY));
+		assertNull(backoff.getMergeCandidate(KEY));
 	}
 
 	@Test
@@ -240,7 +251,7 @@ public class ConnectionBackoffTest
 	{
 		backoff.enqueue(KEY, "a");
 		now += 30 * SECOND;
-		backoff.enqueue(KEY, "b", (queued, payload) -> queued + "+" + payload);
+		assertTrue(backoff.replaceNewest(KEY, backoff.getMergeCandidate(KEY), "a+b"));
 
 		now += 9 * MINUTE + 30 * SECOND;
 		assertEquals(1, backoff.getQueuedCount(KEY));

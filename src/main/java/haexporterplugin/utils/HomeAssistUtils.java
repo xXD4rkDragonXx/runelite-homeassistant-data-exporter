@@ -95,7 +95,7 @@ public class HomeAssistUtils {
                 // Events and trail points wait for the pause to end, because no later message repeats them.
                 // Other snapshots are dropped: the next one carries the full state anyway
                 if (mustBeDelivered(filteredPayload)) {
-                    backoff.enqueue(key, filteredPayload, this::combineTrailSnapshots);
+                    enqueue(key, filteredPayload);
                     log.debug("{} is paused, queued payload for retry", connection.getDisplayName());
                 } else {
                     log.debug("{} is paused, dropped snapshot", connection.getDisplayName());
@@ -105,13 +105,23 @@ public class HomeAssistUtils {
 
             if (backoff.getQueuedCount(key) > 0 && mustBeDelivered(filteredPayload)) {
                 // Line up behind the payloads still waiting to be resent, so events and trail points arrive in order
-                backoff.enqueue(key, filteredPayload, this::combineTrailSnapshots);
+                enqueue(key, filteredPayload);
             } else {
                 sendToConnection(connection, key, filteredPayload, false);
             }
 
             // Resends queued payloads once a pause has ended; a no-op when nothing is queued or a resend is in flight
             drainQueued(key);
+        }
+    }
+
+    // Queues a payload for resending, combined with the newest queued one when possible. The combining is done
+    // outside the backoff's lock, so no thread (the game thread in particular) waits on it
+    private void enqueue(String key, String payload) {
+        String newest = backoff.getMergeCandidate(key);
+        String combined = newest != null ? combineTrailSnapshots(newest, payload) : null;
+        if (combined == null || !backoff.replaceNewest(key, newest, combined)) {
+            backoff.enqueue(key, payload);
         }
     }
 
@@ -395,7 +405,7 @@ public class HomeAssistUtils {
         if (drained) {
             backoff.completeDrain(key, false);
         } else if (mustBeDelivered(payload)) {
-            backoff.enqueue(key, payload, this::combineTrailSnapshots);
+            enqueue(key, payload);
         }
 
         long pauseSeconds = (Math.max(0, pausedUntil - System.currentTimeMillis()) + 999) / 1000;
