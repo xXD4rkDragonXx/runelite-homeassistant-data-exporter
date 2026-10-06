@@ -311,9 +311,14 @@ Every connection is handled on its own. When an endpoint (Home Assistant or any 
 | `429` / `503` with `Retry-After` | Paused until the time the server asks for (seconds or an HTTP date), capped at 10 minutes |
 | `429` / `503` without a valid `Retry-After` | Exponential backoff |
 | Other `5xx`, network errors & timeouts | Exponential backoff |
-| Other `4xx` | Payload is dropped and not retried — no pause |
+| `404 Not Found` | Exponential backoff — the endpoint isn't there (yet), see below |
+| Other `4xx` (`400`, `413`, `422`, …) | Payload is dropped and not retried — no pause |
 
 **Exponential backoff:** the first failure pauses the connection for 30 s, and every failed retry doubles the pause (30 s → 1 min → 2 min → 4 min → 8 min) up to a maximum of 10 minutes. A successful delivery resets it.
+
+**Why `404` is retried:** a `400`, `413` or `422` means the endpoint refused that exact payload, and sending it again would only be refused again. A `404` means the endpoint isn't there, and that can be temporary. Home Assistant answers `404` on `/api/osrs-data/events` from the moment its web server is up until the OSRS Data integration has registered its endpoints, and a retry after a restart can land in that gap. The payload is therefore kept and the connection pauses, as after a `5xx`. If it were dropped, the next queued payload would be sent at once and get the same `404`, and so on until the queue was empty. An endpoint that wants to refuse a payload has to answer with another `4xx`, such as `400` or `422`.
+
+**A connection with a wrong address** also gets `404`, on every request, and the plugin can't tell the two apart. Such a connection is not disabled: it stays paused and is tried again with the same backoff, which ends at one attempt every 10 minutes. The side panel shows it as paused, and RuneLite's log (`client.log`) names the cause (`HTTP 404`) in a warning at the first failure. Its queue keeps the limits described below, so payloads older than 10 minutes are dropped. The fix is to remove the connection and pair again with the right address.
 
 While a connection is paused:
 

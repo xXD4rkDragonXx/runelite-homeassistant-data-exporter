@@ -29,7 +29,7 @@ public class ConnectionBackoff {
         UNAUTHORIZED, // 401: token revoked, disable the connection
         GONE,         // 410: endpoint no longer accepts data, disable the connection
         RETRY_AFTER,  // 429 / 503: pause as long as Retry-After asks, back off when it is missing
-        BACKOFF,      // other 5xx: exponential backoff
+        BACKOFF,      // 404 and other 5xx: exponential backoff
         REJECTED      // anything else: drop the payload, no backoff
     }
 
@@ -76,7 +76,10 @@ public class ConnectionBackoff {
         if (statusCode == 429 || statusCode == 503) {
             return Outcome.RETRY_AFTER;
         }
-        if (statusCode >= 500 && statusCode < 600) {
+        // A 404 says the endpoint isn't there (yet), not that it refused the payload: Home Assistant answers it
+        // from the moment its web server is up until the integration has registered its endpoints. A payload
+        // dropped there would be followed at once by the next queued one, which gets the same answer
+        if (statusCode == 404 || (statusCode >= 500 && statusCode < 600)) {
             return Outcome.BACKOFF;
         }
         return Outcome.REJECTED;

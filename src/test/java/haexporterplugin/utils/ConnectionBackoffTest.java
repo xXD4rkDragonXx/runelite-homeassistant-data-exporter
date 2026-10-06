@@ -390,8 +390,18 @@ public class ConnectionBackoffTest
 		assertEquals(ConnectionBackoff.Outcome.BACKOFF, ConnectionBackoff.classify(502));
 		assertEquals(ConnectionBackoff.Outcome.BACKOFF, ConnectionBackoff.classify(504));
 		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(400));
-		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(404));
+		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(403));
+		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(405));
 		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(413));
+		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(422));
 		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(302));
+	}
+
+	// A 404 says the endpoint isn't there (yet), not that it refused the payload: Home Assistant answers it
+	// until the integration has registered its endpoints
+	@Test
+	public void testNotFoundIsClassifiedAsBackoff()
+	{
+		assertEquals(ConnectionBackoff.Outcome.BACKOFF, ConnectionBackoff.classify(404));
 	}
 }
