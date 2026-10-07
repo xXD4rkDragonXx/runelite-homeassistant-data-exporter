@@ -68,7 +68,7 @@ Home Assistant (with the OSRS Data integration) is the primary target, but any e
 RuneLite                                Home Assistant
    │                                          │
    │  POST /api/osrs-data/pair                │
-   │  Header: X-Osrs-Exporter-Version: 1.6.1  │
+   │  Header: X-Osrs-Exporter-Version: 1.6.2  │
    │  Body: { "code": "12345" }        ──────►│
    │                                          │
    │  Response: { "token": "abc123…" } ◄──────│
@@ -77,12 +77,12 @@ RuneLite                                Home Assistant
    │                                          │
    │  POST /api/osrs-data/events              │
    │  Header: X-Osrs-Token: abc123…    ──────►│
-   │  Header: X-Osrs-Exporter-Version: 1.6.1  │
+   │  Header: X-Osrs-Exporter-Version: 1.6.2  │
    │  Body: <JSON payload>                    │
    │                                          │
 ```
 
-Both requests carry an `X-Osrs-Exporter-Version` header with the plugin version (e.g. `1.6.1`).
+Both requests carry an `X-Osrs-Exporter-Version` header with the plugin version (e.g. `1.6.2`).
 
 **Pair response** — `token` is required on success; these fields are optional:
 
@@ -202,7 +202,7 @@ Every event is sent exactly once. Events that trigger an immediate message go ou
 | `timestamp` | When the player was seen on this tile, in epoch milliseconds (UTC) |
 
 - The position is checked every game tick, and a point is added whenever the tile, plane or boat state changed. Standing still adds nothing, so the array can be empty.
-- Points are ordered oldest first and each point is sent exactly once. To draw a path, append every message's trail to the points you already have.
+- Points are ordered oldest first and each point is put in one message. To draw a path, add every message's trail to the points you already have. A message that could not be delivered is sent again later (see [Delivery & Backoff](#-delivery--backoff)), so the same point can arrive twice and an older message can arrive after a newer one: de-duplicate points on `timestamp` and order them by it.
 - After logging in or hopping worlds, the trail starts with the tile the player is on.
 - Teleports are not marked, and a teleport doesn't trigger a message of its own. A player on foot moves at most 2 tiles per game tick (0.6 s), so two consecutive points that are much further apart were not walked. Don't draw a line between them. Allow a few tiles of margin, because the position can catch up several tiles at once after lag, and boats (`isOnBoat`) are faster. Such a gap can be:
   - a teleport, or a cave or dungeon entrance;
@@ -210,7 +210,7 @@ Every event is sent exactly once. Events that trigger an immediate message go ou
   - a part of the trail that was never delivered (see the last point below).
 - A message holds at most 300 points; beyond that the oldest are dropped.
 - The trail follows the **Share location** switches. A connection that doesn't receive `location` doesn't receive the trail either.
-- While a connection is paused after a failed delivery, messages without events are dropped, so that part of the trail is lost for that connection.
+- A message with trail points that fails to deliver, or is built while the connection is paused, is kept and sent once the connection works again. That part of the trail is only lost for a connection when the outage outlasts the retry queue (10 minutes or 50 payloads), when the endpoint rejects the message with a `4xx` that isn't retried, or when the client is closed first.
 
 ### Account identity & world types
 
@@ -311,19 +311,25 @@ Every connection is handled on its own. When an endpoint (Home Assistant or any 
 | `429` / `503` with `Retry-After` | Paused until the time the server asks for (seconds or an HTTP date), capped at 10 minutes |
 | `429` / `503` without a valid `Retry-After` | Exponential backoff |
 | Other `5xx`, network errors & timeouts | Exponential backoff |
-| Other `4xx` | Payload is dropped and not retried — no pause |
+| `404 Not Found` | Exponential backoff — the endpoint isn't there (yet), see below |
+| Other `4xx` (`400`, `413`, `422`, …) | Payload is dropped and not retried — no pause |
 
 **Exponential backoff:** the first failure pauses the connection for 30 s, and every failed retry doubles the pause (30 s → 1 min → 2 min → 4 min → 8 min) up to a maximum of 10 minutes. A successful delivery resets it.
 
+**Why `404` is retried:** a `400`, `413` or `422` means the endpoint refused that exact payload, and sending it again would only be refused again. A `404` means the endpoint isn't there, and that can be temporary. Home Assistant answers `404` on `/api/osrs-data/events` from the moment its web server is up until the OSRS Data integration has registered its endpoints, and a retry after a restart can land in that gap. The payload is therefore kept and the connection pauses, as after a `5xx`. If it were dropped, the next queued payload would be sent at once and get the same `404`, and so on until the queue was empty. An endpoint that wants to refuse a payload has to answer with another `4xx`, such as `400` or `422`.
+
+**A connection with a wrong address** also gets `404`, on every request, and the plugin can't tell the two apart. Such a connection is not disabled: it stays paused and is tried again with the same backoff, which ends at one attempt every 10 minutes. The side panel shows it as paused, and RuneLite's log (`client.log`) names the cause (`HTTP 404`) in a warning at the first failure. Its queue keeps the limits described below, so payloads older than 10 minutes are dropped. The fix is to remove the connection and pair again with the right address.
+
 While a connection is paused:
 
-- Periodic snapshots **without events** are dropped — the next snapshot carries the full state anyway.
-- Payloads **with events** (loot, level-ups, deaths, …) are queued: at most 50 payloads per connection and nothing older than 10 minutes, dropping the oldest first.
+- Periodic snapshots **without events or location trail points** are dropped — the next snapshot carries the full state anyway.
+- Payloads **with events** (loot, level-ups, deaths, …) **or location trail points** are queued, starting with the one whose delivery failed: at most 50 payloads per connection and nothing older than 10 minutes, dropping the oldest first. No later message repeats an event or a trail point, so these have to arrive themselves.
+- Snapshots without events that are queued within a minute of each other are combined into one payload: the newest snapshot, carrying the trail points of all of them (at most 300). Frequent snapshots, such as instant health updates, therefore don't fill the queue.
 - When the pause ends, the queued payloads are resent one at a time, in their original order.
 
 Pauses and queued payloads live in memory only: they are never saved to your RuneLite config, and restarting the client or turning the plugin off clears them.
 
-> **Duplicates:** after a network error or timeout the plugin can't tell whether the endpoint already received a payload, so it sends it again. Receivers may therefore occasionally get the same event twice and should de-duplicate on each event's `eventId`.
+> **Duplicates:** after a network error or timeout the plugin can't tell whether the endpoint already received a payload, so it sends it again. Receivers may therefore occasionally get the same event or location trail point twice and should de-duplicate events on `eventId` and trail points on `timestamp`.
 
 The side panel shows a paused connection under its name, e.g. `⏸ Paused — retrying in 2m 05s (3 queued)`, counting down live until sending resumes.
 

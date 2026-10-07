@@ -46,7 +46,8 @@ public class TickUtils {
         send();
     }
 
-    // Events and the location trail are cleared as soon as they're serialized, so each is sent exactly once
+    // Events and the location trail are cleared as soon as they're serialized, so each is part of one message only.
+    // HomeAssistUtils keeps that message for every connection it could not be delivered to
     private void send(){
         if (dropOnSpecialWorld()) return;
         String json = messageBuilder.build();

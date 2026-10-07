@@ -92,9 +92,10 @@ public class HomeAssistUtils {
             String filteredPayload = applyConnectionFilters(jsonPayload, connection);
 
             if (backoff.isPaused(key)) {
-                // Events wait for the pause to end; plain snapshots are dropped, the next one carries the full state anyway
-                if (payloadHasEvents(filteredPayload)) {
-                    backoff.enqueue(key, filteredPayload);
+                // Events and trail points wait for the pause to end, because no later message repeats them.
+                // Other snapshots are dropped: the next one carries the full state anyway
+                if (mustBeDelivered(filteredPayload)) {
+                    enqueue(key, filteredPayload);
                     log.debug("{} is paused, queued payload for retry", connection.getDisplayName());
                 } else {
                     log.debug("{} is paused, dropped snapshot", connection.getDisplayName());
@@ -102,15 +103,25 @@ public class HomeAssistUtils {
                 continue;
             }
 
-            if (backoff.getQueuedCount(key) > 0 && payloadHasEvents(filteredPayload)) {
-                // Line up behind the payloads still waiting to be resent, so events arrive in order
-                backoff.enqueue(key, filteredPayload);
+            if (backoff.getQueuedCount(key) > 0 && mustBeDelivered(filteredPayload)) {
+                // Line up behind the payloads still waiting to be resent, so events and trail points arrive in order
+                enqueue(key, filteredPayload);
             } else {
                 sendToConnection(connection, key, filteredPayload, false);
             }
 
             // Resends queued payloads once a pause has ended; a no-op when nothing is queued or a resend is in flight
             drainQueued(key);
+        }
+    }
+
+    // Queues a payload for resending, combined with the newest queued one when possible. The combining is done
+    // outside the backoff's lock, so no thread (the game thread in particular) waits on it
+    private void enqueue(String key, String payload) {
+        String newest = backoff.getMergeCandidate(key);
+        String combined = newest != null ? combineTrailSnapshots(newest, payload) : null;
+        if (combined == null || !backoff.replaceNewest(key, newest, combined)) {
+            backoff.enqueue(key, payload);
         }
     }
 
@@ -171,10 +182,69 @@ public class HomeAssistUtils {
         return connection.getBaseUrl() + '\n' + connection.getToken();
     }
 
-    private boolean payloadHasEvents(String payload) {
+    // Events and location trail points are only ever part of one message, so a payload holding either is kept until it is delivered
+    private boolean mustBeDelivered(String payload) {
         JsonObject root = gson.fromJson(payload, JsonObject.class);
-        JsonElement events = root != null ? root.get("events") : null;
+        return root != null && (hasEvents(root) || hasLocationTrail(root));
+    }
+
+    private static boolean hasEvents(JsonObject root) {
+        JsonElement events = root.get("events");
         return events != null && events.isJsonArray() && events.getAsJsonArray().size() > 0;
+    }
+
+    private static boolean hasLocationTrail(JsonObject root) {
+        JsonElement player = root.get("player");
+        JsonElement trail = player != null && player.isJsonObject() ? player.getAsJsonObject().get("locationTrail") : null;
+        return trail != null && trail.isJsonArray() && trail.getAsJsonArray().size() > 0;
+    }
+
+    /**
+     * Combines two snapshots without events into one: the newer of the two, carrying the location trail of both.
+     * Everything else the older one holds is repeated by the newer one anyway. This keeps frequent snapshots
+     * (e.g. instant health updates) from filling the retry queue during a pause.
+     *
+     * @return the combined payload, or null when the two have to be sent separately: one has events, they are
+     *         from different accounts or worlds, or the trail would exceed {@link MessageBuilder#MAX_LOCATION_TRAIL_POINTS}
+     */
+    @Nullable
+    String combineTrailSnapshots(String queued, String payload) {
+        JsonObject first = gson.fromJson(queued, JsonObject.class);
+        JsonObject second = gson.fromJson(payload, JsonObject.class);
+        if (first == null || second == null
+                || hasEvents(first) || hasEvents(second)
+                || !hasLocationTrail(first) || !hasLocationTrail(second)) {
+            return null;
+        }
+
+        JsonObject firstPlayer = first.getAsJsonObject("player");
+        JsonObject secondPlayer = second.getAsJsonObject("player");
+        // Receivers store each point with the world of the message it arrived in
+        for (String field : new String[]{"name", "accountHash", "world"}) {
+            if (!Objects.equals(firstPlayer.get(field), secondPlayer.get(field))) {
+                return null;
+            }
+        }
+
+        // A payload that failed while a newer one was already queued gets here after that newer one
+        boolean inOrder = timestampOf(second) >= timestampOf(first);
+        JsonObject older = inOrder ? first : second;
+        JsonObject newer = inOrder ? second : first;
+
+        JsonArray trail = new JsonArray();
+        trail.addAll(older.getAsJsonObject("player").getAsJsonArray("locationTrail"));
+        trail.addAll(newer.getAsJsonObject("player").getAsJsonArray("locationTrail"));
+        if (trail.size() > MessageBuilder.MAX_LOCATION_TRAIL_POINTS) {
+            return null;
+        }
+
+        newer.getAsJsonObject("player").add("locationTrail", trail);
+        return gson.toJson(newer);
+    }
+
+    private static long timestampOf(JsonObject root) {
+        JsonElement timestamp = root.get("timestamp");
+        return timestamp != null && timestamp.isJsonPrimitive() ? timestamp.getAsLong() : 0;
     }
 
     String applyConnectionFilters(String jsonPayload, HAConnection connection) {
@@ -301,6 +371,7 @@ public class HomeAssistUtils {
                             retryLater(connection, key, jsonPayload, drained, null, "HTTP " + code);
                             break;
                         default:
+                            // The endpoint refused this exact payload, so sending it again would only be refused again
                             log.debug("{} rejected a payload with HTTP {}, not retrying it", connection.getDisplayName(), code);
                             if (drained) {
                                 backoff.completeDrain(key, true);
@@ -316,8 +387,9 @@ public class HomeAssistUtils {
     }
 
     /**
-     * Pauses the connection after a failed delivery and keeps the payload for a retry when it carries events.
-     * Receivers dedupe on eventId, so resending a payload that did arrive (e.g. after a timeout) is harmless.
+     * Pauses the connection after a failed delivery and keeps the payload for a retry when it carries events
+     * or location trail points. Receivers dedupe events on eventId and trail points on timestamp, so resending
+     * a payload that did arrive (e.g. after a timeout) is harmless.
      */
     private void retryLater(HAConnection connection, String key, String payload, boolean drained, Long retryAt, String cause) {
         if (stopped) {
@@ -332,8 +404,8 @@ public class HomeAssistUtils {
 
         if (drained) {
             backoff.completeDrain(key, false);
-        } else if (payloadHasEvents(payload)) {
-            backoff.enqueue(key, payload);
+        } else if (mustBeDelivered(payload)) {
+            enqueue(key, payload);
         }
 
         long pauseSeconds = (Math.max(0, pausedUntil - System.currentTimeMillis()) + 999) / 1000;

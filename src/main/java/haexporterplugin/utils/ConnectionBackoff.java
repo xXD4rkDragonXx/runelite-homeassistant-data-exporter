@@ -12,13 +12,15 @@ import java.util.function.LongSupplier;
 
 /**
  * Per-connection delivery state: when sending is paused, how long the next backoff lasts, and which
- * payloads with events are waiting to be resent. Kept in memory only and safe to use from any thread.
+ * payloads are waiting to be resent. Kept in memory only and safe to use from any thread.
  */
 public class ConnectionBackoff {
     static final long INITIAL_BACKOFF_MS = TimeUnit.SECONDS.toMillis(30);
     static final long MAX_BACKOFF_MS = TimeUnit.MINUTES.toMillis(10);
     static final int MAX_QUEUED_PAYLOADS = 50;
     static final long MAX_QUEUE_AGE_MS = TimeUnit.MINUTES.toMillis(10);
+    // How long a queued payload can still take in a later one, see getMergeCandidate
+    static final long MERGE_WINDOW_MS = TimeUnit.MINUTES.toMillis(1);
     // Lower bound for Retry-After pauses, so "Retry-After: 0" can't cause a tight retry loop
     static final long MIN_RETRY_AFTER_MS = TimeUnit.SECONDS.toMillis(1);
 
@@ -27,7 +29,7 @@ public class ConnectionBackoff {
         UNAUTHORIZED, // 401: token revoked, disable the connection
         GONE,         // 410: endpoint no longer accepts data, disable the connection
         RETRY_AFTER,  // 429 / 503: pause as long as Retry-After asks, back off when it is missing
-        BACKOFF,      // other 5xx: exponential backoff
+        BACKOFF,      // 404 and other 5xx: exponential backoff
         REJECTED      // anything else: drop the payload, no backoff
     }
 
@@ -74,7 +76,10 @@ public class ConnectionBackoff {
         if (statusCode == 429 || statusCode == 503) {
             return Outcome.RETRY_AFTER;
         }
-        if (statusCode >= 500 && statusCode < 600) {
+        // A 404 says the endpoint isn't there (yet), not that it refused the payload: Home Assistant answers it
+        // from the moment its web server is up until the integration has registered its endpoints. A payload
+        // dropped there would be followed at once by the next queued one, which gets the same answer
+        if (statusCode == 404 || (statusCode >= 500 && statusCode < 600)) {
             return Outcome.BACKOFF;
         }
         return Outcome.REJECTED;
@@ -182,6 +187,51 @@ public class ConnectionBackoff {
         while (state.queue.size() > MAX_QUEUED_PAYLOADS) {
             state.queue.removeFirst();
         }
+    }
+
+    /**
+     * Merging two payloads means parsing them, which is too slow to do while holding this object's lock
+     * (the game thread takes it on every send). So the caller reads the candidate here, merges without
+     * the lock and hands the result to {@link #replaceNewest}.
+     *
+     * @return the newest queued payload when a payload queued now may be merged into it: it was queued less
+     *         than {@link #MERGE_WINDOW_MS} ago and is not being resent. Otherwise null
+     */
+    public synchronized String getMergeCandidate(String key) {
+        State state = states.get(key);
+        if (state == null) {
+            return null;
+        }
+        prune(state);
+        QueuedPayload newest = state.queue.peekLast();
+        return isMergeable(state, newest) ? newest.payload : null;
+    }
+
+    /**
+     * Replaces the newest queued payload by {@code merged}, which keeps its place and age in the queue.
+     *
+     * @param candidate the payload {@link #getMergeCandidate} returned
+     * @return false when the candidate is no longer the newest queued payload or can no longer be merged
+     *         into; nothing has changed then and the caller queues its payload on its own
+     */
+    public synchronized boolean replaceNewest(String key, String candidate, String merged) {
+        State state = states.get(key);
+        if (state == null) {
+            return false;
+        }
+        prune(state);
+        QueuedPayload newest = state.queue.peekLast();
+        // Compared by identity: it has to be the very payload the caller merged
+        if (!isMergeable(state, newest) || newest.payload != candidate) {
+            return false;
+        }
+        state.queue.removeLast();
+        state.queue.addLast(new QueuedPayload(merged, newest.enqueuedAt));
+        return true;
+    }
+
+    private boolean isMergeable(State state, QueuedPayload newest) {
+        return newest != null && newest != state.inFlight && newest.enqueuedAt > clock.getAsLong() - MERGE_WINDOW_MS;
     }
 
     /**

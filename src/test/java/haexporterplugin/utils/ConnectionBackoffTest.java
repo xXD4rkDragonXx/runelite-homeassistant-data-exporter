@@ -176,6 +176,91 @@ public class ConnectionBackoffTest
 	}
 
 	@Test
+	public void testNewestQueuedPayloadCanBeReplacedByAMergedOne()
+	{
+		backoff.enqueue(KEY, "a");
+		backoff.enqueue(KEY, "b");
+
+		String candidate = backoff.getMergeCandidate(KEY);
+		assertEquals("b", candidate);
+		assertTrue(backoff.replaceNewest(KEY, candidate, "b+c"));
+
+		assertEquals(2, backoff.getQueuedCount(KEY));
+		assertEquals("a", backoff.beginDrain(KEY));
+		backoff.completeDrain(KEY, true);
+		assertEquals("b+c", backoff.beginDrain(KEY));
+	}
+
+	@Test
+	public void testNoMergeCandidateWhenNothingIsQueued()
+	{
+		assertNull(backoff.getMergeCandidate(KEY));
+		assertFalse(backoff.replaceNewest(KEY, "a", "a+b"));
+		assertEquals(0, backoff.getQueuedCount(KEY));
+	}
+
+	@Test
+	public void testPayloadBeingResentIsNoMergeCandidate()
+	{
+		backoff.enqueue(KEY, "a");
+		assertEquals("a", backoff.beginDrain(KEY));
+
+		assertNull(backoff.getMergeCandidate(KEY));
+	}
+
+	@Test
+	public void testReplaceFailsWhenTheCandidateStartedBeingResent()
+	{
+		backoff.enqueue(KEY, "a");
+		String candidate = backoff.getMergeCandidate(KEY);
+		assertEquals("a", backoff.beginDrain(KEY));
+
+		assertFalse(backoff.replaceNewest(KEY, candidate, "a+b"));
+
+		backoff.completeDrain(KEY, true);
+		assertEquals(0, backoff.getQueuedCount(KEY));
+	}
+
+	@Test
+	public void testReplaceFailsWhenAnotherPayloadWasQueuedMeanwhile()
+	{
+		backoff.enqueue(KEY, "a");
+		String candidate = backoff.getMergeCandidate(KEY);
+		backoff.enqueue(KEY, "b");
+
+		assertFalse(backoff.replaceNewest(KEY, candidate, "a+c"));
+
+		assertEquals(2, backoff.getQueuedCount(KEY));
+		assertEquals("a", backoff.beginDrain(KEY));
+	}
+
+	@Test
+	public void testPayloadIsOnlyAMergeCandidateForAMinute()
+	{
+		backoff.enqueue(KEY, "a");
+
+		now += MINUTE - 1;
+		assertEquals("a", backoff.getMergeCandidate(KEY));
+
+		now += 1;
+		assertNull(backoff.getMergeCandidate(KEY));
+	}
+
+	@Test
+	public void testMergedPayloadKeepsItsQueueTime()
+	{
+		backoff.enqueue(KEY, "a");
+		now += 30 * SECOND;
+		assertTrue(backoff.replaceNewest(KEY, backoff.getMergeCandidate(KEY), "a+b"));
+
+		now += 9 * MINUTE + 30 * SECOND;
+		assertEquals(1, backoff.getQueuedCount(KEY));
+
+		now += 1;
+		assertEquals(0, backoff.getQueuedCount(KEY));
+	}
+
+	@Test
 	public void testDrainIsFifo()
 	{
 		backoff.enqueue(KEY, "a");
@@ -305,8 +390,18 @@ public class ConnectionBackoffTest
 		assertEquals(ConnectionBackoff.Outcome.BACKOFF, ConnectionBackoff.classify(502));
 		assertEquals(ConnectionBackoff.Outcome.BACKOFF, ConnectionBackoff.classify(504));
 		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(400));
-		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(404));
+		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(403));
+		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(405));
 		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(413));
+		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(422));
 		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(302));
+	}
+
+	// A 404 says the endpoint isn't there (yet), not that it refused the payload: Home Assistant answers it
+	// until the integration has registered its endpoints
+	@Test
+	public void testNotFoundIsClassifiedAsBackoff()
+	{
+		assertEquals(ConnectionBackoff.Outcome.BACKOFF, ConnectionBackoff.classify(404));
 	}
 }
