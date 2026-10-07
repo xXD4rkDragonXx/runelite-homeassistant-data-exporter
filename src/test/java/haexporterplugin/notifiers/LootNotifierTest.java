@@ -1,15 +1,9 @@
 package haexporterplugin.notifiers;
 
-import com.google.gson.Gson;
-import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.util.Providers;
 import haexporterplugin.HAExporterConfig;
-import haexporterplugin.utils.HomeAssistUtils;
+import haexporterplugin.TestUtils;
 import haexporterplugin.utils.MessageBuilder;
-import haexporterplugin.utils.RarityUtils;
-import haexporterplugin.utils.ThievingUtils;
-import haexporterplugin.utils.TickUtils;
 import net.runelite.api.Client;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.Player;
@@ -35,16 +29,14 @@ public class LootNotifierTest
 	private static final int ARROW_ID = 2;
 	private static final int BOLT_ID = 3;
 
-	private Client client;
-	private HAExporterConfig config;
+	private final Client client = mock(Client.class);
+	private final HAExporterConfig config = mock(HAExporterConfig.class);
 	private MessageBuilder messageBuilder;
 	private LootNotifier lootNotifier;
 
 	@Before
 	public void setUp()
 	{
-		client = mock(Client.class);
-		config = mock(HAExporterConfig.class);
 		when(config.minLootValue()).thenReturn(25_000);
 		when(config.lootItemAllowlist()).thenReturn("");
 		when(config.lootItemDenylist()).thenReturn("");
@@ -66,57 +58,32 @@ public class LootNotifierTest
 		when(itemManager.getItemPrice(ARROW_ID)).thenReturn(15_000L);
 		when(itemManager.getItemPrice(BOLT_ID)).thenReturn(15_000L);
 
-		// Providers.of avoids Guice member-injecting the mocks' inherited @Inject fields
-		Injector injector = Guice.createInjector(binder ->
-		{
-			binder.bind(Client.class).toProvider(Providers.of(client));
-			binder.bind(ItemManager.class).toProvider(Providers.of(itemManager));
-			binder.bind(HAExporterConfig.class).toProvider(Providers.of(config));
-			binder.bind(TickUtils.class).toProvider(Providers.of(mock(TickUtils.class)));
-			binder.bind(HomeAssistUtils.class).toProvider(Providers.of(mock(HomeAssistUtils.class)));
-			binder.bind(RarityUtils.class).toProvider(Providers.of(mock(RarityUtils.class)));
-			binder.bind(ThievingUtils.class).toProvider(Providers.of(mock(ThievingUtils.class)));
-			binder.bind(Gson.class).toInstance(new Gson());
-		});
+		Injector injector = TestUtils.injector(Map.of(Client.class, client, ItemManager.class, itemManager, HAExporterConfig.class, config));
 		messageBuilder = injector.getInstance(MessageBuilder.class);
 		lootNotifier = injector.getInstance(LootNotifier.class);
 		lootNotifier.init();
 	}
 
 	@Test
-	public void testPickpocketLootIsSentByDefault()
+	public void testPickpocketLootIsSentUntilTurnedOff()
 	{
 		pickpocket();
+		assertEquals(List.of("loot"), eventTypes());
 
+		when(config.lootIncludePickpocket()).thenReturn(false);
+		pickpocket();
 		assertEquals(List.of("loot"), eventTypes());
 	}
 
 	@Test
-	public void testPickpocketLootCanBeTurnedOff()
-	{
-		when(config.lootIncludePickpocket()).thenReturn(false);
-
-		pickpocket();
-
-		assertTrue(eventTypes().isEmpty());
-	}
-
-	@Test
-	public void testPkChestUsesTotalValueByDefault()
+	public void testPkChestUsesTotalValueUntilTurnedOff()
 	{
 		pkChest();
-
 		assertEquals(List.of("pkLoot"), eventTypes());
-	}
 
-	@Test
-	public void testPkChestTotalValueCanBeTurnedOff()
-	{
 		when(config.lootIncludePkChest()).thenReturn(false);
-
 		pkChest();
-
-		assertTrue(eventTypes().isEmpty());
+		assertEquals(List.of("pkLoot"), eventTypes());
 	}
 
 	@Test

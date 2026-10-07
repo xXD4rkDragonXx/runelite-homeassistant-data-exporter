@@ -3,36 +3,13 @@ package haexporterplugin.utils;
 import com.google.common.math.DoubleMath;
 import lombok.experimental.UtilityClass;
 
-import java.math.BigDecimal;
-import java.math.MathContext;
-
 @UtilityClass
 public class MathUtils {
     public static final double EPSILON = 0.00001;
     private static final int[] FACTORIALS;
 
-    public int sum(int[] array) {
-        int x = 0;
-        for (int i : array) {
-            x += i;
-        }
-        return x;
-    }
-
     public boolean lessThanOrEqual(double a, double b) {
         return a < b || DoubleMath.fuzzyEquals(a, b, EPSILON);
-    }
-
-    public String formatPercentage(double d, int sigFigs) {
-        return BigDecimal.valueOf(d * 100)
-                .round(new MathContext(sigFigs))
-                .stripTrailingZeros()
-                .toPlainString() + '%';
-    }
-
-    public double cumulativeGeometric(double p, int kTrials) {
-        assert kTrials > 0;
-        return 1 - Math.pow(1 - p, kTrials); // https://en.wikipedia.org/wiki/Geometric_distribution
     }
 
     public double binomialProbability(double p, int nTrials, int kSuccess) {

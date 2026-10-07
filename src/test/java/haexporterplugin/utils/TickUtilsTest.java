@@ -1,12 +1,11 @@
 package haexporterplugin.utils;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.util.Providers;
 import haexporterplugin.HAExporterConfig;
+import haexporterplugin.TestUtils;
 import haexporterplugin.data.TrailPoint;
 import net.runelite.api.Client;
 import net.runelite.api.WorldType;
@@ -18,6 +17,7 @@ import org.mockito.ArgumentCaptor;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -27,42 +27,27 @@ public class TickUtilsTest
 	private static final int SEND_RATE = 3;
 
 	private final Gson gson = new Gson();
-	private HomeAssistUtils homeAssistUtils;
+	private final Client client = mock(Client.class);
+	private final HAExporterConfig config = mock(HAExporterConfig.class);
+	private final HomeAssistUtils homeAssistUtils = mock(HomeAssistUtils.class);
 	private MessageBuilder messageBuilder;
 	private TickUtils tickUtils;
 
 	@Before
 	public void setUp()
 	{
-		homeAssistUtils = mock(HomeAssistUtils.class);
-		HAExporterConfig config = mock(HAExporterConfig.class);
 		when(config.sendRate()).thenReturn(SEND_RATE);
-		Client client = mock(Client.class);
-		when(client.getWorldType()).thenReturn(EnumSet.of(WorldType.MEMBERS));
+		onWorld(WorldType.MEMBERS);
 
-		// Providers.of avoids Guice member-injecting the mocks' inherited @Inject fields
-		Injector injector = Guice.createInjector(binder ->
-		{
-			binder.bind(Client.class).toProvider(Providers.of(client));
-			binder.bind(HomeAssistUtils.class).toProvider(Providers.of(homeAssistUtils));
-			binder.bind(HAExporterConfig.class).toProvider(Providers.of(config));
-			binder.bind(Gson.class).toInstance(gson);
-		});
+		Injector injector = TestUtils.injector(Map.of(Client.class, client, HAExporterConfig.class, config, HomeAssistUtils.class, homeAssistUtils));
 		messageBuilder = injector.getInstance(MessageBuilder.class);
-		tickUtils = injector.getInstance(TickUtils.class);
+		tickUtils = new TickUtils();
+		injector.injectMembers(tickUtils);
 	}
 
-	@Test
-	public void testEventSentOnceAcrossPeriodicSendAndSendNow()
-	{
-		messageBuilder.addEvent("achievementDiary", "diary-task");
-
-		tickUntilPeriodicSend();
-		tickUtils.sendNow();
-
-		List<String> eventIds = sentEventIds();
-		assertEquals(1, eventIds.size());
-	}
+	/* ============================
+	   SENDING EACH EVENT ONCE
+	   ============================ */
 
 	@Test
 	public void testEventNotResentOnNextPeriodicSend()
@@ -73,18 +58,7 @@ public class TickUtilsTest
 		tickUntilPeriodicSend();
 
 		verify(homeAssistUtils, times(2)).sendMessage(anyString());
-		assertEquals(1, sentEventIds().size());
-	}
-
-	@Test
-	public void testEventNotResentAfterSendNow()
-	{
-		messageBuilder.addEvent("levelUp", "attack-99");
-
-		tickUtils.sendNow();
-		tickUntilPeriodicSend();
-
-		assertEquals(1, sentEventIds().size());
+		assertEquals(1, sentEvents().size());
 	}
 
 	@Test
@@ -95,7 +69,7 @@ public class TickUtilsTest
 		tickUtils.sendShutdown();
 		tickUtils.sendNow();
 
-		assertEquals(1, sentEventIds().size());
+		assertEquals(1, sentEvents().size());
 	}
 
 	@Test
@@ -108,34 +82,93 @@ public class TickUtilsTest
 
 		List<JsonObject> payloads = sentPayloads();
 		assertEquals(2, payloads.size());
-		assertEquals("first", onlyEvent(payloads.get(0)).get("data").getAsString());
-		assertEquals("second", onlyEvent(payloads.get(1)).get("data").getAsString());
+		assertEquals(List.of("first"), eventData(payloads.get(0)));
+		assertEquals(List.of("second"), eventData(payloads.get(1)));
 	}
 
 	@Test
 	public void testLocationTrailSentOnceAcrossSends()
 	{
-		messageBuilder.addLocationTrailPoint(new TrailPoint(new WorldPoint(3222, 3218, 0), false, 1735689600000L));
+		addTrailPoint();
 
 		tickUtils.sendNow();
 		tickUntilPeriodicSend();
 
 		List<JsonObject> payloads = sentPayloads();
 		assertEquals(2, payloads.size());
-		assertEquals(1, payloads.get(0).getAsJsonObject("player").getAsJsonArray("locationTrail").size());
-		assertEquals(0, payloads.get(1).getAsJsonObject("player").getAsJsonArray("locationTrail").size());
+		assertEquals(1, trail(payloads.get(0)).size());
+		assertEquals(0, trail(payloads.get(1)).size());
+	}
+
+	/* ============================
+	   SPECIAL WORLDS
+	   ============================ */
+
+	@Test
+	public void testMembersWorldSentByDefault()
+	{
+		tickUtils.sendNow();
+		tickUntilPeriodicSend();
+		tickUtils.sendShutdown();
+
+		verify(homeAssistUtils, times(3)).sendMessage(anyString());
 	}
 
 	@Test
-	public void testNoPeriodicSendBeforeSendRate()
+	public void testNothingSentFromSpecialWorldByDefault()
 	{
-		for (int i = 0; i < SEND_RATE - 1; i++)
-		{
-			tickUtils.onTick();
-			tickUtils.sendOnSendRate();
-		}
+		onWorld(WorldType.MEMBERS, WorldType.SEASONAL);
+		messageBuilder.addEvent("levelUp", "attack-99");
+
+		tickUtils.sendNow();
+		tickUntilPeriodicSend();
+		tickUtils.sendShutdown();
 
 		verify(homeAssistUtils, never()).sendMessage(anyString());
+	}
+
+	@Test
+	public void testSpecialWorldEventsAndTrailDoNotLeakIntoLaterMessages()
+	{
+		onWorld(WorldType.MEMBERS, WorldType.DEADMAN);
+		messageBuilder.addEvent("levelUp", "from-sendNow");
+		addTrailPoint();
+		tickUtils.sendNow();
+		messageBuilder.addEvent("achievementDiary", "from-periodic");
+		tickUntilPeriodicSend();
+
+		onWorld(WorldType.MEMBERS);
+		tickUtils.sendNow();
+
+		JsonObject payload = onlySentPayload();
+		assertEquals(List.of(), eventData(payload));
+		assertEquals(0, trail(payload).size());
+	}
+
+	@Test
+	public void testSpecialWorldSentWhenEnabled()
+	{
+		when(config.sendSpecialWorldData()).thenReturn(true);
+		onWorld(WorldType.MEMBERS, WorldType.SEASONAL);
+		messageBuilder.addEvent("levelUp", "attack-99");
+
+		tickUtils.sendNow();
+
+		assertEquals(List.of("attack-99"), eventData(onlySentPayload()));
+	}
+
+	/* ============================
+	   HELPERS
+	   ============================ */
+
+	private void onWorld(WorldType first, WorldType... rest)
+	{
+		when(client.getWorldType()).thenReturn(EnumSet.of(first, rest));
+	}
+
+	private void addTrailPoint()
+	{
+		messageBuilder.addLocationTrailPoint(new TrailPoint(new WorldPoint(3222, 3218, 0), false, 1735689600000L));
 	}
 
 	private void tickUntilPeriodicSend()
@@ -153,29 +186,34 @@ public class TickUtilsTest
 		verify(homeAssistUtils, atLeastOnce()).sendMessage(captor.capture());
 
 		List<JsonObject> payloads = new ArrayList<>();
-		for (String json : captor.getAllValues())
-		{
-			payloads.add(gson.fromJson(json, JsonObject.class));
-		}
+		captor.getAllValues().forEach(json -> payloads.add(gson.fromJson(json, JsonObject.class)));
 		return payloads;
 	}
 
-	private List<String> sentEventIds()
+	private JsonObject onlySentPayload()
 	{
-		List<String> eventIds = new ArrayList<>();
-		for (JsonObject payload : sentPayloads())
-		{
-			for (JsonElement event : payload.getAsJsonArray("events"))
-			{
-				eventIds.add(event.getAsJsonObject().get("eventId").getAsString());
-			}
-		}
-		return eventIds;
+		List<JsonObject> payloads = sentPayloads();
+		assertEquals(1, payloads.size());
+		return payloads.get(0);
 	}
 
-	private static JsonObject onlyEvent(JsonObject payload)
+	// The events of every message sent so far
+	private List<JsonObject> sentEvents()
 	{
-		assertEquals(1, payload.getAsJsonArray("events").size());
-		return payload.getAsJsonArray("events").get(0).getAsJsonObject();
+		List<JsonObject> events = new ArrayList<>();
+		sentPayloads().forEach(payload -> payload.getAsJsonArray("events").forEach(event -> events.add(event.getAsJsonObject())));
+		return events;
+	}
+
+	private static List<String> eventData(JsonObject payload)
+	{
+		List<String> data = new ArrayList<>();
+		payload.getAsJsonArray("events").forEach(event -> data.add(event.getAsJsonObject().get("data").getAsString()));
+		return data;
+	}
+
+	private static JsonArray trail(JsonObject payload)
+	{
+		return payload.getAsJsonObject("player").getAsJsonArray("locationTrail");
 	}
 }

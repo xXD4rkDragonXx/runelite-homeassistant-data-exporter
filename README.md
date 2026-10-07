@@ -354,6 +354,8 @@ cd runelite-homeassistant-data-exporter
 
 > **Note:** Java 17+ is required. The Gradle wrapper (`gradlew`) will download Gradle 8.10 automatically.
 
+> **Tests:** keep them as small as possible. The RuneLite Plugin Hub labels every update by the size of its diff, tests included, so a large test makes a small change look big. Test behaviour rather than getters, extend an existing test before adding a new one, put inputs that only differ in value in one table-driven test, and reuse the shared setup in `TestUtils` and `HomeAssistUtilsTestBase`.
+
 ---
 
 ## 🏛️ Project Structure

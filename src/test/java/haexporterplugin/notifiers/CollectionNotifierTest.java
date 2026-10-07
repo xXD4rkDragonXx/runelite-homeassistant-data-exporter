@@ -1,24 +1,16 @@
 package haexporterplugin.notifiers;
 
-import com.google.gson.Gson;
-import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.util.Providers;
 import haexporterplugin.HAExporterConfig;
+import haexporterplugin.TestUtils;
 import haexporterplugin.data.CollectionData;
-import haexporterplugin.utils.HomeAssistUtils;
 import haexporterplugin.utils.KillCountTracker;
 import haexporterplugin.utils.MessageBuilder;
-import haexporterplugin.utils.RarityUtils;
-import haexporterplugin.utils.ThievingUtils;
-import haexporterplugin.utils.TickUtils;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
-import net.runelite.api.GameState;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.ScriptID;
 import net.runelite.api.events.ChatMessage;
-import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.ScriptPreFired;
 import net.runelite.api.gameval.VarClientID;
 import net.runelite.api.gameval.VarbitID;
@@ -29,7 +21,6 @@ import org.junit.Test;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.BooleanSupplier;
 
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,8 +34,8 @@ public class CollectionNotifierTest
 	private static final int POPUP = 2;
 
 	private int tick = 1000;
-	private Client client;
-	private HAExporterConfig config;
+	private final Client client = mock(Client.class);
+	private final HAExporterConfig config = mock(HAExporterConfig.class);
 	private MessageBuilder messageBuilder;
 	private KillCountTracker killCountTracker;
 	private CollectionNotifier collectionNotifier;
@@ -52,8 +43,6 @@ public class CollectionNotifierTest
 	@Before
 	public void setUp()
 	{
-		client = mock(Client.class);
-		config = mock(HAExporterConfig.class);
 		when(client.getTickCount()).thenAnswer(inv -> tick);
 		when(client.getItemCount()).thenReturn(10);
 
@@ -67,29 +56,9 @@ public class CollectionNotifierTest
 		// Runs deferred work right away, so the tests stay synchronous
 		ClientThread clientThread = mock(ClientThread.class);
 		doAnswer(inv -> { inv.<Runnable>getArgument(0).run(); return null; }).when(clientThread).invokeAtTickEnd(any());
-		doAnswer(inv ->
-		{
-			BooleanSupplier task = inv.getArgument(0);
-			while (!task.getAsBoolean())
-			{
-				// keep going until done
-			}
-			return null;
-		}).when(clientThread).invokeLater(any(BooleanSupplier.class));
 
-		// Providers.of avoids Guice member-injecting the mocks' inherited @Inject fields
-		Injector injector = Guice.createInjector(binder ->
-		{
-			binder.bind(Client.class).toProvider(Providers.of(client));
-			binder.bind(ItemManager.class).toProvider(Providers.of(itemManager));
-			binder.bind(ClientThread.class).toProvider(Providers.of(clientThread));
-			binder.bind(HAExporterConfig.class).toProvider(Providers.of(config));
-			binder.bind(TickUtils.class).toProvider(Providers.of(mock(TickUtils.class)));
-			binder.bind(HomeAssistUtils.class).toProvider(Providers.of(mock(HomeAssistUtils.class)));
-			binder.bind(RarityUtils.class).toProvider(Providers.of(mock(RarityUtils.class)));
-			binder.bind(ThievingUtils.class).toProvider(Providers.of(mock(ThievingUtils.class)));
-			binder.bind(Gson.class).toInstance(new Gson());
-		});
+		Injector injector = TestUtils.injector(Map.of(Client.class, client, ItemManager.class, itemManager,
+			ClientThread.class, clientThread, HAExporterConfig.class, config));
 		messageBuilder = injector.getInstance(MessageBuilder.class);
 		killCountTracker = injector.getInstance(KillCountTracker.class);
 		collectionNotifier = injector.getInstance(CollectionNotifier.class);
@@ -119,16 +88,6 @@ public class CollectionNotifierTest
 	}
 
 	@Test
-	public void testPopupIsUsed()
-	{
-		setNotificationSetting(POPUP);
-
-		popup("Collection log", "New item:<br><col=ffffff>Abyssal whip</col>");
-
-		assertEquals("Abyssal whip", onlyCollectionLogEvent().getItemName());
-	}
-
-	@Test
 	public void testCollectionLogPopupWithoutNewItemIsIgnored()
 	{
 		setNotificationSetting(POPUP);
@@ -147,40 +106,24 @@ public class CollectionNotifierTest
 		killCountTracker.onDrop(tick);
 
 		tick += 15; // shown after other popups
-		popup("Collection log", "New item:<br>Abyssal whip");
+		popup("Collection log", "New item:<br><col=ffffff>Abyssal whip</col>");
 
-		assertEquals(Integer.valueOf(1250), onlyCollectionLogEvent().getKillCount());
+		CollectionData item = onlyCollectionLogEvent();
+		assertEquals("Abyssal whip", item.getItemName());
+		assertEquals(Integer.valueOf(1250), item.getKillCount());
 	}
 
-	@Test
-	public void testItemNameLookupIsBuiltAfterLogin()
-	{
-		GameStateChanged loggedIn = new GameStateChanged();
-		loggedIn.setGameState(GameState.LOGGED_IN);
-		collectionNotifier.onGameStateChanged(loggedIn);
-
-		verify(client).getItemCount();
-	}
-
+	// The whip is worth 1.5M
 	@Test
 	public void testItemBelowMinimumValueIsSkipped()
 	{
 		setNotificationSetting(CHAT_ONLY);
 		when(config.clogMinValue()).thenReturn(2_000_000);
-
 		chat("New item added to your collection log: Abyssal whip");
-
 		assertTrue(messageBuilder.getRoot().getEvents().isEmpty());
-	}
 
-	@Test
-	public void testItemAboveMinimumValueIsSent()
-	{
-		setNotificationSetting(CHAT_ONLY);
 		when(config.clogMinValue()).thenReturn(1_000_000);
-
 		chat("New item added to your collection log: Abyssal whip");
-
 		assertEquals("Abyssal whip", onlyCollectionLogEvent().getItemName());
 	}
 
@@ -231,13 +174,8 @@ public class CollectionNotifierTest
 	{
 		when(client.getVarcStrValue(VarClientID.NOTIFICATION_TITLE)).thenReturn(title);
 		when(client.getVarcStrValue(VarClientID.NOTIFICATION_MAIN)).thenReturn(body);
-		collectionNotifier.onScript(script(ScriptID.NOTIFICATION_START));
-		collectionNotifier.onScript(script(ScriptID.NOTIFICATION_DELAY));
-	}
-
-	private static ScriptPreFired script(int scriptId)
-	{
-		return new ScriptPreFired(scriptId);
+		collectionNotifier.onScript(new ScriptPreFired(ScriptID.NOTIFICATION_START));
+		collectionNotifier.onScript(new ScriptPreFired(ScriptID.NOTIFICATION_DELAY));
 	}
 
 	private CollectionData onlyCollectionLogEvent()

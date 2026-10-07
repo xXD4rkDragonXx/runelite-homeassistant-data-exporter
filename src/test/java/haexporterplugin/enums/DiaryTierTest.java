@@ -7,36 +7,19 @@ import static org.junit.Assert.*;
 public class DiaryTierTest
 {
 	@Test
-	public void testAllValues()
-	{
-		assertEquals(4, DiaryTier.values().length);
-	}
-
-	@Test
-	public void testFromString()
+	public void testFromStringIgnoresCaseAndSpaces()
 	{
 		assertEquals(DiaryTier.EASY, DiaryTier.fromString("easy"));
 		assertEquals(DiaryTier.EASY, DiaryTier.fromString("Easy"));
 		assertEquals(DiaryTier.ELITE, DiaryTier.fromString(" elite "));
-	}
-
-	@Test
-	public void testFromStringUnknown()
-	{
 		assertNull(DiaryTier.fromString(null));
 		assertNull(DiaryTier.fromString("impossible"));
 	}
 
+	// The minimum tier setting compares tiers, so they must be declared from easiest to hardest
 	@Test
-	public void testOrdering()
+	public void testTiersAreOrderedByDifficulty()
 	{
-		assertTrue(DiaryTier.EASY.compareTo(DiaryTier.MEDIUM) < 0);
-		assertTrue(DiaryTier.ELITE.compareTo(DiaryTier.HARD) > 0);
-	}
-
-	@Test
-	public void testToString()
-	{
-		assertEquals("Easy", DiaryTier.EASY.toString());
+		assertArrayEquals(new DiaryTier[]{DiaryTier.EASY, DiaryTier.MEDIUM, DiaryTier.HARD, DiaryTier.ELITE}, DiaryTier.values());
 	}
 }

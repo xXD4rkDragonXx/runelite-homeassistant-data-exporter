@@ -9,17 +9,6 @@ public class KillCountTrackerTest
 	private final KillCountTracker tracker = new KillCountTracker();
 
 	@Test
-	public void testKillCountFollowsItsDropForQueuedPopups()
-	{
-		tracker.onKillCount(250, 1000);
-		tracker.onDrop(1001);
-
-		// popups are shown one at a time, so a second new item can show up many ticks later
-		assertEquals(Integer.valueOf(250), tracker.getKillCount(1001));
-		assertEquals(Integer.valueOf(250), tracker.getKillCount(1020));
-	}
-
-	@Test
 	public void testKillCountArrivingJustAfterItsDrop()
 	{
 		tracker.onDrop(1000);

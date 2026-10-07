@@ -4,181 +4,66 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import haexporterplugin.TestUtils;
 import haexporterplugin.data.*;
 import net.runelite.api.GameState;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.lang.reflect.Field;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static haexporterplugin.TestUtils.json;
 import static org.junit.Assert.*;
 
 public class MessageBuilderTest
 {
-	private MessageBuilder messageBuilder;
+	private final Gson gson = new Gson();
+	private final MessageBuilder messageBuilder = new MessageBuilder();
 
 	@Before
 	public void setUp() throws Exception
 	{
-		messageBuilder = new MessageBuilder();
-		// Inject Gson via reflection since we're not using Guice in tests
-		Field gsonField = MessageBuilder.class.getDeclaredField("gson");
-		gsonField.setAccessible(true);
-		gsonField.set(messageBuilder, new Gson());
+		TestUtils.setField(messageBuilder, "gson", gson);
 	}
 
+	// The message as Home Assistant receives it
 	@Test
-	public void testRootInitialized()
+	public void testBuildPutsEveryCategoryUnderItsOwnKey()
 	{
-		assertNotNull(messageBuilder.getRoot());
-	}
+		ItemData coins = new ItemData("Coins", 995, 1, 1, 100);
+		coins.setInventorySlot(0);
+		ItemData whip = new ItemData("Abyssal whip", 4151, 3_000_000_000L, 72000, 1);
+		whip.setEquipmentSlot("WEAPON");
 
-	@Test
-	public void testGetPlayerCreatesPlayerIfNull()
-	{
-		Player player = messageBuilder.getPlayer();
-		assertNotNull(player);
-	}
-
-	@Test
-	public void testGetPlayerReturnsSameInstance()
-	{
-		Player first = messageBuilder.getPlayer();
-		Player second = messageBuilder.getPlayer();
-		assertSame(first, second);
-	}
-
-	@Test
-	public void testSetDataName()
-	{
-		messageBuilder.setData("name", "TestPlayer");
-		assertEquals("TestPlayer", messageBuilder.getPlayer().getName());
-	}
-
-	@Test
-	public void testSetDataAccountHash()
-	{
-		String hash = Utils.accountHash(1234567890123456789L);
-		messageBuilder.setData("accounthash", hash);
-		assertEquals(hash, messageBuilder.getPlayer().getAccountHash());
-	}
-
-	@Test
-	public void testSetDataWorldTypes()
-	{
-		messageBuilder.setData("worldtypes", new String[]{"MEMBERS", "SEASONAL"});
-		assertArrayEquals(new String[]{"MEMBERS", "SEASONAL"}, messageBuilder.getPlayer().getWorldTypes());
-	}
-
-	@Test
-	public void testSetDataAccountType()
-	{
+		messageBuilder.setData("NAME", "TestPlayer"); // categories ignore case
+		messageBuilder.setData("accounthash", "abc");
 		messageBuilder.setData("accounttype", "IRONMAN");
-		assertEquals("IRONMAN", messageBuilder.getPlayer().getAccountType());
-	}
-
-	@Test
-	public void testSetDataHealth()
-	{
-		HealthData health = new HealthData(85, 99);
-		messageBuilder.setData("health", health);
-		assertNotNull(messageBuilder.getPlayer().getHealth());
-	}
-
-	@Test
-	public void testSetDataPrayer()
-	{
-		PrayerData prayer = new PrayerData(52, 70);
-		messageBuilder.setData("prayer", prayer);
-		assertNotNull(messageBuilder.getPlayer().getPrayerPoints());
-	}
-
-	@Test
-	public void testSetDataSpellbook()
-	{
-		SpellbookData spellbook = new SpellbookData(0);
-		messageBuilder.setData("spellbook", spellbook);
-		assertNotNull(messageBuilder.getPlayer().getSpellbook());
-	}
-
-	@Test
-	public void testSetDataWorld()
-	{
 		messageBuilder.setData("world", "302");
-		assertEquals("302", messageBuilder.getPlayer().getWorld());
-	}
+		messageBuilder.setData("worldtypes", new String[]{"MEMBERS", "SEASONAL"});
+		messageBuilder.setData("health", new HealthData(85, 99));
+		messageBuilder.setData("prayer", new PrayerData(52, 70));
+		messageBuilder.setData("spellbook", new SpellbookData(1));
+		messageBuilder.setData("location", new PlayerLocation(3222, 3218, 1, true));
+		messageBuilder.setData("stats", new Stats(Map.of("Attack", new SkillInfo(200000000, 99))));
+		messageBuilder.setData("inventory", new Inventory(List.of(coins)));
+		messageBuilder.setData("equipment", new Equipment(List.of(whip)));
+		messageBuilder.setData("unknown", "ignored");
+		messageBuilder.setState(GameState.LOGGED_IN);
+		messageBuilder.setTickDelay(100);
 
-	@Test
-	public void testSetDataLocation()
-	{
-		PlayerLocation location = new PlayerLocation(3222, 3218, 0, false);
-		messageBuilder.setData("location", location);
-		assertNotNull(messageBuilder.getPlayer().getLocation());
-	}
-
-	@Test
-	public void testSetDataStats()
-	{
-		Map<String, SkillInfo> skills = new HashMap<>();
-		skills.put("Attack", new SkillInfo(200000000, 99));
-		Stats stats = new Stats(skills);
-		messageBuilder.setData("stats", stats);
-		assertNotNull(messageBuilder.getPlayer().getStats());
-	}
-
-	@Test
-	public void testSetDataInventory()
-	{
-		Inventory inventory = new Inventory(new ArrayList<>());
-		messageBuilder.setData("inventory", inventory);
-		assertNotNull(messageBuilder.getPlayer().getInventory());
-	}
-
-	@Test
-	public void testSetDataEquipment()
-	{
-		Equipment equipment = new Equipment(new ArrayList<>());
-		messageBuilder.setData("equipment", equipment);
-		assertNotNull(messageBuilder.getPlayer().getEquipment());
-	}
-
-	@Test
-	public void testSetDataCaseInsensitive()
-	{
-		messageBuilder.setData("NAME", "Player1");
-		assertEquals("Player1", messageBuilder.getPlayer().getName());
-
-		messageBuilder.setData("World", "500");
-		assertEquals("500", messageBuilder.getPlayer().getWorld());
-	}
-
-	@Test
-	public void testSetDataUnknownCategory()
-	{
-		// Should not throw, just log a warning
-		messageBuilder.setData("nonexistent", "value");
-	}
-
-	@Test
-	public void testAddEvent()
-	{
-		messageBuilder.addEvent("level", "some-data");
-		assertEquals(1, messageBuilder.getRoot().getEvents().size());
-	}
-
-	@Test
-	public void testAddMultipleEvents()
-	{
-		messageBuilder.addEvent("level", "data1");
-		messageBuilder.addEvent("death", "data2");
-		messageBuilder.addEvent("loot", "data3");
-		assertEquals(3, messageBuilder.getRoot().getEvents().size());
+		JsonObject built = gson.fromJson(messageBuilder.build(), JsonObject.class);
+		built.remove("timestamp");
+		assertEquals(json("{'player':{'name':'TestPlayer','accountHash':'abc','accountType':'IRONMAN','world':'302',"
+			+ "'worldTypes':['MEMBERS','SEASONAL'],'location':{'x':3222,'y':3218,'plane':1,'isOnBoat':true},'locationTrail':[],"
+			+ "'health':{'current':85,'max':99},'prayerPoints':{'current':52,'max':70},'spellbook':{'id':1,'name':'ancient'},"
+			+ "'stats':{'skills':{'Attack':{'xp':200000000,'level':99}}},"
+			+ "'inventory':{'items':[{'name':'Coins','id':995,'gePrice':1,'haPrice':1,'quantity':100,'inventorySlot':0}]},"
+			+ "'equipment':{'items':[{'name':'Abyssal whip','id':4151,'gePrice':3000000000,'haPrice':72000,'quantity':1,'equipmentSlot':'WEAPON'}]}},"
+			+ "'events':[],'state':'LOGGED_IN','tickDelay':100}"), built);
 	}
 
 	@Test
@@ -191,33 +76,6 @@ public class MessageBuilderTest
 	}
 
 	@Test
-	public void testSetState()
-	{
-		messageBuilder.setState(GameState.LOGGED_IN);
-		assertEquals(GameState.LOGGED_IN, messageBuilder.getRoot().getState());
-	}
-
-	@Test
-	public void testBuildReturnsJson()
-	{
-		messageBuilder.setData("name", "TestPlayer");
-		messageBuilder.setState(GameState.LOGGED_IN);
-
-		String json = messageBuilder.build();
-		assertNotNull(json);
-		assertTrue(json.contains("TestPlayer"));
-		assertTrue(json.contains("LOGGED_IN"));
-	}
-
-	@Test
-	public void testBuildIncludesEvents()
-	{
-		messageBuilder.addEvent("level", "attack-99");
-		String json = messageBuilder.build();
-		assertTrue(json.contains("level"));
-	}
-
-	@Test
 	public void testResetData()
 	{
 		messageBuilder.setData("name", "TestPlayer");
@@ -226,13 +84,6 @@ public class MessageBuilderTest
 
 		assertNull(messageBuilder.getRoot().getPlayer());
 		assertTrue(messageBuilder.getRoot().getEvents().isEmpty());
-	}
-
-	@Test
-	public void testSetTickDelay()
-	{
-		messageBuilder.setTickDelay(100);
-		// No exception should be thrown
 	}
 
 	@Test
@@ -275,25 +126,15 @@ public class MessageBuilderTest
 	public void testBuildSetsRootTimestamp()
 	{
 		long before = System.currentTimeMillis();
-		JsonObject root = new Gson().fromJson(messageBuilder.build(), JsonObject.class);
+		JsonObject root = gson.fromJson(messageBuilder.build(), JsonObject.class);
 		long after = System.currentTimeMillis();
 
 		long timestamp = root.get("timestamp").getAsLong();
 		assertTrue(timestamp >= before && timestamp <= after);
 	}
 
-	@Test
-	public void testRootTimestampIsSetAtBuildTime()
-	{
-		messageBuilder.addEvent("combatTask", "data");
-		long eventTimestamp = builtEvents().get(0).getAsJsonObject().get("timestamp").getAsLong();
-
-		JsonObject root = new Gson().fromJson(messageBuilder.build(), JsonObject.class);
-		assertTrue(root.get("timestamp").getAsLong() >= eventTimestamp);
-	}
-
 	private JsonArray builtEvents()
 	{
-		return new Gson().fromJson(messageBuilder.build(), JsonObject.class).getAsJsonArray("events");
+		return gson.fromJson(messageBuilder.build(), JsonObject.class).getAsJsonArray("events");
 	}
 }

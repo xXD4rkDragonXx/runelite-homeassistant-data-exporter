@@ -17,10 +17,9 @@ import java.awt.Font;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.RETURNS_DEFAULTS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -35,10 +34,7 @@ public class HAExporterPanelTest
 	public void setUp()
 	{
 		// Every global toggle on, so only the per-connection toggles decide the status line
-		panel.config = mock(HAExporterConfig.class, invocation ->
-			invocation.getMethod().getReturnType() == boolean.class
-				? Boolean.TRUE
-				: RETURNS_DEFAULTS.answer(invocation));
+		panel.config = TestUtils.configWithEverythingOn();
 		panel.homeAssistUtils = mock(HomeAssistUtils.class);
 		panel.configUtils = mock(ConfigUtils.class);
 		panel.gson = new Gson();
@@ -55,55 +51,34 @@ public class HAExporterPanelTest
 	// The side panel is drawn in RuneLite's RuneScape font. macOS has no fallback font for it,
 	// so any character the font lacks shows up there as a "missing glyph" box.
 	@Test
-	public void testHomeViewOnlyUsesCharactersInTheRuneScapeFont() throws Exception
+	public void testHomeAndSettingsViewsOnlyUseCharactersInTheRuneScapeFont() throws Exception
 	{
-		connections.add(healthyConnection());
-		connections.add(pausedConnection());
-		connections.add(connectionWithTogglesOff());
-		connections.add(disabledConnection());
-
+		addOneConnectionOfEachKind();
 		panel.initialize();
 
 		assertFalse(textsIn(panel).isEmpty());
 		assertAllDisplayable(textsIn(panel));
-	}
 
-	@Test
-	public void testSettingsViewOnlyUsesCharactersInTheRuneScapeFont() throws Exception
-	{
-		connections.add(disabledConnection());
-		panel.initialize();
-
-		settingsButtons().get(0).doClick();
+		// The disabled connection's settings also show why it was disabled
+		settingsButtons().get(3).doClick();
 
 		assertTrue(textsIn(panel).contains("Connection Settings"));
+		assertTrue(textsIn(panel).contains("https://disabled.example"));
 		assertAllDisplayable(textsIn(panel));
 	}
 
 	@Test
-	public void testSettingsButtonShowsAnIcon()
+	public void testStatusLinesAndSettingsButtonsShowAnIcon()
 	{
-		connections.add(healthyConnection());
-		panel.initialize();
-
-		assertEquals(1, settingsButtons().size());
-		assertNotNull(settingsButtons().get(0).getIcon());
-	}
-
-	@Test
-	public void testStatusLinesShowAnIcon()
-	{
-		connections.add(healthyConnection());
-		connections.add(pausedConnection());
-		connections.add(connectionWithTogglesOff());
-		connections.add(disabledConnection());
-
+		addOneConnectionOfEachKind();
 		panel.initialize();
 
 		assertNotNull(labelContaining("All enabled").getIcon());
 		assertNotNull(labelContaining("Disabled: Inv, Loot").getIcon());
 		assertNotNull(labelContaining("Paused").getIcon());
 		assertNotNull(labelContaining("Unauthorized").getIcon());
+		assertEquals(4, settingsButtons().size());
+		assertNotNull(settingsButtons().get(0).getIcon());
 	}
 
 	// A disabled connection sends nothing, so its per-toggle status would only contradict the warning
@@ -121,6 +96,14 @@ public class HAExporterPanelTest
 		assertNotNull(labelContaining("Unauthorized"));
 		assertNull(findLabel("All enabled"));
 		assertNull(findLabel("Disabled:"));
+	}
+
+	private void addOneConnectionOfEachKind()
+	{
+		connections.add(healthyConnection());
+		connections.add(pausedConnection());
+		connections.add(connectionWithTogglesOff());
+		connections.add(disabledConnection());
 	}
 
 	private static HAConnection healthyConnection()
@@ -156,16 +139,10 @@ public class HAExporterPanelTest
 
 	private List<AbstractButton> settingsButtons()
 	{
-		List<AbstractButton> buttons = new ArrayList<>();
-		for (Component component : componentsIn(panel))
-		{
-			if (component instanceof AbstractButton
-				&& "Settings".equals(((AbstractButton) component).getToolTipText()))
-			{
-				buttons.add((AbstractButton) component);
-			}
-		}
-		return buttons;
+		return componentsIn(panel).stream()
+			.filter(component -> component instanceof AbstractButton && "Settings".equals(((AbstractButton) component).getToolTipText()))
+			.map(component -> (AbstractButton) component)
+			.collect(Collectors.toList());
 	}
 
 	private JLabel labelContaining(String fragment)
@@ -178,18 +155,12 @@ public class HAExporterPanelTest
 	// The first visible label whose text contains the fragment, or null
 	private JLabel findLabel(String fragment)
 	{
-		for (Component component : componentsIn(panel))
-		{
-			if (component instanceof JLabel && component.isVisible())
-			{
-				String text = ((JLabel) component).getText();
-				if (text != null && text.contains(fragment))
-				{
-					return (JLabel) component;
-				}
-			}
-		}
-		return null;
+		return componentsIn(panel).stream()
+			.filter(component -> component instanceof JLabel && component.isVisible())
+			.map(component -> (JLabel) component)
+			.filter(label -> label.getText() != null && label.getText().contains(fragment))
+			.findFirst()
+			.orElse(null);
 	}
 
 	private static void assertAllDisplayable(List<String> texts) throws Exception
