@@ -7,36 +7,20 @@ import static org.junit.Assert.*;
 public class CombatTaskTierTest
 {
 	@Test
-	public void testAllValues()
-	{
-		assertEquals(6, CombatTaskTier.values().length);
-	}
-
-	@Test
-	public void testFromString()
+	public void testFromStringIgnoresCaseAndSpaces()
 	{
 		assertEquals(CombatTaskTier.EASY, CombatTaskTier.fromString("easy"));
 		assertEquals(CombatTaskTier.EASY, CombatTaskTier.fromString("Easy"));
 		assertEquals(CombatTaskTier.GRANDMASTER, CombatTaskTier.fromString(" grandmaster "));
-	}
-
-	@Test
-	public void testFromStringUnknown()
-	{
 		assertNull(CombatTaskTier.fromString(null));
 		assertNull(CombatTaskTier.fromString("impossible"));
 	}
 
+	// The minimum tier setting compares tiers, so they must be declared from easiest to hardest
 	@Test
-	public void testOrdering()
+	public void testTiersAreOrderedByDifficulty()
 	{
-		assertTrue(CombatTaskTier.EASY.compareTo(CombatTaskTier.MEDIUM) < 0);
-		assertTrue(CombatTaskTier.GRANDMASTER.compareTo(CombatTaskTier.HARD) > 0);
-	}
-
-	@Test
-	public void testToString()
-	{
-		assertEquals("Easy", CombatTaskTier.EASY.toString());
+		assertArrayEquals(new CombatTaskTier[]{CombatTaskTier.EASY, CombatTaskTier.MEDIUM, CombatTaskTier.HARD,
+			CombatTaskTier.ELITE, CombatTaskTier.MASTER, CombatTaskTier.GRANDMASTER}, CombatTaskTier.values());
 	}
 }

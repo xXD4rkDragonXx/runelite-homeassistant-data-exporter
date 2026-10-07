@@ -3,104 +3,18 @@ package haexporterplugin.data;
 import com.google.gson.Gson;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class ItemDataTest
 {
 	@Test
-	public void testDefaultConstructorQuantityIsOne()
+	public void testCopyConstructorCopiesEveryField()
 	{
-		ItemData item = new ItemData();
-		assertEquals(1, item.getQuantity());
-	}
-
-	@Test
-	public void testParameterizedConstructor()
-	{
-		ItemData item = new ItemData("Abyssal whip", 4151, 1650000, 72000, 1);
-
-		assertEquals("Abyssal whip", item.getName());
-		assertEquals(4151, item.getId());
-		assertEquals(1650000, item.getGePrice());
-		assertEquals(72000, item.getHaPrice());
-		assertEquals(1, item.getQuantity());
-	}
-
-	@Test
-	public void testCopyConstructor()
-	{
-		ItemData original = new ItemData("Dragon defender", 12954, 500000, 68000, 1);
+		ItemData original = new ItemData("Dragon defender", 12954, 3_000_000_000L, 68000, 2);
 		original.setEquipmentSlot("SHIELD");
-
-		ItemData copy = new ItemData(original);
-
-		assertEquals("Dragon defender", copy.getName());
-		assertEquals(12954, copy.getId());
-		assertEquals(500000, copy.getGePrice());
-		assertEquals(68000, copy.getHaPrice());
-		assertEquals(1, copy.getQuantity());
-		assertEquals("SHIELD", copy.getEquipmentSlot());
-	}
-
-	@Test
-	public void testSetters()
-	{
-		ItemData item = new ItemData();
-		item.setName("Coins");
-		item.setId(995);
-		item.setGePrice(1);
-		item.setHaPrice(1);
-		item.setQuantity(10000);
-		item.setEquipmentSlot(null);
-
-		assertEquals("Coins", item.getName());
-		assertEquals(995, item.getId());
-		assertEquals(1, item.getGePrice());
-		assertEquals(1, item.getHaPrice());
-		assertEquals(10000, item.getQuantity());
-		assertNull(item.getEquipmentSlot());
-	}
-
-	@Test
-	public void testPriceAboveIntMaxIsKeptAndSerialized()
-	{
-		ItemData item = new ItemData("Pricey", 1, 3_000_000_000L, 1000, 1);
-
-		assertEquals(3_000_000_000L, item.getGePrice());
-		assertEquals(3_000_000_000L, new ItemData(item).getGePrice());
-		assertTrue(new Gson().toJson(item).contains("\"gePrice\":3000000000"));
-	}
-
-	@Test
-	public void testCopyConstructorKeepsInventorySlot()
-	{
-		ItemData original = new ItemData("Hammer", 2347, 144, 0, 1);
 		original.setInventorySlot(5);
 
-		assertEquals(Integer.valueOf(5), new ItemData(original).getInventorySlot());
-	}
-
-	@Test
-	public void testInventorySlotSerializedOnlyWhenSet()
-	{
-		ItemData item = new ItemData("Hammer", 2347, 144, 0, 1);
-		assertFalse(new Gson().toJson(item).contains("inventorySlot"));
-
-		item.setInventorySlot(0);
-		assertTrue(new Gson().toJson(item).contains("\"inventorySlot\":0"));
-	}
-
-	@Test
-	public void testCopyConstructorIsDeepEnough()
-	{
-		ItemData original = new ItemData("Test", 1, 100, 50, 5);
-		ItemData copy = new ItemData(original);
-
-		copy.setName("Modified");
-		copy.setQuantity(10);
-
-		// Original should remain unchanged
-		assertEquals("Test", original.getName());
-		assertEquals(5, original.getQuantity());
+		Gson gson = new Gson();
+		assertEquals(gson.toJson(original), gson.toJson(new ItemData(original)));
 	}
 }

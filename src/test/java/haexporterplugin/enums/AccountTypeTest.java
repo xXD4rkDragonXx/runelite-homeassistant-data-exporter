@@ -2,98 +2,36 @@ package haexporterplugin.enums;
 
 import org.junit.Test;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import static org.junit.Assert.*;
 
 public class AccountTypeTest
 {
+	// The game sets the varbit value, so the order of the constants matters
 	@Test
-	public void testGetNormal()
+	public void testGetMapsTheVarbitValue()
 	{
-		assertEquals(AccountType.NORMAL, AccountType.get(0));
-	}
-
-	@Test
-	public void testGetIronman()
-	{
-		assertEquals(AccountType.IRONMAN, AccountType.get(1));
-	}
-
-	@Test
-	public void testGetUltimateIronman()
-	{
-		assertEquals(AccountType.ULTIMATE_IRONMAN, AccountType.get(2));
-	}
-
-	@Test
-	public void testGetHardcoreIronman()
-	{
-		assertEquals(AccountType.HARDCORE_IRONMAN, AccountType.get(3));
-	}
-
-	@Test
-	public void testGetGroupIronman()
-	{
-		assertEquals(AccountType.GROUP_IRONMAN, AccountType.get(4));
-	}
-
-	@Test
-	public void testGetHardcoreGroupIronman()
-	{
-		assertEquals(AccountType.HARDCORE_GROUP_IRONMAN, AccountType.get(5));
-	}
-
-	@Test
-	public void testGetUnrankedGroupIronman()
-	{
-		assertEquals(AccountType.UNRANKED_GROUP_IRONMAN, AccountType.get(6));
-	}
-
-	@Test
-	public void testGetNegativeReturnsNull()
-	{
+		AccountType[] expected = {
+			AccountType.NORMAL, AccountType.IRONMAN, AccountType.ULTIMATE_IRONMAN, AccountType.HARDCORE_IRONMAN,
+			AccountType.GROUP_IRONMAN, AccountType.HARDCORE_GROUP_IRONMAN, AccountType.UNRANKED_GROUP_IRONMAN
+		};
+		for (int value = 0; value < expected.length; value++)
+		{
+			assertEquals(expected[value], AccountType.get(value));
+		}
 		assertNull(AccountType.get(-1));
+		assertNull(AccountType.get(expected.length));
 	}
 
 	@Test
-	public void testGetOutOfBoundsReturnsNull()
+	public void testOnlyHardcoreTypesAreHardcore()
 	{
-		assertNull(AccountType.get(100));
-	}
-
-	@Test
-	public void testIsHardcoreForHardcoreIronman()
-	{
-		assertTrue(AccountType.HARDCORE_IRONMAN.isHardcore());
-	}
-
-	@Test
-	public void testIsHardcoreForHardcoreGroupIronman()
-	{
-		assertTrue(AccountType.HARDCORE_GROUP_IRONMAN.isHardcore());
-	}
-
-	@Test
-	public void testIsHardcoreReturnsFalseForNormal()
-	{
-		assertFalse(AccountType.NORMAL.isHardcore());
-	}
-
-	@Test
-	public void testIsHardcoreReturnsFalseForIronman()
-	{
-		assertFalse(AccountType.IRONMAN.isHardcore());
-	}
-
-	@Test
-	public void testIsHardcoreReturnsFalseForGroupIronman()
-	{
-		assertFalse(AccountType.GROUP_IRONMAN.isHardcore());
-	}
-
-	@Test
-	public void testAllValuesAccessible()
-	{
-		AccountType[] values = AccountType.values();
-		assertEquals(7, values.length);
+		Set<AccountType> hardcore = EnumSet.of(AccountType.HARDCORE_IRONMAN, AccountType.HARDCORE_GROUP_IRONMAN);
+		for (AccountType type : AccountType.values())
+		{
+			assertEquals(type.name(), hardcore.contains(type), type.isHardcore());
+		}
 	}
 }

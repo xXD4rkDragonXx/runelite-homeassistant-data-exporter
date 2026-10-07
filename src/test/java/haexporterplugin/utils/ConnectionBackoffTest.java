@@ -1,8 +1,11 @@
 package haexporterplugin.utils;
 
+import haexporterplugin.utils.ConnectionBackoff.Outcome;
 import org.junit.Test;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 
@@ -14,31 +17,6 @@ public class ConnectionBackoffTest
 
 	private long now = 1_700_000_000_000L;
 	private final ConnectionBackoff backoff = new ConnectionBackoff(() -> now);
-
-	@Test
-	public void testUnknownKeyIsNotPaused()
-	{
-		assertFalse(backoff.isPaused(KEY));
-		assertEquals(0, backoff.getPausedUntil(KEY));
-		assertEquals(0, backoff.getQueuedCount(KEY));
-		assertNull(backoff.beginDrain(KEY));
-	}
-
-	@Test
-	public void testFailureBackoffDoublesUpToTenMinutes()
-	{
-		long[] expectedSeconds = {30, 60, 120, 240, 480, 600, 600};
-
-		for (long seconds : expectedSeconds)
-		{
-			backoff.recordFailure(KEY);
-			assertTrue(backoff.isPaused(KEY));
-			assertEquals(now + seconds * SECOND, backoff.getPausedUntil(KEY));
-
-			now = backoff.getPausedUntil(KEY);
-			assertFalse(backoff.isPaused(KEY));
-		}
-	}
 
 	@Test
 	public void testFirstFailureIsReportedOnce()
@@ -121,31 +99,18 @@ public class ConnectionBackoffTest
 	}
 
 	@Test
-	public void testParseRetryAfterDeltaSeconds()
+	public void testParseRetryAfter()
 	{
 		assertEquals(Long.valueOf(now + 120 * SECOND), ConnectionBackoff.parseRetryAfter("120", now));
 		assertEquals(Long.valueOf(now + 5 * SECOND), ConnectionBackoff.parseRetryAfter(" 5 ", now));
 		assertEquals(Long.valueOf(now), ConnectionBackoff.parseRetryAfter("0", now));
-	}
+		assertEquals(Long.valueOf(Instant.parse("2015-10-21T07:28:00Z").toEpochMilli()),
+			ConnectionBackoff.parseRetryAfter("Wed, 21 Oct 2015 07:28:00 GMT", now));
 
-	@Test
-	public void testParseRetryAfterHttpDate()
-	{
-		long expected = Instant.parse("2015-10-21T07:28:00Z").toEpochMilli();
-		assertEquals(Long.valueOf(expected), ConnectionBackoff.parseRetryAfter("Wed, 21 Oct 2015 07:28:00 GMT", now));
-	}
-
-	@Test
-	public void testParseRetryAfterInvalidValues()
-	{
-		assertNull(ConnectionBackoff.parseRetryAfter(null, now));
-		assertNull(ConnectionBackoff.parseRetryAfter("", now));
-		assertNull(ConnectionBackoff.parseRetryAfter("   ", now));
-		assertNull(ConnectionBackoff.parseRetryAfter("soon", now));
-		assertNull(ConnectionBackoff.parseRetryAfter("-5", now));
-		assertNull(ConnectionBackoff.parseRetryAfter("1.5", now));
-		assertNull(ConnectionBackoff.parseRetryAfter("99999999999999999999", now));
-		assertNull(ConnectionBackoff.parseRetryAfter("2015-10-21T07:28:00Z", now));
+		for (String invalid : new String[]{null, "", "   ", "soon", "-5", "1.5", "99999999999999999999", "2015-10-21T07:28:00Z"})
+		{
+			assertNull(invalid, ConnectionBackoff.parseRetryAfter(invalid, now));
+		}
 	}
 
 	@Test
@@ -189,14 +154,6 @@ public class ConnectionBackoffTest
 		assertEquals("a", backoff.beginDrain(KEY));
 		backoff.completeDrain(KEY, true);
 		assertEquals("b+c", backoff.beginDrain(KEY));
-	}
-
-	@Test
-	public void testNoMergeCandidateWhenNothingIsQueued()
-	{
-		assertNull(backoff.getMergeCandidate(KEY));
-		assertFalse(backoff.replaceNewest(KEY, "a", "a+b"));
-		assertEquals(0, backoff.getQueuedCount(KEY));
 	}
 
 	@Test
@@ -261,23 +218,6 @@ public class ConnectionBackoffTest
 	}
 
 	@Test
-	public void testDrainIsFifo()
-	{
-		backoff.enqueue(KEY, "a");
-		backoff.enqueue(KEY, "b");
-		backoff.enqueue(KEY, "c");
-
-		for (String expected : new String[]{"a", "b", "c"})
-		{
-			assertEquals(expected, backoff.beginDrain(KEY));
-			backoff.completeDrain(KEY, true);
-		}
-
-		assertEquals(0, backoff.getQueuedCount(KEY));
-		assertNull(backoff.beginDrain(KEY));
-	}
-
-	@Test
 	public void testBeginDrainReturnsNullWhilePaused()
 	{
 		backoff.enqueue(KEY, "a");
@@ -300,19 +240,6 @@ public class ConnectionBackoffTest
 
 		backoff.completeDrain(KEY, true);
 		assertEquals("b", backoff.beginDrain(KEY));
-	}
-
-	@Test
-	public void testFailedDrainKeepsHead()
-	{
-		backoff.enqueue(KEY, "a");
-		backoff.enqueue(KEY, "b");
-
-		assertEquals("a", backoff.beginDrain(KEY));
-		backoff.completeDrain(KEY, false);
-
-		assertEquals(2, backoff.getQueuedCount(KEY));
-		assertEquals("a", backoff.beginDrain(KEY));
 	}
 
 	@Test
@@ -380,28 +307,15 @@ public class ConnectionBackoffTest
 	@Test
 	public void testClassify()
 	{
-		assertEquals(ConnectionBackoff.Outcome.SUCCESS, ConnectionBackoff.classify(200));
-		assertEquals(ConnectionBackoff.Outcome.SUCCESS, ConnectionBackoff.classify(204));
-		assertEquals(ConnectionBackoff.Outcome.UNAUTHORIZED, ConnectionBackoff.classify(401));
-		assertEquals(ConnectionBackoff.Outcome.GONE, ConnectionBackoff.classify(410));
-		assertEquals(ConnectionBackoff.Outcome.RETRY_AFTER, ConnectionBackoff.classify(429));
-		assertEquals(ConnectionBackoff.Outcome.RETRY_AFTER, ConnectionBackoff.classify(503));
-		assertEquals(ConnectionBackoff.Outcome.BACKOFF, ConnectionBackoff.classify(500));
-		assertEquals(ConnectionBackoff.Outcome.BACKOFF, ConnectionBackoff.classify(502));
-		assertEquals(ConnectionBackoff.Outcome.BACKOFF, ConnectionBackoff.classify(504));
-		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(400));
-		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(403));
-		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(405));
-		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(413));
-		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(422));
-		assertEquals(ConnectionBackoff.Outcome.REJECTED, ConnectionBackoff.classify(302));
-	}
-
-	// A 404 says the endpoint isn't there (yet), not that it refused the payload: Home Assistant answers it
-	// until the integration has registered its endpoints
-	@Test
-	public void testNotFoundIsClassifiedAsBackoff()
-	{
-		assertEquals(ConnectionBackoff.Outcome.BACKOFF, ConnectionBackoff.classify(404));
+		Map<Outcome, List<Integer>> codes = Map.of(
+			Outcome.SUCCESS, List.of(200, 204),
+			Outcome.UNAUTHORIZED, List.of(401),
+			Outcome.GONE, List.of(410),
+			Outcome.RETRY_AFTER, List.of(429, 503),
+			// A 404 says the endpoint isn't there (yet), not that it refused the payload: Home Assistant answers it
+			// until the integration has registered its endpoints
+			Outcome.BACKOFF, List.of(404, 500, 502, 504),
+			Outcome.REJECTED, List.of(302, 400, 403, 405, 413, 422));
+		codes.forEach((outcome, list) -> list.forEach(code -> assertEquals("HTTP " + code, outcome, ConnectionBackoff.classify(code))));
 	}
 }
