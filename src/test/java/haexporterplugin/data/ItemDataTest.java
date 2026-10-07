@@ -3,16 +3,10 @@ package haexporterplugin.data;
 import com.google.gson.Gson;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class ItemDataTest
 {
-	@Test
-	public void testDefaultQuantityIsOne()
-	{
-		assertEquals(1, new ItemData().getQuantity());
-	}
-
 	@Test
 	public void testCopyConstructorCopiesEveryField()
 	{

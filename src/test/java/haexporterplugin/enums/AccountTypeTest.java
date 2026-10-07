@@ -2,6 +2,9 @@ package haexporterplugin.enums;
 
 import org.junit.Test;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import static org.junit.Assert.*;
 
 public class AccountTypeTest
@@ -25,9 +28,10 @@ public class AccountTypeTest
 	@Test
 	public void testOnlyHardcoreTypesAreHardcore()
 	{
+		Set<AccountType> hardcore = EnumSet.of(AccountType.HARDCORE_IRONMAN, AccountType.HARDCORE_GROUP_IRONMAN);
 		for (AccountType type : AccountType.values())
 		{
-			assertEquals(type.name(), type.name().startsWith("HARDCORE_"), type.isHardcore());
+			assertEquals(type.name(), hardcore.contains(type), type.isHardcore());
 		}
 	}
 }

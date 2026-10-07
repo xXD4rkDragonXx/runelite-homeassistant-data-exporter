@@ -1,7 +1,9 @@
 package haexporterplugin;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.util.Providers;
@@ -16,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.RETURNS_DEFAULTS;
 import static org.mockito.Mockito.mock;
 
@@ -27,8 +30,9 @@ public final class TestUtils
 	}
 
 	/**
-	 * An injector for plugin classes such as notifiers. Everything a notifier injects is a mock, except the
-	 * MessageBuilder, which is real so the test can read what was built. The given instances replace the mocks.
+	 * An injector for plugin classes such as notifiers. What every notifier injects is a mock (the client, config,
+	 * HomeAssistUtils, TickUtils, RarityUtils and ThievingUtils), Gson is real, and Guice creates anything else, such
+	 * as the MessageBuilder a test reads. The given instances replace the mocks or add bindings.
 	 */
 	@SuppressWarnings("unchecked")
 	public static Injector injector(Map<Class<?>, Object> instances)
@@ -43,7 +47,7 @@ public final class TestUtils
 
 		// Providers.of avoids Guice member-injecting the mocks' inherited @Inject fields
 		return Guice.createInjector(binder -> bindings.forEach((type, instance) ->
-			binder.bind((Class<Object>) type).toProvider(Providers.of(instance))));
+			binder.bind((Class<Object>) type).toProvider(Providers.of(type.cast(instance)))));
 	}
 
 	// A config with every switch on
@@ -62,9 +66,34 @@ public final class TestUtils
 		field.set(target, value);
 	}
 
-	// Parses JSON written with single quotes, which keeps expected JSON readable in Java strings
-	public static JsonElement json(String singleQuotedJson)
+	// Parses leniently, so JSON in a Java string can use single quotes
+	public static JsonElement json(String json)
 	{
-		return new Gson().fromJson(singleQuotedJson.replace('\'', '"'), JsonElement.class);
+		return new Gson().fromJson(json, JsonElement.class);
+	}
+
+	// The key order doesn't matter, but numbers must be written the same: 3000000000 doesn't match 3.0E9
+	public static void assertJsonEquals(String expected, String actual)
+	{
+		assertEquals(sortKeys(json(expected)).toString(), sortKeys(json(actual)).toString());
+	}
+
+	private static JsonElement sortKeys(JsonElement element)
+	{
+		if (element.isJsonArray())
+		{
+			JsonArray array = new JsonArray();
+			element.getAsJsonArray().forEach(item -> array.add(sortKeys(item)));
+			return array;
+		}
+		if (!element.isJsonObject())
+		{
+			return element;
+		}
+		JsonObject object = new JsonObject();
+		element.getAsJsonObject().entrySet().stream()
+			.sorted(Map.Entry.comparingByKey())
+			.forEach(entry -> object.add(entry.getKey(), sortKeys(entry.getValue())));
+		return object;
 	}
 }

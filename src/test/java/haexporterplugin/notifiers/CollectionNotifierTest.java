@@ -98,7 +98,7 @@ public class CollectionNotifierTest
 	}
 
 	@Test
-	public void testKillCountSurvivesAQueuedPopup()
+	public void testQueuedPopupIsUsedWithTheKillCountOfItsDrop()
 	{
 		setNotificationSetting(POPUP);
 		chat("Your Vorkath kill count is: 1,250.");
@@ -115,7 +115,7 @@ public class CollectionNotifierTest
 
 	// The whip is worth 1.5M
 	@Test
-	public void testItemBelowMinimumValueIsSkipped()
+	public void testMinimumValueSkipsCheaperItems()
 	{
 		setNotificationSetting(CHAT_ONLY);
 		when(config.clogMinValue()).thenReturn(2_000_000);

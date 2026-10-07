@@ -304,8 +304,6 @@ public class ConnectionBackoffTest
 		assertEquals(0, backoff.getQueuedCount(other));
 	}
 
-	// A 404 says the endpoint isn't there (yet), not that it refused the payload: Home Assistant answers it
-	// until the integration has registered its endpoints
 	@Test
 	public void testClassify()
 	{
@@ -314,6 +312,8 @@ public class ConnectionBackoffTest
 			Outcome.UNAUTHORIZED, List.of(401),
 			Outcome.GONE, List.of(410),
 			Outcome.RETRY_AFTER, List.of(429, 503),
+			// A 404 says the endpoint isn't there (yet), not that it refused the payload: Home Assistant answers it
+			// until the integration has registered its endpoints
 			Outcome.BACKOFF, List.of(404, 500, 502, 504),
 			Outcome.REJECTED, List.of(302, 400, 403, 405, 413, 422));
 		codes.forEach((outcome, list) -> list.forEach(code -> assertEquals("HTTP " + code, outcome, ConnectionBackoff.classify(code))));

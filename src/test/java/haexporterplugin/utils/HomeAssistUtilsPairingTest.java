@@ -1,6 +1,5 @@
 package haexporterplugin.utils;
 
-import com.google.gson.JsonObject;
 import haexporterplugin.HAExporterConfig;
 import haexporterplugin.HAExporterPlugin;
 import haexporterplugin.TestUtils;
@@ -80,9 +79,9 @@ public class HomeAssistUtilsPairingTest extends HomeAssistUtilsTestBase
 		// Only a string with something left after sanitizing is a name
 		for (String name : new String[]{"42", "true", "null", "{\"value\":\"My Server\"}", "[\"My Server\"]", "\"\"", "\"\\t\\n\""})
 		{
-			assertNull(name, HomeAssistUtils.parsePairName(json("{\"name\":" + name + "}")));
+			assertNull(name, HomeAssistUtils.parsePairName(TestUtils.json("{\"name\":" + name + "}").getAsJsonObject()));
 		}
-		assertEquals("a".repeat(64), HomeAssistUtils.parsePairName(json("{\"name\":\"" + "a".repeat(100) + "\"}")));
+		assertEquals("a".repeat(64), HomeAssistUtils.parsePairName(TestUtils.json("{\"name\":\"" + "a".repeat(100) + "\"}").getAsJsonObject()));
 	}
 
 	@Test
@@ -104,7 +103,7 @@ public class HomeAssistUtilsPairingTest extends HomeAssistUtilsTestBase
 	@Test
 	public void testSanitizeServerText()
 	{
-		assertEquals("My Server", HomeAssistUtils.sanitizeServerText("My\u0000 Serv\u001ber\u007f\t", 64, false));
+		assertEquals("My Server", HomeAssistUtils.sanitizeServerText(" My\u0000 Serv\u001ber\u007f\t", 64, false));
 		assertEquals("ab", HomeAssistUtils.sanitizeServerText("a\nb", 64, false));
 		assertEquals("a\nb", HomeAssistUtils.sanitizeServerText("a\r\nb", 64, true));
 		assertEquals("htmlscriptx/script", HomeAssistUtils.sanitizeServerText("<html><script>x</script>", 64, true));
@@ -125,10 +124,10 @@ public class HomeAssistUtilsPairingTest extends HomeAssistUtilsTestBase
 		ConfigUtils configUtils = createConfigUtils();
 		configUtils.addStoredConnection("http://ha.local:8123", "abc123", "My Server");
 
-		HAConnection connection = configUtils.getStoredConnections().get(0);
-		assertEquals("abc123", connection.getToken());
-		assertEquals("My Server", connection.getFriendlyName());
-		assertEquals("My Server", connection.getDisplayName());
+		HAConnection stored = configUtils.getStoredConnections().get(0);
+		assertEquals("abc123", stored.getToken());
+		assertEquals("My Server", stored.getFriendlyName());
+		assertEquals("My Server", stored.getDisplayName());
 	}
 
 	@Test
@@ -137,9 +136,9 @@ public class HomeAssistUtilsPairingTest extends HomeAssistUtilsTestBase
 		ConfigUtils configUtils = createConfigUtils();
 		configUtils.addStoredConnection("http://ha.local:8123", "abc123", null);
 
-		HAConnection connection = configUtils.getStoredConnections().get(0);
-		assertNull(connection.getFriendlyName());
-		assertEquals("http://ha.local:8123", connection.getDisplayName());
+		HAConnection stored = configUtils.getStoredConnections().get(0);
+		assertNull(stored.getFriendlyName());
+		assertEquals("http://ha.local:8123", stored.getDisplayName());
 		assertFalse(storedConnections.contains("friendlyName"));
 	}
 
@@ -163,11 +162,6 @@ public class HomeAssistUtilsPairingTest extends HomeAssistUtilsTestBase
 		assertNull(result.failure);
 		assertEquals("abc123", result.token);
 		assertEquals(name, result.name);
-	}
-
-	private JsonObject json(String json)
-	{
-		return gson.fromJson(json, JsonObject.class);
 	}
 
 	// ConfigUtils only touches the stored connections item, so an in-memory proxy is enough as config

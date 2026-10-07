@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import static haexporterplugin.TestUtils.json;
+import static haexporterplugin.TestUtils.assertJsonEquals;
 import static org.junit.Assert.*;
 
 public class MessageBuilderTest
@@ -57,13 +57,13 @@ public class MessageBuilderTest
 
 		JsonObject built = gson.fromJson(messageBuilder.build(), JsonObject.class);
 		built.remove("timestamp");
-		assertEquals(json("{'player':{'name':'TestPlayer','accountHash':'abc','accountType':'IRONMAN','world':'302',"
+		assertJsonEquals("{'player':{'name':'TestPlayer','accountHash':'abc','accountType':'IRONMAN','world':'302',"
 			+ "'worldTypes':['MEMBERS','SEASONAL'],'location':{'x':3222,'y':3218,'plane':1,'isOnBoat':true},'locationTrail':[],"
 			+ "'health':{'current':85,'max':99},'prayerPoints':{'current':52,'max':70},'spellbook':{'id':1,'name':'ancient'},"
 			+ "'stats':{'skills':{'Attack':{'xp':200000000,'level':99}}},"
 			+ "'inventory':{'items':[{'name':'Coins','id':995,'gePrice':1,'haPrice':1,'quantity':100,'inventorySlot':0}]},"
 			+ "'equipment':{'items':[{'name':'Abyssal whip','id':4151,'gePrice':3000000000,'haPrice':72000,'quantity':1,'equipmentSlot':'WEAPON'}]}},"
-			+ "'events':[],'state':'LOGGED_IN','tickDelay':100}"), built);
+			+ "'events':[],'state':'LOGGED_IN','tickDelay':100}", built.toString());
 	}
 
 	@Test

@@ -41,7 +41,7 @@ public class TaskTierNotifierTest
 	}
 
 	@Test
-	public void testDiaryBelowMinimumTierIsSkipped()
+	public void testDiaryMinimumTierSkipsEasierTasks()
 	{
 		diaryNotifier.onChatMessage(chat(HARD_DIARY));
 		assertEquals(1, eventCount());
@@ -55,7 +55,7 @@ public class TaskTierNotifierTest
 	}
 
 	@Test
-	public void testCombatTaskBelowMinimumTierIsSkipped()
+	public void testCombatTaskMinimumTierSkipsEasierTasks()
 	{
 		combatTaskNotifier.onChatMessage(chat(MEDIUM_TASK));
 		assertEquals(1, eventCount());
