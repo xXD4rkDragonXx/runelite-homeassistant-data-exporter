@@ -1,0 +1,71 @@
+name: Tag Release
+
+# Tags the commit referenced in the plugin-hub manifest with the version from build.gradle.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+    paths:
+      - build.gradle
+
+permissions:
+  contents: write
+
+env:
+  PLUGIN_HUB_MANIFEST: https://raw.githubusercontent.com/xXD4rkDragonXx/plugin-hub/master/plugins/ha-exporter
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version from build.gradle
+        id: version
+        run: |
+          VERSION=$(grep -oP "^version\s*=\s*['\"]\K[^'\"]+" build.gradle)
+          if [ -z "$VERSION" ]; then
+            echo "Could not find version in build.gradle" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Plugin version: $VERSION"
+
+      - name: Read commit from plugin-hub manifest
+        id: commit
+        run: |
+          MANIFEST=$(curl -fsSL "$PLUGIN_HUB_MANIFEST")
+          COMMIT=$(echo "$MANIFEST" | grep -oP "^commit=\K.*" | tr -d '[:space:]')
+          if [ -z "$COMMIT" ]; then
+            echo "Could not find commit in plugin-hub manifest" >&2
+            exit 1
+          fi
+          echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+          echo "Plugin-hub commit: $COMMIT"
+
+      - name: Create and push tag
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          COMMIT: ${{ steps.commit.outputs.commit }}
+        run: |
+          TAG="v$VERSION"
+
+          if ! git cat-file -e "$COMMIT^{commit}" 2>/dev/null; then
+            echo "Commit $COMMIT not found in this repository" >&2
+            exit 1
+          fi
+
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "Tag $TAG already exists, nothing to do."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" "$COMMIT" -m "Release $TAG"
+          git push origin "$TAG"
+          echo "Tagged $COMMIT as $TAG"
