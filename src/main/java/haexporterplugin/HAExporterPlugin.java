@@ -302,6 +302,7 @@ public class HAExporterPlugin extends Plugin
 			PrayerData prayer = new PrayerData(client.getBoostedSkillLevel(Skill.PRAYER), client.getRealSkillLevel(Skill.PRAYER));
 			messageBuilder.setData("health", health);
 			messageBuilder.setData("prayer", prayer);
+			bankNotifier.restore();
 			messageBuilder.setTickDelay(config.sendRate());
 
 			tickUtils.sendNow();

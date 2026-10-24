@@ -80,6 +80,9 @@ public class MessageBuilder {
             case "activeprayers":
                 player.setActivePrayers((ActivePrayers) data);
                 break;
+            case "bank":
+                player.setBank((BankValue) data);
+                break;
             default:
                 log.warn("Unknown category: {}", category);
                 break;

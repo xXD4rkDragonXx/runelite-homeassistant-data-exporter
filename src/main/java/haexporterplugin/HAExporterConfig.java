@@ -187,7 +187,8 @@ public interface HAExporterConfig extends Config
 	@ConfigItem(
 			keyName = "includeBankValue",
 			name = "Share bank value",
-			description = "Send the GE value of your bank when you open it, and again when you close it if it changed."
+			description = "Send the GE value of your bank with every update. It is read each time you open the bank, and again"
+					+ " when you close it if it changed, and remembered for your next login."
 					+ " Only the total is sent, not the items." + MASTER_SWITCH_NOTE,
 			position = 204,
 			section = dataSection

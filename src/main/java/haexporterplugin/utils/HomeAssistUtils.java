@@ -256,10 +256,11 @@ public class HomeAssistUtils {
                 && config.includeInventory()
                 && config.includeEquipment()
                 && config.includeActivePrayers()
+                && connection.isIncludeBankValue()
+                && config.includeBankValue()
                 && locationEnabled;
 
         boolean allEventsEnabled = connection.isIncludeLootEvents() && config.includeLootEvents()
-                && connection.isIncludeBankValue() && config.includeBankValue()
                 && connection.isIncludeDeathEvents() && config.includeDeathEvents()
                 && connection.isIncludeLevelUpEvents() && config.includeLevelUpEvents()
                 && connection.isIncludeAchievementDiaryEvents() && config.includeAchievementDiaryEvents()
@@ -283,6 +284,9 @@ public class HomeAssistUtils {
             }
             if (!connection.isIncludeActivePrayers() || !config.includeActivePrayers()) {
                 player.remove("activePrayers");
+            }
+            if (!connection.isIncludeBankValue() || !config.includeBankValue()) {
+                player.remove("bank");
             }
             if (!locationEnabled) {
                 player.remove("location");
@@ -312,8 +316,6 @@ public class HomeAssistUtils {
                 return connection.isIncludeLootEvents() && config.includeLootEvents();
             case "death":
                 return connection.isIncludeDeathEvents() && config.includeDeathEvents();
-            case "bankValue":
-                return connection.isIncludeBankValue() && config.includeBankValue();
             case "levelUp":
                 return connection.isIncludeLevelUpEvents() && config.includeLevelUpEvents();
             case "achievementDiary":

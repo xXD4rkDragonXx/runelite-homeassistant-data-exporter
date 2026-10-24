@@ -15,11 +15,11 @@ public class HomeAssistUtilsFilterTest extends HomeAssistUtilsTestBase
 		+ "\"player\":{"
 		+ "\"name\":\"PlayerName\","
 		+ "\"location\":{\"x\":1640,\"y\":9562,\"plane\":0,\"isOnBoat\":false},"
-		+ "\"locationTrail\":[{\"x\":1640,\"y\":9562,\"plane\":0,\"isOnBoat\":false,\"timestamp\":1735689600000}]"
+		+ "\"locationTrail\":[{\"x\":1640,\"y\":9562,\"plane\":0,\"isOnBoat\":false,\"timestamp\":1735689600000}],"
+		+ "\"bank\":{\"value\":1500000000,\"readAt\":1735689600000}"
 		+ "},"
 		+ "\"events\":["
-		+ "{\"type\":\"levelUp\",\"data\":[{\"skill\":\"Attack\",\"level\":99}]},"
-		+ "{\"type\":\"bankValue\",\"data\":{\"value\":1500000000}}"
+		+ "{\"type\":\"levelUp\",\"data\":[{\"skill\":\"Attack\",\"level\":99}]}"
 		+ "]}";
 
 	// Either switch being off is enough
@@ -43,7 +43,8 @@ public class HomeAssistUtilsFilterTest extends HomeAssistUtilsTestBase
 		JsonObject filtered = filter();
 
 		assertEquals(1, filtered.getAsJsonObject("player").getAsJsonArray("locationTrail").size());
-		assertEquals(List.of("bankValue"), eventTypes(filtered));
+		assertTrue(filtered.getAsJsonObject("player").has("bank"));
+		assertEquals(List.of(), eventTypes(filtered));
 	}
 
 	// Either switch being off drops the bank value and nothing else
@@ -51,13 +52,14 @@ public class HomeAssistUtilsFilterTest extends HomeAssistUtilsTestBase
 	public void testBankValueSwitches()
 	{
 		connection.setIncludeBankValue(false);
-		assertEquals(List.of("levelUp"), eventTypes(filter()));
+		assertNoBank(filter());
 
 		connection.setIncludeBankValue(true);
-		assertEquals(List.of("levelUp", "bankValue"), eventTypes(filter()));
+		JsonObject kept = filter();
+		assertEquals(1_500_000_000L, kept.getAsJsonObject("player").getAsJsonObject("bank").get("value").getAsLong());
 
 		when(config.includeBankValue()).thenReturn(false);
-		assertEquals(List.of("levelUp"), eventTypes(filter()));
+		assertNoBank(filter());
 	}
 
 	private JsonObject filter()
@@ -69,7 +71,15 @@ public class HomeAssistUtilsFilterTest extends HomeAssistUtilsTestBase
 	{
 		assertFalse(filtered.getAsJsonObject("player").has("location"));
 		assertFalse(filtered.getAsJsonObject("player").has("locationTrail"));
-		assertEquals(List.of("levelUp", "bankValue"), eventTypes(filtered));
+		assertEquals(List.of("levelUp"), eventTypes(filtered));
+	}
+
+	private static void assertNoBank(JsonObject filtered)
+	{
+		JsonObject player = filtered.getAsJsonObject("player");
+		assertFalse(player.has("bank"));
+		assertTrue(player.has("location"));
+		assertEquals(List.of("levelUp"), eventTypes(filtered));
 	}
 
 	private static List<String> eventTypes(JsonObject payload)
