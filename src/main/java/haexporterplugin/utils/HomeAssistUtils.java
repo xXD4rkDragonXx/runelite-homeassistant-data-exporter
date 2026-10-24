@@ -252,8 +252,10 @@ public class HomeAssistUtils {
 
         boolean allDataEnabled = connection.isIncludeInventory()
                 && connection.isIncludeEquipment()
+                && connection.isIncludeActivePrayers()
                 && config.includeInventory()
                 && config.includeEquipment()
+                && config.includeActivePrayers()
                 && locationEnabled;
 
         boolean allEventsEnabled = connection.isIncludeLootEvents() && config.includeLootEvents()
@@ -277,6 +279,9 @@ public class HomeAssistUtils {
             }
             if (!connection.isIncludeEquipment() || !config.includeEquipment()) {
                 player.remove("equipment");
+            }
+            if (!connection.isIncludeActivePrayers() || !config.includeActivePrayers()) {
+                player.remove("activePrayers");
             }
             if (!locationEnabled) {
                 player.remove("location");

@@ -13,13 +13,16 @@ public class HAConnectionTest
 		HAConnection conn = new HAConnection("http://ha.local:8123", "tok");
 		assertTrue(conn.isIncludeInventory());
 		assertTrue(conn.isIncludeEquipment());
+		assertTrue(conn.isIncludeActivePrayers());
 		assertTrue(conn.isIncludeLocation());
 
 		conn.setIncludeInventory(false);
 		conn.setIncludeEquipment(false);
+		conn.setIncludeActivePrayers(false);
 		conn.setIncludeLocation(false);
 		assertFalse(conn.isIncludeInventory());
 		assertFalse(conn.isIncludeEquipment());
+		assertFalse(conn.isIncludeActivePrayers());
 		assertFalse(conn.isIncludeLocation());
 	}
 
@@ -34,6 +37,7 @@ public class HAConnectionTest
 		assertTrue(conn.isEnabled());
 		assertTrue(conn.isIncludeInventory());
 		assertTrue(conn.isIncludeEquipment());
+		assertTrue(conn.isIncludeActivePrayers());
 		assertTrue(conn.isIncludeLocation());
 		assertTrue(conn.isIncludeLootEvents());
 		assertTrue(conn.isIncludeDeathEvents());

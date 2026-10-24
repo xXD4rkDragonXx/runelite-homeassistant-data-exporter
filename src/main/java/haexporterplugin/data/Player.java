@@ -23,6 +23,7 @@ public class Player {
     private Stats stats;
     private Inventory inventory;
     private Equipment equipment;
+    private ActivePrayers activePrayers;
 
     public Player() {
     }

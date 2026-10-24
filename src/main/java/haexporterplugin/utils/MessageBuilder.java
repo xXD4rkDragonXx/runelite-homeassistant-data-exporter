@@ -77,6 +77,9 @@ public class MessageBuilder {
             case "equipment":
                 player.setEquipment(data);
                 break;
+            case "activeprayers":
+                player.setActivePrayers((ActivePrayers) data);
+                break;
             default:
                 log.warn("Unknown category: {}", category);
                 break;

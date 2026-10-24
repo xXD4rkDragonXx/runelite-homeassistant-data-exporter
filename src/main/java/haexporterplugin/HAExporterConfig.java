@@ -174,10 +174,21 @@ public interface HAExporterConfig extends Config
 	}
 
 	@ConfigItem(
+			keyName = "includeActivePrayers",
+			name = "Share active prayers",
+			description = "Send the prayers you currently have turned on." + MASTER_SWITCH_NOTE,
+			position = 203,
+			section = dataSection
+	)
+	default boolean includeActivePrayers() {
+		return true;
+	}
+
+	@ConfigItem(
 			keyName = "includeLocation",
 			name = "Share location",
 			description = "Send your in-game coordinates and the trail of tiles you visited." + MASTER_SWITCH_NOTE,
-			position = 203,
+			position = 204,
 			section = dataSection
 	)
 	default boolean includeLocation() {

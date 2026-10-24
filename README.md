@@ -18,6 +18,7 @@ A [RuneLite](https://runelite.net/) plugin that exports real-time Old School Run
 | **Health & Prayer** | Current / max hitpoints, prayer points and spellbook |
 | **Inventory** | Full item list with GE & HA prices                   |
 | **Equipment** | Worn gear with slot information                      |
+| **Active Prayers** | Prayers currently turned on                          |
 | **Loot Drops** | Configurable value & rarity filters                  |
 | **Level-Ups** | Skill name and new level                             |
 | **Deaths** | Killer info, kept/lost items, danger level           |
@@ -140,6 +141,10 @@ Every message sent to Home Assistant follows this structure:
       "items": [
         { "name": "Dragon defender", "id": 12954, "gePrice": 500000, "haPrice": 68000, "quantity": 1, "equipmentSlot": "SHIELD" }
       ]
+    },
+    "activePrayers": {
+      // Names of RuneLite's Prayer constants, in prayer book order; Ruinous Powers start with RP_. Empty when no prayer is on
+      "prayers": [ "PROTECT_FROM_MELEE", "PIETY" ]
     }
   },
   "events": [
@@ -253,7 +258,7 @@ Open **RuneLite Settings → HA Exporter** to find these options. Every event ty
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| **Share inventory / equipment / location** | `on` | Include these in every update. Location also covers the location trail |
+| **Share inventory / equipment / active prayers / location** | `on` | Include these in every update. Location also covers the location trail |
 
 ### Loot
 
@@ -373,6 +378,7 @@ src/main/java/haexporterplugin/
 │   ├── Stats.java / SkillInfo   #   Skill levels & XP
 │   ├── HealthData / PrayerData  #   HP & prayer points
 │   ├── Inventory / Equipment    #   Item containers
+│   ├── ActivePrayers.java       #   Prayers turned on
 │   ├── ItemData.java            #   Single item with prices
 │   └── LootData.java            #   Loot event details
 │
@@ -394,6 +400,7 @@ src/main/java/haexporterplugin/
 │   ├── TickUtils.java           #   Tick-based send scheduling
 │   ├── ConfigUtils.java         #   Connection persistence
 │   ├── ItemUtils.java           #   RuneLite → ItemData mapping
+│   ├── PrayerUtils.java         #   Active prayer lookup
 │   └── RarityUtils.java         #   Drop-rate evaluation
 │
 └── enums/                       # Enum types (AccountType, etc.)

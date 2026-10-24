@@ -3,6 +3,7 @@ package haexporterplugin;
 import com.google.inject.Provides;
 import javax.inject.Inject;
 
+import haexporterplugin.data.ActivePrayers;
 import haexporterplugin.data.HealthData;
 import haexporterplugin.data.PrayerData;
 import haexporterplugin.data.SpellbookData;
@@ -10,6 +11,7 @@ import haexporterplugin.notifiers.*;
 import haexporterplugin.utils.EasterEggUtils;
 import haexporterplugin.utils.HomeAssistUtils;
 import haexporterplugin.utils.MessageBuilder;
+import haexporterplugin.utils.PrayerUtils;
 import haexporterplugin.utils.TickUtils;
 import haexporterplugin.utils.Utils;
 import haexporterplugin.utils.WorldUtils;
@@ -238,6 +240,7 @@ public class HAExporterPlugin extends Plugin
 		tickUtils.onTick();
 
 		updateSpellbook();
+		updateActivePrayers();
 
 		levelNotifier.onTick();
 		itemNotifier.onTick();
@@ -292,6 +295,11 @@ public class HAExporterPlugin extends Plugin
 		int spellbookId = client.getVarbitValue(VarbitID.SPELLBOOK);
 		SpellbookData spellbook = new SpellbookData(spellbookId);
 		messageBuilder.setData("spellbook", spellbook);
+	}
+
+	private void updateActivePrayers(){
+		ActivePrayers activePrayers = new ActivePrayers(PrayerUtils.getActivePrayers(client));
+		messageBuilder.setData("activePrayers", activePrayers);
 	}
 
 	@Subscribe

@@ -27,6 +27,7 @@ public class HAConnection {
     // old JSON without these fields -> null -> treated as enabled.
     private Boolean includeInventory;
     private Boolean includeEquipment;
+    private Boolean includeActivePrayers;
     private Boolean includeLocation;
 
     // Per-connection event toggles. Boolean wrappers for backwards-compatible deserialization:
@@ -45,6 +46,7 @@ public class HAConnection {
         this.token = token;
         this.includeInventory = true;
         this.includeEquipment = true;
+        this.includeActivePrayers = true;
         this.includeLocation = true;
         this.includeLootEvents = true;
         this.includeDeathEvents = true;
@@ -82,6 +84,11 @@ public class HAConnection {
         return includeEquipment == null || includeEquipment;
     }
 
+    public boolean isIncludeActivePrayers()
+    {
+        return includeActivePrayers == null || includeActivePrayers;
+    }
+
     public boolean isIncludeLocation()
     {
         return includeLocation == null || includeLocation;
@@ -95,6 +102,11 @@ public class HAConnection {
     public void setIncludeEquipment(boolean value)
     {
         this.includeEquipment = value;
+    }
+
+    public void setIncludeActivePrayers(boolean value)
+    {
+        this.includeActivePrayers = value;
     }
 
     public void setIncludeLocation(boolean value)

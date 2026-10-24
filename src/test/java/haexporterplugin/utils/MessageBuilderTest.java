@@ -51,6 +51,7 @@ public class MessageBuilderTest
 		messageBuilder.setData("stats", new Stats(Map.of("Attack", new SkillInfo(200000000, 99))));
 		messageBuilder.setData("inventory", new Inventory(List.of(coins)));
 		messageBuilder.setData("equipment", new Equipment(List.of(whip)));
+		messageBuilder.setData("activePrayers", new ActivePrayers(List.of("PIETY")));
 		messageBuilder.setData("unknown", "ignored");
 		messageBuilder.setState(GameState.LOGGED_IN);
 		messageBuilder.setTickDelay(100);
@@ -62,7 +63,8 @@ public class MessageBuilderTest
 			+ "'health':{'current':85,'max':99},'prayerPoints':{'current':52,'max':70},'spellbook':{'id':1,'name':'ancient'},"
 			+ "'stats':{'skills':{'Attack':{'xp':200000000,'level':99}}},"
 			+ "'inventory':{'items':[{'name':'Coins','id':995,'gePrice':1,'haPrice':1,'quantity':100,'inventorySlot':0}]},"
-			+ "'equipment':{'items':[{'name':'Abyssal whip','id':4151,'gePrice':3000000000,'haPrice':72000,'quantity':1,'equipmentSlot':'WEAPON'}]}},"
+			+ "'equipment':{'items':[{'name':'Abyssal whip','id':4151,'gePrice':3000000000,'haPrice':72000,'quantity':1,'equipmentSlot':'WEAPON'}]},"
+			+ "'activePrayers':{'prayers':['PIETY']}},"
 			+ "'events':[],'state':'LOGGED_IN','tickDelay':100}", built.toString());
 	}
 
