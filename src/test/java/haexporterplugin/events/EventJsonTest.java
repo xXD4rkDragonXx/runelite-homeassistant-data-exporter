@@ -29,6 +29,13 @@ public class EventJsonTest
 		assertJsonEquals("{'name':'Screaming banshee','npcId':7398,'location':{'x':2700,'y':3300,'plane':0}}", gson.toJson(event));
 	}
 
+	// A bank is easily worth more than Integer.MAX_VALUE
+	@Test
+	public void testBankValueEvent()
+	{
+		assertJsonEquals("{'value':12000000000}", gson.toJson(new BankValueEvent(12_000_000_000L)));
+	}
+
 	// The value lost can be above Integer.MAX_VALUE
 	@Test
 	public void testDeathEvent()

@@ -19,6 +19,7 @@ A [RuneLite](https://runelite.net/) plugin that exports real-time Old School Run
 | **Inventory** | Full item list with GE & HA prices                   |
 | **Equipment** | Worn gear with slot information                      |
 | **Active Prayers** | Prayers currently turned on                          |
+| **Bank Value** | GE value of the bank when you open and close it      |
 | **Loot Drops** | Configurable value & rarity filters                  |
 | **Level-Ups** | Skill name and new level                             |
 | **Deaths** | Killer info, kept/lost items, danger level           |
@@ -181,7 +182,7 @@ Each event is an object `{ "type", "data", "eventId", "timestamp" }`:
 | `eventId` | Random UUID. Identical events can legitimately repeat (e.g. two diary tasks in a row), so use this to tell a genuine repeat from a duplicate delivery |
 | `timestamp` | When the event happened, in epoch milliseconds (UTC). Can be earlier than the message `timestamp` when the event waited for the next periodic message |
 
-Every event is sent exactly once. Events that trigger an immediate message go out right away; the others (`achievementDiary`, `combatTask`) are included in the next periodic message. Events that happen on a special world are dropped unless **Special world data** is enabled (see below).
+Every event is sent exactly once. Events that trigger an immediate message go out right away; the others (`achievementDiary`, `combatTask`, `bankValue`) are included in the next periodic message. Events that happen on a special world are dropped unless **Special world data** is enabled (see below).
 
 | `type` | `data` |
 |--------|--------|
@@ -193,6 +194,7 @@ Every event is sent exactly once. Events that trigger an immediate message go ou
 | `combatTask` | `{ "taskName", "tier" }` |
 | `superiorSpawn` | `{ "name", "npcId", "location": { "x", "y", "plane" } }` |
 | `collectionLog` | `{ "itemName", "itemId", "value", "killCount" }` (`itemId` is `-1` when the name can't be matched to an item; `killCount` is the kill count of the loot drop the item came from, absent when there is none) |
+| `bankValue` | `{ "value" }`: the GE value of everything in the bank (a long). Sent when the bank is opened, and again when it is closed if the value changed meanwhile (so gear you took out isn't counted in both the bank and your inventory). Only the total is sent |
 | `clientShutdown` | `"Logout"`, `"Shutdown"` or `"Disabled"` (plugin turned off) |
 
 `collectionLog` events come from the game's own new-item notification, so the in-game setting **Collection log - New addition notification** must be on. Chat and popup both work; with the setting off, the game doesn't announce new items and no event is sent.
@@ -259,6 +261,7 @@ Open **RuneLite Settings → HA Exporter** to find these options. Every event ty
 | Option | Default | Description |
 |--------|---------|-------------|
 | **Share inventory / equipment / active prayers / location** | `on` | Include these in every update. Location also covers the location trail |
+| **Share bank value** | `on` | Send the `bankValue` event when you use the bank |
 
 ### Loot
 
@@ -384,13 +387,15 @@ src/main/java/haexporterplugin/
 │
 ├── events/                      # Event objects added to the events array
 │   ├── LevelEvent.java          #   Skill level-up
-│   └── DeathEvent.java          #   Player death
+│   ├── DeathEvent.java          #   Player death
+│   └── BankValueEvent.java      #   GE value of the bank
 │
 ├── notifiers/                   # Detect & fire events
 │   ├── BaseNotifier.java
 │   ├── LevelNotifier.java
 │   ├── LootNotifier.java
 │   ├── DeathNotifier.java
+│   ├── BankNotifier.java        #   Bank value on open and close
 │   ├── ItemNotifier.java
 │   └── LocationNotifier.java
 │

@@ -18,7 +18,8 @@ public class HomeAssistUtilsFilterTest extends HomeAssistUtilsTestBase
 		+ "\"locationTrail\":[{\"x\":1640,\"y\":9562,\"plane\":0,\"isOnBoat\":false,\"timestamp\":1735689600000}]"
 		+ "},"
 		+ "\"events\":["
-		+ "{\"type\":\"levelUp\",\"data\":[{\"skill\":\"Attack\",\"level\":99}]}"
+		+ "{\"type\":\"levelUp\",\"data\":[{\"skill\":\"Attack\",\"level\":99}]},"
+		+ "{\"type\":\"bankValue\",\"data\":{\"value\":1500000000}}"
 		+ "]}";
 
 	// Either switch being off is enough
@@ -42,7 +43,21 @@ public class HomeAssistUtilsFilterTest extends HomeAssistUtilsTestBase
 		JsonObject filtered = filter();
 
 		assertEquals(1, filtered.getAsJsonObject("player").getAsJsonArray("locationTrail").size());
-		assertEquals(List.of(), eventTypes(filtered));
+		assertEquals(List.of("bankValue"), eventTypes(filtered));
+	}
+
+	// Either switch being off drops the bank value and nothing else
+	@Test
+	public void testBankValueSwitches()
+	{
+		connection.setIncludeBankValue(false);
+		assertEquals(List.of("levelUp"), eventTypes(filter()));
+
+		connection.setIncludeBankValue(true);
+		assertEquals(List.of("levelUp", "bankValue"), eventTypes(filter()));
+
+		when(config.includeBankValue()).thenReturn(false);
+		assertEquals(List.of("levelUp"), eventTypes(filter()));
 	}
 
 	private JsonObject filter()
@@ -54,7 +69,7 @@ public class HomeAssistUtilsFilterTest extends HomeAssistUtilsTestBase
 	{
 		assertFalse(filtered.getAsJsonObject("player").has("location"));
 		assertFalse(filtered.getAsJsonObject("player").has("locationTrail"));
-		assertEquals(List.of("levelUp"), eventTypes(filtered));
+		assertEquals(List.of("levelUp", "bankValue"), eventTypes(filtered));
 	}
 
 	private static List<String> eventTypes(JsonObject payload)

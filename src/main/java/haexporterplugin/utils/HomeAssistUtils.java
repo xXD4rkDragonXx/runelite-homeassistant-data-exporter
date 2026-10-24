@@ -259,6 +259,7 @@ public class HomeAssistUtils {
                 && locationEnabled;
 
         boolean allEventsEnabled = connection.isIncludeLootEvents() && config.includeLootEvents()
+                && connection.isIncludeBankValue() && config.includeBankValue()
                 && connection.isIncludeDeathEvents() && config.includeDeathEvents()
                 && connection.isIncludeLevelUpEvents() && config.includeLevelUpEvents()
                 && connection.isIncludeAchievementDiaryEvents() && config.includeAchievementDiaryEvents()
@@ -311,6 +312,8 @@ public class HomeAssistUtils {
                 return connection.isIncludeLootEvents() && config.includeLootEvents();
             case "death":
                 return connection.isIncludeDeathEvents() && config.includeDeathEvents();
+            case "bankValue":
+                return connection.isIncludeBankValue() && config.includeBankValue();
             case "levelUp":
                 return connection.isIncludeLevelUpEvents() && config.includeLevelUpEvents();
             case "achievementDiary":
