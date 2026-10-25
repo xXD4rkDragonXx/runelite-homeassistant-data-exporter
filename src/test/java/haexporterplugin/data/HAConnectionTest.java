@@ -14,15 +14,18 @@ public class HAConnectionTest
 		assertTrue(conn.isIncludeInventory());
 		assertTrue(conn.isIncludeEquipment());
 		assertTrue(conn.isIncludeActivePrayers());
+		assertTrue(conn.isIncludeBankValue());
 		assertTrue(conn.isIncludeLocation());
 
 		conn.setIncludeInventory(false);
 		conn.setIncludeEquipment(false);
 		conn.setIncludeActivePrayers(false);
+		conn.setIncludeBankValue(false);
 		conn.setIncludeLocation(false);
 		assertFalse(conn.isIncludeInventory());
 		assertFalse(conn.isIncludeEquipment());
 		assertFalse(conn.isIncludeActivePrayers());
+		assertFalse(conn.isIncludeBankValue());
 		assertFalse(conn.isIncludeLocation());
 	}
 
@@ -38,6 +41,7 @@ public class HAConnectionTest
 		assertTrue(conn.isIncludeInventory());
 		assertTrue(conn.isIncludeEquipment());
 		assertTrue(conn.isIncludeActivePrayers());
+		assertTrue(conn.isIncludeBankValue());
 		assertTrue(conn.isIncludeLocation());
 		assertTrue(conn.isIncludeLootEvents());
 		assertTrue(conn.isIncludeDeathEvents());

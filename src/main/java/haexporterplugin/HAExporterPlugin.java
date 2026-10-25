@@ -63,6 +63,7 @@ public class HAExporterPlugin extends Plugin
 	private @Inject LootNotifier lootNotifier;
 	private @Inject LocationNotifier locationNotifier;
 	private @Inject DeathNotifier deathNotifier;
+	private @Inject BankNotifier bankNotifier;
 	private @Inject CollectionNotifier collectionNotifier;
 	private @Inject EasterEggUtils easterEggUtils;
 	private @Inject HomeAssistUtils homeAssistUtils;
@@ -132,6 +133,7 @@ public class HAExporterPlugin extends Plugin
 		{
 			initialized = false;
 			locationNotifier.reset();
+			bankNotifier.reset();
 		}
 		if (gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
 		{
@@ -140,6 +142,7 @@ public class HAExporterPlugin extends Plugin
 			initialized = false;
 			messageBuilder.resetData();
 			locationNotifier.reset();
+			bankNotifier.reset();
 		}
 	}
 
@@ -231,6 +234,21 @@ public class HAExporterPlugin extends Plugin
 	}
 
 	@Subscribe
+	public void onWidgetLoaded(WidgetLoaded event) {
+		bankNotifier.onWidgetLoaded(event.getGroupId());
+	}
+
+	@Subscribe
+	public void onWidgetClosed(WidgetClosed event) {
+		bankNotifier.onWidgetClosed(event.getGroupId());
+	}
+
+	@Subscribe
+	public void onItemContainerChanged(ItemContainerChanged event) {
+		bankNotifier.onItemContainerChanged(event.getContainerId());
+	}
+
+	@Subscribe
 	public void onNpcSpawned(NpcSpawned npcSpawned) {
 		superiorNotifier.onNpcSpawned(npcSpawned);
 	}
@@ -245,6 +263,7 @@ public class HAExporterPlugin extends Plugin
 		levelNotifier.onTick();
 		itemNotifier.onTick();
 		locationNotifier.onTick();
+		bankNotifier.onTick();
 		superiorNotifier.onGameTick();
 
 		if (!initialized){
@@ -283,6 +302,7 @@ public class HAExporterPlugin extends Plugin
 			PrayerData prayer = new PrayerData(client.getBoostedSkillLevel(Skill.PRAYER), client.getRealSkillLevel(Skill.PRAYER));
 			messageBuilder.setData("health", health);
 			messageBuilder.setData("prayer", prayer);
+			bankNotifier.restore();
 			messageBuilder.setTickDelay(config.sendRate());
 
 			tickUtils.sendNow();

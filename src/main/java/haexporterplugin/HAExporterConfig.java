@@ -185,10 +185,23 @@ public interface HAExporterConfig extends Config
 	}
 
 	@ConfigItem(
+			keyName = "includeBankValue",
+			name = "Share bank value",
+			description = "Send the GE value of your bank with every update. It is read each time you open the bank, and again"
+					+ " when you close it if it changed, and remembered for your next login."
+					+ " Only the total is sent, not the items." + MASTER_SWITCH_NOTE,
+			position = 204,
+			section = dataSection
+	)
+	default boolean includeBankValue() {
+		return true;
+	}
+
+	@ConfigItem(
 			keyName = "includeLocation",
 			name = "Share location",
 			description = "Send your in-game coordinates and the trail of tiles you visited." + MASTER_SWITCH_NOTE,
-			position = 204,
+			position = 205,
 			section = dataSection
 	)
 	default boolean includeLocation() {

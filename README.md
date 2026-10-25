@@ -19,6 +19,7 @@ A [RuneLite](https://runelite.net/) plugin that exports real-time Old School Run
 | **Inventory** | Full item list with GE & HA prices                   |
 | **Equipment** | Worn gear with slot information                      |
 | **Active Prayers** | Prayers currently turned on                          |
+| **Bank Value** | GE value of the bank, read each time you open it     |
 | **Loot Drops** | Configurable value & rarity filters                  |
 | **Level-Ups** | Skill name and new level                             |
 | **Deaths** | Killer info, kept/lost items, danger level           |
@@ -145,6 +146,13 @@ Every message sent to Home Assistant follows this structure:
     "activePrayers": {
       // Names of RuneLite's Prayer constants, in prayer book order; Ruinous Powers start with RP_. Empty when no prayer is on
       "prayers": [ "PROTECT_FROM_MELEE", "PIETY" ]
+    },
+    "bank": {
+      // GE value of everything in the bank as last read (a long), and when it was read (epoch millis, UTC).
+      // Read when the bank is opened, and again when it is closed if it changed (so gear you took out isn't
+      // counted in both the bank and your inventory). Kept for your next login. Absent until the bank was opened once
+      "value": 2004500000,
+      "readAt": 1735689000000
     }
   },
   "events": [
@@ -259,6 +267,7 @@ Open **RuneLite Settings → HA Exporter** to find these options. Every event ty
 | Option | Default | Description |
 |--------|---------|-------------|
 | **Share inventory / equipment / active prayers / location** | `on` | Include these in every update. Location also covers the location trail |
+| **Share bank value** | `on` | Send `player.bank`, the GE value of your bank as last opened (only the total, not the items) |
 
 ### Loot
 
@@ -379,6 +388,7 @@ src/main/java/haexporterplugin/
 │   ├── HealthData / PrayerData  #   HP & prayer points
 │   ├── Inventory / Equipment    #   Item containers
 │   ├── ActivePrayers.java       #   Prayers turned on
+│   ├── BankValue.java           #   GE value of the bank as last read
 │   ├── ItemData.java            #   Single item with prices
 │   └── LootData.java            #   Loot event details
 │
@@ -391,6 +401,7 @@ src/main/java/haexporterplugin/
 │   ├── LevelNotifier.java
 │   ├── LootNotifier.java
 │   ├── DeathNotifier.java
+│   ├── BankNotifier.java        #   Bank value on open and close, kept across logins
 │   ├── ItemNotifier.java
 │   └── LocationNotifier.java
 │

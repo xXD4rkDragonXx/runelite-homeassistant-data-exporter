@@ -256,6 +256,8 @@ public class HomeAssistUtils {
                 && config.includeInventory()
                 && config.includeEquipment()
                 && config.includeActivePrayers()
+                && connection.isIncludeBankValue()
+                && config.includeBankValue()
                 && locationEnabled;
 
         boolean allEventsEnabled = connection.isIncludeLootEvents() && config.includeLootEvents()
@@ -282,6 +284,9 @@ public class HomeAssistUtils {
             }
             if (!connection.isIncludeActivePrayers() || !config.includeActivePrayers()) {
                 player.remove("activePrayers");
+            }
+            if (!connection.isIncludeBankValue() || !config.includeBankValue()) {
+                player.remove("bank");
             }
             if (!locationEnabled) {
                 player.remove("location");

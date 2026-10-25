@@ -24,6 +24,8 @@ public class Player {
     private Inventory inventory;
     private Equipment equipment;
     private ActivePrayers activePrayers;
+    // The bank's GE value as last read; kept across logins (BankNotifier)
+    private BankValue bank;
 
     public Player() {
     }
