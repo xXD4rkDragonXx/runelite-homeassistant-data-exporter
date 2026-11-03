@@ -83,6 +83,9 @@ public class MessageBuilder {
             case "bank":
                 player.setBank((BankValue) data);
                 break;
+            case "slayer":
+                player.setSlayer((SlayerTask) data);
+                break;
             default:
                 log.warn("Unknown category: {}", category);
                 break;

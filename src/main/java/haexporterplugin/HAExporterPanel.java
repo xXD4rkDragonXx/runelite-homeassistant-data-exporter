@@ -276,6 +276,7 @@ public class HAExporterPanel extends PluginPanel
         if (!connection.isIncludeEquipment() || !config.includeEquipment()) disabled.add("Equip");
         if (!connection.isIncludeActivePrayers() || !config.includeActivePrayers()) disabled.add("Pray");
         if (!connection.isIncludeBankValue() || !config.includeBankValue()) disabled.add("Bank");
+        if (!connection.isIncludeSlayerTask() || !config.includeSlayerTask()) disabled.add("Slay");
         if (!connection.isIncludeLocation() || !config.includeLocation()) disabled.add("Loc");
         if (!connection.isIncludeLootEvents() || !config.includeLootEvents()) disabled.add("Loot");
         if (!connection.isIncludeDeathEvents() || !config.includeDeathEvents()) disabled.add("Death");
@@ -283,6 +284,7 @@ public class HAExporterPanel extends PluginPanel
         if (!connection.isIncludeAchievementDiaryEvents() || !config.includeAchievementDiaryEvents()) disabled.add("Diary");
         if (!connection.isIncludeCombatTaskEvents() || !config.includeCombatTaskEvents()) disabled.add("Task");
         if (!connection.isIncludeSuperiorEvents() || !config.includeSuperiorEvents()) disabled.add("Superior");
+        if (!connection.isIncludeSlayerEvents() || !config.includeSlayerEvents()) disabled.add("SlayTask");
         if (!connection.isIncludeCollectionLogEvents() || !config.includeCollectionLogEvents()) disabled.add("CollLog");
 
         if (disabled.isEmpty())
@@ -452,6 +454,12 @@ public class HAExporterPanel extends PluginPanel
                 config.includeBankValue()
         );
 
+        JCheckBox slayerTaskCheckbox = createCheckbox(
+                "Include Slayer Task",
+                connection.isIncludeSlayerTask(),
+                config.includeSlayerTask()
+        );
+
         JCheckBox locationCheckbox = createCheckbox(
                 "Include Location",
                 connection.isIncludeLocation(),
@@ -462,6 +470,7 @@ public class HAExporterPanel extends PluginPanel
         dataTogglesPanel.add(equipmentCheckbox);
         dataTogglesPanel.add(activePrayersCheckbox);
         dataTogglesPanel.add(bankValueCheckbox);
+        dataTogglesPanel.add(slayerTaskCheckbox);
         dataTogglesPanel.add(locationCheckbox);
 
         topPanel.add(dataTogglesPanel);
@@ -478,6 +487,7 @@ public class HAExporterPanel extends PluginPanel
         JCheckBox diaryCheckbox = createCheckbox("Achievement Diary Events", connection.isIncludeAchievementDiaryEvents(), config.includeAchievementDiaryEvents());
         JCheckBox combatTaskCheckbox = createCheckbox("Combat Task Events", connection.isIncludeCombatTaskEvents(), config.includeCombatTaskEvents());
         JCheckBox superiorCheckbox = createCheckbox("Superior Spawn Events", connection.isIncludeSuperiorEvents(), config.includeSuperiorEvents());
+        JCheckBox slayerCheckbox = createCheckbox("Slayer Task Events", connection.isIncludeSlayerEvents(), config.includeSlayerEvents());
         JCheckBox collectionLogCheckbox = createCheckbox("Collection Log Events", connection.isIncludeCollectionLogEvents(), config.includeCollectionLogEvents());
 
         eventTogglesPanel.add(lootCheckbox);
@@ -486,6 +496,7 @@ public class HAExporterPanel extends PluginPanel
         eventTogglesPanel.add(diaryCheckbox);
         eventTogglesPanel.add(combatTaskCheckbox);
         eventTogglesPanel.add(superiorCheckbox);
+        eventTogglesPanel.add(slayerCheckbox);
         eventTogglesPanel.add(collectionLogCheckbox);
 
         topPanel.add(eventTogglesPanel);
@@ -527,6 +538,7 @@ public class HAExporterPanel extends PluginPanel
                     c.setIncludeEquipment(equipmentCheckbox.isSelected());
                     c.setIncludeActivePrayers(activePrayersCheckbox.isSelected());
                     c.setIncludeBankValue(bankValueCheckbox.isSelected());
+                    c.setIncludeSlayerTask(slayerTaskCheckbox.isSelected());
                     c.setIncludeLocation(locationCheckbox.isSelected());
                     c.setIncludeLootEvents(lootCheckbox.isSelected());
                     c.setIncludeDeathEvents(deathCheckbox.isSelected());
@@ -534,6 +546,7 @@ public class HAExporterPanel extends PluginPanel
                     c.setIncludeAchievementDiaryEvents(diaryCheckbox.isSelected());
                     c.setIncludeCombatTaskEvents(combatTaskCheckbox.isSelected());
                     c.setIncludeSuperiorEvents(superiorCheckbox.isSelected());
+                    c.setIncludeSlayerEvents(slayerCheckbox.isSelected());
                     c.setIncludeCollectionLogEvents(collectionLogCheckbox.isSelected());
                 }
             }

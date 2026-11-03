@@ -258,6 +258,8 @@ public class HomeAssistUtils {
                 && config.includeActivePrayers()
                 && connection.isIncludeBankValue()
                 && config.includeBankValue()
+                && connection.isIncludeSlayerTask()
+                && config.includeSlayerTask()
                 && locationEnabled;
 
         boolean allEventsEnabled = connection.isIncludeLootEvents() && config.includeLootEvents()
@@ -266,6 +268,7 @@ public class HomeAssistUtils {
                 && connection.isIncludeAchievementDiaryEvents() && config.includeAchievementDiaryEvents()
                 && connection.isIncludeCombatTaskEvents() && config.includeCombatTaskEvents()
                 && connection.isIncludeSuperiorEvents() && config.includeSuperiorEvents()
+                && connection.isIncludeSlayerEvents() && config.includeSlayerEvents()
                 && connection.isIncludeCollectionLogEvents() && config.includeCollectionLogEvents();
 
         if (allDataEnabled && allEventsEnabled) {
@@ -287,6 +290,9 @@ public class HomeAssistUtils {
             }
             if (!connection.isIncludeBankValue() || !config.includeBankValue()) {
                 player.remove("bank");
+            }
+            if (!connection.isIncludeSlayerTask() || !config.includeSlayerTask()) {
+                player.remove("slayer");
             }
             if (!locationEnabled) {
                 player.remove("location");
@@ -324,6 +330,9 @@ public class HomeAssistUtils {
                 return connection.isIncludeCombatTaskEvents() && config.includeCombatTaskEvents();
             case "superiorSpawn":
                 return connection.isIncludeSuperiorEvents() && config.includeSuperiorEvents();
+            case "slayerTaskAssigned":
+            case "slayerTaskComplete":
+                return connection.isIncludeSlayerEvents() && config.includeSlayerEvents();
             case "collectionLog":
                 return connection.isIncludeCollectionLogEvents() && config.includeCollectionLogEvents();
             default:

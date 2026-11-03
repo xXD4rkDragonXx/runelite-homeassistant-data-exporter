@@ -29,6 +29,7 @@ public class HAConnection {
     private Boolean includeEquipment;
     private Boolean includeActivePrayers;
     private Boolean includeBankValue;
+    private Boolean includeSlayerTask;
     private Boolean includeLocation;
 
     // Per-connection event toggles. Boolean wrappers for backwards-compatible deserialization:
@@ -39,6 +40,7 @@ public class HAConnection {
     private Boolean includeAchievementDiaryEvents;
     private Boolean includeCombatTaskEvents;
     private Boolean includeSuperiorEvents;
+    private Boolean includeSlayerEvents;
     private Boolean includeCollectionLogEvents;
 
     public HAConnection(String baseUrl, String token)
@@ -49,6 +51,7 @@ public class HAConnection {
         this.includeEquipment = true;
         this.includeActivePrayers = true;
         this.includeBankValue = true;
+        this.includeSlayerTask = true;
         this.includeLocation = true;
         this.includeLootEvents = true;
         this.includeDeathEvents = true;
@@ -56,6 +59,7 @@ public class HAConnection {
         this.includeAchievementDiaryEvents = true;
         this.includeCombatTaskEvents = true;
         this.includeSuperiorEvents = true;
+        this.includeSlayerEvents = true;
         this.includeCollectionLogEvents = true;
     }
 
@@ -96,6 +100,11 @@ public class HAConnection {
         return includeBankValue == null || includeBankValue;
     }
 
+    public boolean isIncludeSlayerTask()
+    {
+        return includeSlayerTask == null || includeSlayerTask;
+    }
+
     public boolean isIncludeLocation()
     {
         return includeLocation == null || includeLocation;
@@ -119,6 +128,11 @@ public class HAConnection {
     public void setIncludeBankValue(boolean value)
     {
         this.includeBankValue = value;
+    }
+
+    public void setIncludeSlayerTask(boolean value)
+    {
+        this.includeSlayerTask = value;
     }
 
     public void setIncludeLocation(boolean value)
@@ -156,6 +170,11 @@ public class HAConnection {
         return includeSuperiorEvents == null || includeSuperiorEvents;
     }
 
+    public boolean isIncludeSlayerEvents()
+    {
+        return includeSlayerEvents == null || includeSlayerEvents;
+    }
+
     public boolean isIncludeCollectionLogEvents()
     {
         return includeCollectionLogEvents == null || includeCollectionLogEvents;
@@ -189,6 +208,11 @@ public class HAConnection {
     public void setIncludeSuperiorEvents(boolean value)
     {
         this.includeSuperiorEvents = value;
+    }
+
+    public void setIncludeSlayerEvents(boolean value)
+    {
+        this.includeSlayerEvents = value;
     }
 
     public void setIncludeCollectionLogEvents(boolean value)

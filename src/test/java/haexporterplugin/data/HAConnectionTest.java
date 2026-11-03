@@ -42,6 +42,7 @@ public class HAConnectionTest
 		assertTrue(conn.isIncludeEquipment());
 		assertTrue(conn.isIncludeActivePrayers());
 		assertTrue(conn.isIncludeBankValue());
+		assertTrue(conn.isIncludeSlayerTask());
 		assertTrue(conn.isIncludeLocation());
 		assertTrue(conn.isIncludeLootEvents());
 		assertTrue(conn.isIncludeDeathEvents());
@@ -49,6 +50,7 @@ public class HAConnectionTest
 		assertTrue(conn.isIncludeAchievementDiaryEvents());
 		assertTrue(conn.isIncludeCombatTaskEvents());
 		assertTrue(conn.isIncludeSuperiorEvents());
+		assertTrue(conn.isIncludeSlayerEvents());
 		assertTrue(conn.isIncludeCollectionLogEvents());
 	}
 

@@ -58,6 +58,7 @@ public class HAExporterPlugin extends Plugin
 	private @Inject AchievementDiaryNotifier achievementDiaryNotifier;
 	private @Inject CombatTaskNotifier combatTaskNotifier;
 	private @Inject SuperiorNotifier superiorNotifier;
+	private @Inject SlayerNotifier slayerNotifier;
 	private @Inject LevelNotifier levelNotifier;
 	private @Inject ItemNotifier itemNotifier;
 	private @Inject LootNotifier lootNotifier;
@@ -134,6 +135,7 @@ public class HAExporterPlugin extends Plugin
 			initialized = false;
 			locationNotifier.reset();
 			bankNotifier.reset();
+			slayerNotifier.reset();
 		}
 		if (gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
 		{
@@ -143,6 +145,7 @@ public class HAExporterPlugin extends Plugin
 			messageBuilder.resetData();
 			locationNotifier.reset();
 			bankNotifier.reset();
+			slayerNotifier.reset();
 		}
 	}
 
@@ -265,6 +268,7 @@ public class HAExporterPlugin extends Plugin
 		locationNotifier.onTick();
 		bankNotifier.onTick();
 		superiorNotifier.onGameTick();
+		slayerNotifier.onTick();
 
 		if (!initialized){
 			initialize();

@@ -26,6 +26,8 @@ public class Player {
     private ActivePrayers activePrayers;
     // The bank's GE value as last read; kept across logins (BankNotifier)
     private BankValue bank;
+    // Slayer task, points and streak (SlayerNotifier)
+    private SlayerTask slayer;
 
     public Player() {
     }
