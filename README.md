@@ -211,7 +211,7 @@ Every event is sent exactly once. Events that trigger an immediate message go ou
 | `achievementDiary` | `{ "region", "tier" }` |
 | `combatTask` | `{ "taskName", "tier" }` |
 | `superiorSpawn` | `{ "name", "npcId", "location": { "x", "y", "plane" } }` |
-| `slayerTaskAssigned` | `{ "task", "location", "amount", "points" }` (`location` only for Konar's tasks) |
+| `slayerTaskAssigned` | `{ "task", "location", "amount" }` (`location` only for Konar's tasks) |
 | `slayerTaskComplete` | `{ "task", "location", "amount", "pointsEarned", "points", "streakType", "streak" }` — `streakType` is the streak the task counted towards (`normal`, `wilderness` or `mortimer`); `points` and `streak` are the totals after the task |
 | `collectionLog` | `{ "itemName", "itemId", "value", "killCount" }` (`itemId` is `-1` when the name can't be matched to an item; `killCount` is the kill count of the loot drop the item came from, absent when there is none) |
 | `clientShutdown` | `"Logout"`, `"Shutdown"` or `"Disabled"` (plugin turned off) |

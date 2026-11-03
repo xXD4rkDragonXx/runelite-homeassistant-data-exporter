@@ -50,9 +50,9 @@ public class SlayerNotifierTest
 
 		TestUtils.assertJsonEquals("["
 			+ "{'type':'slayerTaskComplete','data':{'task':'Abyssal demons','amount':160,'pointsEarned':15,'points':115,'streakType':'normal','streak':11}},"
-			+ "{'type':'slayerTaskAssigned','data':{'task':'Bloodveld','amount':80,'points':115}},"
+			+ "{'type':'slayerTaskAssigned','data':{'task':'Bloodveld','amount':80}},"
 			+ "{'type':'slayerTaskComplete','data':{'task':'Bloodveld','amount':80,'pointsEarned':10,'points':125,'streakType':'mortimer','streak':6}},"
-			+ "{'type':'slayerTaskAssigned','data':{'task':'Nechryael','amount':100,'points':125}}]", withoutIds(events()));
+			+ "{'type':'slayerTaskAssigned','data':{'task':'Nechryael','amount':100}}]", withoutIds(events()));
 		TestUtils.assertJsonEquals("{'points':95,'streaks':{'normal':11,'wilderness':0,'mortimer':6}}",
 			TestUtils.json(messageBuilder.build()).getAsJsonObject().getAsJsonObject("player").get("slayer").toString());
 	}

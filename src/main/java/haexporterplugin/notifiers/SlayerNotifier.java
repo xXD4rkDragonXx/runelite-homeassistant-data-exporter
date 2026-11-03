@@ -68,7 +68,7 @@ public class SlayerNotifier extends BaseNotifier {
         if (current.hasTask() && current.getRemaining() > (before.hasTask() ? before.getRemaining() : 0)) {
             log.debug("Slayer task assigned: {}x {}", current.getAmount(), current.getTask());
             messageBuilder.addEvent("slayerTaskAssigned", new SlayerTaskEvent(current.getTask(), current.getLocation(),
-                    current.getAmount(), null, current.getPoints(), null, null));
+                    current.getAmount(), null, null, null, null));
             tickUtils.sendNow();
         }
     }
