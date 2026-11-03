@@ -79,12 +79,12 @@ public interface HAExporterConfig extends Config
 	String deathSection = "Deaths";
 
 	@ConfigSection(
-			name = "Superior Spawns",
-			description = "Superior slayer monster spawn events",
+			name = "Slayer",
+			description = "Slayer task and superior slayer monster spawn events",
 			position = 850,
 			closedByDefault = true
 	)
-	String superiorSection = "Superior Spawns";
+	String slayerSection = "Slayer";
 
 	@ConfigSection(
 			name = "Just for Fun",
@@ -198,10 +198,21 @@ public interface HAExporterConfig extends Config
 	}
 
 	@ConfigItem(
+			keyName = "includeSlayerTask",
+			name = "Share slayer task",
+			description = "Send your current slayer task, how many are left, and your slayer points and task streaks." + MASTER_SWITCH_NOTE,
+			position = 205,
+			section = dataSection
+	)
+	default boolean includeSlayerTask() {
+		return true;
+	}
+
+	@ConfigItem(
 			keyName = "includeLocation",
 			name = "Share location",
 			description = "Send your in-game coordinates and the trail of tiles you visited." + MASTER_SWITCH_NOTE,
-			position = 205,
+			position = 206,
 			section = dataSection
 	)
 	default boolean includeLocation() {
@@ -507,7 +518,7 @@ public interface HAExporterConfig extends Config
 	}
 
 	/* ============================
-       Superior Spawns
+       Slayer
        ============================ */
 
 	@ConfigItem(
@@ -515,9 +526,20 @@ public interface HAExporterConfig extends Config
 			name = "Send superior events",
 			description = "Send an event when a superior slayer monster appears." + MASTER_SWITCH_NOTE,
 			position = 851,
-			section = superiorSection
+			section = slayerSection
 	)
 	default boolean includeSuperiorEvents() {
+		return true;
+	}
+
+	@ConfigItem(
+			keyName = "includeSlayerEvents",
+			name = "Send slayer task events",
+			description = "Send an event when you get a new slayer task and when you complete one." + MASTER_SWITCH_NOTE,
+			position = 852,
+			section = slayerSection
+	)
+	default boolean includeSlayerEvents() {
 		return true;
 	}
 

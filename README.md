@@ -20,6 +20,7 @@ A [RuneLite](https://runelite.net/) plugin that exports real-time Old School Run
 | **Equipment** | Worn gear with slot information                      |
 | **Active Prayers** | Prayers currently turned on                          |
 | **Bank Value** | GE value of the bank, read each time you open it     |
+| **Slayer** | Current task and amount left, points, task streaks       |
 | **Loot Drops** | Configurable value & rarity filters                  |
 | **Level-Ups** | Skill name and new level                             |
 | **Deaths** | Killer info, kept/lost items, danger level           |
@@ -70,7 +71,7 @@ Home Assistant (with the OSRS Data integration) is the primary target, but any e
 RuneLite                                Home Assistant
    │                                          │
    │  POST /api/osrs-data/pair                │
-   │  Header: X-Osrs-Exporter-Version: 1.6.2  │
+   │  Header: X-Osrs-Exporter-Version: 1.6.3  │
    │  Body: { "code": "12345" }        ──────►│
    │                                          │
    │  Response: { "token": "abc123…" } ◄──────│
@@ -79,12 +80,12 @@ RuneLite                                Home Assistant
    │                                          │
    │  POST /api/osrs-data/events              │
    │  Header: X-Osrs-Token: abc123…    ──────►│
-   │  Header: X-Osrs-Exporter-Version: 1.6.2  │
+   │  Header: X-Osrs-Exporter-Version: 1.6.3  │
    │  Body: <JSON payload>                    │
    │                                          │
 ```
 
-Both requests carry an `X-Osrs-Exporter-Version` header with the plugin version (e.g. `1.6.2`).
+Both requests carry an `X-Osrs-Exporter-Version` header with the plugin version (e.g. `1.6.3`).
 
 **Pair response** — `token` is required on success; these fields are optional:
 
@@ -153,6 +154,16 @@ Every message sent to Home Assistant follows this structure:
       // counted in both the bank and your inventory). Kept for your next login. Absent until the bank was opened once
       "value": 2004500000,
       "readAt": 1735689000000
+    },
+    "slayer": {
+      // task, location, remaining and amount are absent without a task; location is only set for Konar's tasks.
+      // amount is the task's size when it was assigned. Krystilia's (wilderness) and Mortimer's tasks have their own streak
+      "task": "Abyssal demons",
+      "location": "Catacombs of Kourend",
+      "remaining": 87,
+      "amount": 160,
+      "points": 1234,
+      "streaks": { "normal": 100, "wilderness": 12, "mortimer": 5 }
     }
   },
   "events": [
@@ -200,6 +211,8 @@ Every event is sent exactly once. Events that trigger an immediate message go ou
 | `achievementDiary` | `{ "region", "tier" }` |
 | `combatTask` | `{ "taskName", "tier" }` |
 | `superiorSpawn` | `{ "name", "npcId", "location": { "x", "y", "plane" } }` |
+| `slayerTaskAssigned` | `{ "task", "location", "amount" }` (`location` only for Konar's tasks) |
+| `slayerTaskComplete` | `{ "task", "location", "amount", "pointsEarned", "points", "streakType", "streak" }` — `streakType` is the streak the task counted towards (`normal`, `wilderness` or `mortimer`); `points` and `streak` are the totals after the task |
 | `collectionLog` | `{ "itemName", "itemId", "value", "killCount" }` (`itemId` is `-1` when the name can't be matched to an item; `killCount` is the kill count of the loot drop the item came from, absent when there is none) |
 | `clientShutdown` | `"Logout"`, `"Shutdown"` or `"Disabled"` (plugin turned off) |
 
@@ -268,6 +281,7 @@ Open **RuneLite Settings → HA Exporter** to find these options. Every event ty
 |--------|---------|-------------|
 | **Share inventory / equipment / active prayers / location** | `on` | Include these in every update. Location also covers the location trail |
 | **Share bank value** | `on` | Send `player.bank`, the GE value of your bank as last opened (only the total, not the items) |
+| **Share slayer task** | `on` | Send `player.slayer`: your task, how many are left, your slayer points and your task streaks |
 
 ### Loot
 
@@ -304,12 +318,13 @@ Open **RuneLite Settings → HA Exporter** to find these options. Every event ty
 | **Diary: Minimum tier** | `Easy` | Only send diary tasks of this tier or harder |
 | **Combat tasks: Minimum tier** | `Easy` | Only send combat tasks of this tier or harder |
 
-### Deaths & Superior Spawns
+### Deaths & Slayer
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | **Send death events** | `on` | Master switch for death events |
 | **Send superior spawn events** | `on` | Master switch for superior slayer monster spawns |
+| **Send slayer task events** | `on` | Master switch for `slayerTaskAssigned` and `slayerTaskComplete`. Cancelling a task sends no `slayerTaskComplete` |
 
 ---
 
@@ -389,6 +404,7 @@ src/main/java/haexporterplugin/
 │   ├── Inventory / Equipment    #   Item containers
 │   ├── ActivePrayers.java       #   Prayers turned on
 │   ├── BankValue.java           #   GE value of the bank as last read
+│   ├── SlayerTask.java          #   Slayer task, points & streak
 │   ├── ItemData.java            #   Single item with prices
 │   └── LootData.java            #   Loot event details
 │
@@ -402,6 +418,7 @@ src/main/java/haexporterplugin/
 │   ├── LootNotifier.java
 │   ├── DeathNotifier.java
 │   ├── BankNotifier.java        #   Bank value on open and close, kept across logins
+│   ├── SlayerNotifier.java      #   Slayer task state and task events
 │   ├── ItemNotifier.java
 │   └── LocationNotifier.java
 │
