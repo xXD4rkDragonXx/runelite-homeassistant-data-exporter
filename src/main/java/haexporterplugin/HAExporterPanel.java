@@ -277,6 +277,7 @@ public class HAExporterPanel extends PluginPanel
         if (!connection.isIncludeActivePrayers() || !config.includeActivePrayers()) disabled.add("Pray");
         if (!connection.isIncludeBankValue() || !config.includeBankValue()) disabled.add("Bank");
         if (!connection.isIncludeSlayerTask() || !config.includeSlayerTask()) disabled.add("Slay");
+        if (!connection.isIncludeStatusEffects() || !config.includeStatusEffects()) disabled.add("Status");
         if (!connection.isIncludeLocation() || !config.includeLocation()) disabled.add("Loc");
         if (!connection.isIncludeLootEvents() || !config.includeLootEvents()) disabled.add("Loot");
         if (!connection.isIncludeDeathEvents() || !config.includeDeathEvents()) disabled.add("Death");
@@ -460,6 +461,12 @@ public class HAExporterPanel extends PluginPanel
                 config.includeSlayerTask()
         );
 
+        JCheckBox statusEffectsCheckbox = createCheckbox(
+                "Include Status Effects",
+                connection.isIncludeStatusEffects(),
+                config.includeStatusEffects()
+        );
+
         JCheckBox locationCheckbox = createCheckbox(
                 "Include Location",
                 connection.isIncludeLocation(),
@@ -471,6 +478,7 @@ public class HAExporterPanel extends PluginPanel
         dataTogglesPanel.add(activePrayersCheckbox);
         dataTogglesPanel.add(bankValueCheckbox);
         dataTogglesPanel.add(slayerTaskCheckbox);
+        dataTogglesPanel.add(statusEffectsCheckbox);
         dataTogglesPanel.add(locationCheckbox);
 
         topPanel.add(dataTogglesPanel);
@@ -539,6 +547,7 @@ public class HAExporterPanel extends PluginPanel
                     c.setIncludeActivePrayers(activePrayersCheckbox.isSelected());
                     c.setIncludeBankValue(bankValueCheckbox.isSelected());
                     c.setIncludeSlayerTask(slayerTaskCheckbox.isSelected());
+                    c.setIncludeStatusEffects(statusEffectsCheckbox.isSelected());
                     c.setIncludeLocation(locationCheckbox.isSelected());
                     c.setIncludeLootEvents(lootCheckbox.isSelected());
                     c.setIncludeDeathEvents(deathCheckbox.isSelected());

@@ -30,6 +30,7 @@ public class HAConnection {
     private Boolean includeActivePrayers;
     private Boolean includeBankValue;
     private Boolean includeSlayerTask;
+    private Boolean includeStatusEffects;
     private Boolean includeLocation;
 
     // Per-connection event toggles. Boolean wrappers for backwards-compatible deserialization:
@@ -52,6 +53,7 @@ public class HAConnection {
         this.includeActivePrayers = true;
         this.includeBankValue = true;
         this.includeSlayerTask = true;
+        this.includeStatusEffects = true;
         this.includeLocation = true;
         this.includeLootEvents = true;
         this.includeDeathEvents = true;
@@ -105,6 +107,11 @@ public class HAConnection {
         return includeSlayerTask == null || includeSlayerTask;
     }
 
+    public boolean isIncludeStatusEffects()
+    {
+        return includeStatusEffects == null || includeStatusEffects;
+    }
+
     public boolean isIncludeLocation()
     {
         return includeLocation == null || includeLocation;
@@ -133,6 +140,11 @@ public class HAConnection {
     public void setIncludeSlayerTask(boolean value)
     {
         this.includeSlayerTask = value;
+    }
+
+    public void setIncludeStatusEffects(boolean value)
+    {
+        this.includeStatusEffects = value;
     }
 
     public void setIncludeLocation(boolean value)
