@@ -12,4 +12,5 @@ lib/
 
 ## Ignore local AI config
 CLAUDE.md
-.claude
+.claude/*
+!.claude/skills/
