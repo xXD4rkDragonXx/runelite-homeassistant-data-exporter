@@ -1,0 +1,39 @@
+# Writes the gotcha registry's tables on the default branch after every merge, for a registry whose
+# README has a **Written on merge.** paragraph. Copy to .github/workflows/gotchas-write.yml.
+# Part of the `gotcha` skill: https://github.com/RedFirebreak/agent-forge
+#
+# It pushes a commit to the default branch, so branch protection must let GitHub Actions push there.
+# A push made with GITHUB_TOKEN does not start another workflow run, so this cannot loop.
+name: gotchas-write
+
+on:
+  push:
+    branches: [main] # the default branch; change it if yours is named differently
+    paths: ["docs/gotchas/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gotchas-write
+  cancel-in-progress: false
+
+jobs:
+  write:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Write the tables from the entries
+        run: python3 tools/check_gotchas.py write
+      - name: Commit them if they changed
+        run: |
+          if git diff --quiet -- docs/gotchas; then
+            echo "tables already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/gotchas
+          git commit -m "Gotchas: write the tables from the entries"
+          git push
