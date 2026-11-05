@@ -62,6 +62,25 @@ public class HomeAssistUtilsFilterTest extends HomeAssistUtilsTestBase
 		assertNoBank(filter());
 	}
 
+	// The wilderness level follows the location switches too; the rest of the status only its own
+	@Test
+	public void testStatusSwitches()
+	{
+		String payload = "{\"player\":{\"location\":{\"x\":3100,\"y\":3700,\"plane\":0},"
+			+ "\"status\":{\"runEnergy\":50,\"wilderness\":{\"level\":23},\"effects\":[]}}}";
+
+		connection.setIncludeLocation(false);
+		JsonObject status = gson.fromJson(homeAssistUtils.applyConnectionFilters(payload, connection), JsonObject.class)
+			.getAsJsonObject("player").getAsJsonObject("status");
+		assertEquals(50, status.get("runEnergy").getAsInt());
+		assertFalse(status.has("wilderness"));
+
+		connection.setIncludeLocation(true);
+		connection.setIncludeStatusEffects(false);
+		assertFalse(gson.fromJson(homeAssistUtils.applyConnectionFilters(payload, connection), JsonObject.class)
+			.getAsJsonObject("player").has("status"));
+	}
+
 	private JsonObject filter()
 	{
 		return gson.fromJson(homeAssistUtils.applyConnectionFilters(PAYLOAD, connection), JsonObject.class);

@@ -86,6 +86,9 @@ public class MessageBuilder {
             case "slayer":
                 player.setSlayer((SlayerTask) data);
                 break;
+            case "status":
+                player.setStatus((StatusEffectsData) data);
+                break;
             default:
                 log.warn("Unknown category: {}", category);
                 break;

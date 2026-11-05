@@ -43,6 +43,7 @@ public class HAConnectionTest
 		assertTrue(conn.isIncludeActivePrayers());
 		assertTrue(conn.isIncludeBankValue());
 		assertTrue(conn.isIncludeSlayerTask());
+		assertTrue(conn.isIncludeStatusEffects());
 		assertTrue(conn.isIncludeLocation());
 		assertTrue(conn.isIncludeLootEvents());
 		assertTrue(conn.isIncludeDeathEvents());

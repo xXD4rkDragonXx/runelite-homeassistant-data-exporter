@@ -21,6 +21,7 @@ A [RuneLite](https://runelite.net/) plugin that exports real-time Old School Run
 | **Active Prayers** | Prayers currently turned on                          |
 | **Bank Value** | GE value of the bank, read each time you open it     |
 | **Slayer** | Current task and amount left, points, task streaks       |
+| **Status Effects** | Run energy, special attack, poison/venom, wilderness level, active potions & timers with end times |
 | **Loot Drops** | Configurable value & rarity filters                  |
 | **Level-Ups** | Skill name and new level                             |
 | **Deaths** | Killer info, kept/lost items, danger level           |
@@ -71,7 +72,7 @@ Home Assistant (with the OSRS Data integration) is the primary target, but any e
 RuneLite                                Home Assistant
    │                                          │
    │  POST /api/osrs-data/pair                │
-   │  Header: X-Osrs-Exporter-Version: 1.6.3  │
+   │  Header: X-Osrs-Exporter-Version: 1.6.4  │
    │  Body: { "code": "12345" }        ──────►│
    │                                          │
    │  Response: { "token": "abc123…" } ◄──────│
@@ -80,12 +81,12 @@ RuneLite                                Home Assistant
    │                                          │
    │  POST /api/osrs-data/events              │
    │  Header: X-Osrs-Token: abc123…    ──────►│
-   │  Header: X-Osrs-Exporter-Version: 1.6.3  │
+   │  Header: X-Osrs-Exporter-Version: 1.6.4  │
    │  Body: <JSON payload>                    │
    │                                          │
 ```
 
-Both requests carry an `X-Osrs-Exporter-Version` header with the plugin version (e.g. `1.6.3`).
+Both requests carry an `X-Osrs-Exporter-Version` header with the plugin version (e.g. `1.6.4`).
 
 **Pair response** — `token` is required on success; these fields are optional:
 
@@ -164,6 +165,18 @@ Every message sent to Home Assistant follows this structure:
       "amount": 160,
       "points": 1234,
       "streaks": { "normal": 100, "wilderness": 12, "mortimer": 5 }
+    },
+    "status": {
+      // runEnergy and specialAttack are whole percent (0..100). See "Status effects" below
+      "runEnergy": 73,
+      "running": true,
+      "specialAttack": 50,
+      "poison": { "type": "venom", "damage": 8 },   // type "none", "poison" or "venom"; damage (the next hit) absent with "none"
+      "wilderness": { "level": 23 },                // absent outside the wilderness
+      "effects": [                                  // only what is active now, [] when nothing is
+        { "id": "divine_super_combat", "name": "Divine super combat", "endsAt": 1735689900000, "precision": 600 },
+        { "id": "stamina", "name": "Stamina", "endsAt": 1735689720000, "precision": 6000 }
+      ]
     }
   },
   "events": [
@@ -238,6 +251,46 @@ Every event is sent exactly once. Events that trigger an immediate message go ou
 - The trail follows the **Share location** switches. A connection that doesn't receive `location` doesn't receive the trail either.
 - A message with trail points that fails to deliver, or is built while the connection is paused, is kept and sent once the connection works again. That part of the trail is only lost for a connection when the outage outlasts the retry queue (10 minutes or 50 payloads), when the endpoint rejects the message with a `4xx` that isn't retried, or when the client is closed first.
 
+### Status effects
+
+`player.status` has a few meters that always have one value, and a list of the effects that are active right now. Everything is read from the game's own variables every tick, so RuneLite's Timers & Buffs plugin doesn't need to be on.
+
+| Field | Description |
+|-------|-------------|
+| `runEnergy`, `specialAttack` | Whole percent, 0..100 |
+| `running` | Whether run is turned on |
+| `poison` | `{ "type", "damage" }`: `type` is `"none"`, `"poison"` or `"venom"`, `damage` is the next hit (absent with `"none"`). Being immune is not a meter but an effect (`antipoison`, `antivenom`) |
+| `wilderness` | `{ "level" }` inside the wilderness, absent outside it. Only sent when location is shared too (see below) |
+| `effects` | Array of `{ "id", "name", "endsAt", "precision" }`, in the order of the table below. Empty when nothing is active |
+
+Each effect:
+
+- `id` is fixed and only uses `a-z 0-9 _`: the name of RuneLite's `GameTimer` in lower case. New ids can be added in any version, so show an unknown id with its `name` instead of dropping it.
+- `name` is a display name.
+- `endsAt` is when the effect ends, in epoch milliseconds (UTC). It is an end time and not a number of seconds left, because a message can arrive up to a minute before the next one. Effects that have ended are left out of the next message, but a receiver that stops getting messages (the player logged out) should treat an `endsAt` in the past as ended.
+- `precision` is how coarse `endsAt` is, in milliseconds: the game counts most effects down in steps (stamina in steps of 10 ticks, 6 s), so the real end can be up to this much earlier. `endsAt` only changes between messages when it moves by about a step or more, for instance when you drink another dose.
+
+| `id` | Effect | `precision` |
+|------|--------|-------------|
+| `stamina` | Stamina potion | 6000 |
+| `antifire`, `superantifire` | (Extended) antifire, super antifire | 18000, 12000 |
+| `antipoison`, `antivenom` | Poison immunity, venom immunity | 18000 |
+| `divine_super_attack`, `divine_super_strength`, `divine_super_defence`, `divine_ranging`, `divine_magic` | Divine potions. Left out while a combined divine potion (below) covers them for as long or longer | 600 |
+| `divine_super_combat`, `divine_bastion`, `divine_battlemage` | Combined divine potions | 600 |
+| `moonlight_potion` | Moonlight potion | 600 |
+| `goading` | Goading potion | 3600 |
+| `prayer_regeneration` | Prayer regeneration potion | 7200 |
+| `surge_potion` | Surge potion | 6000 |
+| `menaphite_remedy` | Menaphite remedy | 15000 |
+| `imbuedheart` | Imbued or saturated heart | 6000 |
+| `magicimbue` | Magic Imbue spell | 6000 |
+| `overload` | Overload (Nightmare Zone, Chambers of Xeric or Deadman) | 15000 |
+| `teleblock` | Teleblock | 600 |
+
+Freezes, vengeance and thralls are not in the list.
+
+With **Instant status updates** on, a message is sent right away when an effect starts, ends or gets a new end time, when the poison type changes, and when the wilderness level changes. Run energy, special attack and the next poison hit go with the regular update.
+
 ### Account identity & world types
 
 Two `player` fields help receivers tell accounts and worlds apart:
@@ -273,6 +326,7 @@ Open **RuneLite Settings → HA Exporter** to find these options. Every event ty
 |--------|---------|-------------|
 | **Update rate (ticks)** | `100` (~60 s) | How often a full state update is sent. Events are always sent right away |
 | **Instant health / prayer updates** | `on` | Send every HP / prayer change right away instead of waiting for the next update |
+| **Instant status updates** | `on` | Send an update right away when an effect starts, ends or is extended, when you get poisoned, venomed or cured, and when your wilderness level changes |
 | **Special world data** | `off` | Send data while on special or event worlds (Leagues, Deadman, tournament, beta, quest speedrunning, PvP Arena). When off, nothing at all is sent from those worlds — not even a logout — so receivers keep the last state from a normal world |
 
 ### Data Sharing
@@ -282,6 +336,7 @@ Open **RuneLite Settings → HA Exporter** to find these options. Every event ty
 | **Share inventory / equipment / active prayers / location** | `on` | Include these in every update. Location also covers the location trail |
 | **Share bank value** | `on` | Send `player.bank`, the GE value of your bank as last opened (only the total, not the items) |
 | **Share slayer task** | `on` | Send `player.slayer`: your task, how many are left, your slayer points and your task streaks |
+| **Share status effects** | `on` | Send `player.status`: run energy, special attack, poison or venom, and the active effects with their end times. `status.wilderness` also needs **Share location**, since the level tells roughly where you are |
 
 ### Loot
 
@@ -405,6 +460,7 @@ src/main/java/haexporterplugin/
 │   ├── ActivePrayers.java       #   Prayers turned on
 │   ├── BankValue.java           #   GE value of the bank as last read
 │   ├── SlayerTask.java          #   Slayer task, points & streak
+│   ├── StatusEffectsData.java   #   Meters and active effects (player.status)
 │   ├── ItemData.java            #   Single item with prices
 │   └── LootData.java            #   Loot event details
 │
@@ -419,6 +475,7 @@ src/main/java/haexporterplugin/
 │   ├── DeathNotifier.java
 │   ├── BankNotifier.java        #   Bank value on open and close, kept across logins
 │   ├── SlayerNotifier.java      #   Slayer task state and task events
+│   ├── StatusEffectsNotifier.java # Status meters and the effect registry
 │   ├── ItemNotifier.java
 │   └── LocationNotifier.java
 │

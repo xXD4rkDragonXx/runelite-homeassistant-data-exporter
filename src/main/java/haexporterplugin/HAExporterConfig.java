@@ -136,11 +136,24 @@ public interface HAExporterConfig extends Config
 	}
 
 	@ConfigItem(
+			keyName = "sendStatusInstantly",
+			name = "Instant status updates",
+			description = "When on, an update is sent right away when an effect (such as a potion) starts, ends or is extended,<br/>" +
+					"when you get poisoned or venomed or are cured, and when your wilderness level changes.<br/>" +
+					"Run energy and special attack are always sent with the regular update",
+			position = 104,
+			section = generalSection
+	)
+	default boolean sendStatusInstantly() {
+		return true;
+	}
+
+	@ConfigItem(
 			keyName = "sendSpecialWorldData",
 			name = "Special world data",
 			description = "Send data while playing on special or event worlds (Leagues, Deadman, tournament, beta, quest speedrunning, PvP Arena).<br/>" +
 					"These use separate or temporary characters, so this is off by default: nothing is sent from them.",
-			position = 104,
+			position = 105,
 			section = generalSection
 	)
 	default boolean sendSpecialWorldData() {
@@ -209,10 +222,23 @@ public interface HAExporterConfig extends Config
 	}
 
 	@ConfigItem(
+			keyName = "includeStatusEffects",
+			name = "Share status effects",
+			description = "Send your run energy, special attack, poison or venom, and the effects that are active"
+					+ " (stamina, antifire, divine potions, teleblock, ...) with when they end."
+					+ " Your wilderness level is only sent when location is shared too." + MASTER_SWITCH_NOTE,
+			position = 206,
+			section = dataSection
+	)
+	default boolean includeStatusEffects() {
+		return true;
+	}
+
+	@ConfigItem(
 			keyName = "includeLocation",
 			name = "Share location",
 			description = "Send your in-game coordinates and the trail of tiles you visited." + MASTER_SWITCH_NOTE,
-			position = 206,
+			position = 207,
 			section = dataSection
 	)
 	default boolean includeLocation() {

@@ -28,6 +28,8 @@ public class Player {
     private BankValue bank;
     // Slayer task, points and streak (SlayerNotifier)
     private SlayerTask slayer;
+    // Run energy, special attack, poison, wilderness level and active effects (StatusEffectsNotifier)
+    private StatusEffectsData status;
 
     public Player() {
     }

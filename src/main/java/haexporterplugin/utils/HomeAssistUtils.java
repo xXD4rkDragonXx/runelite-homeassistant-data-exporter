@@ -260,6 +260,8 @@ public class HomeAssistUtils {
                 && config.includeBankValue()
                 && connection.isIncludeSlayerTask()
                 && config.includeSlayerTask()
+                && connection.isIncludeStatusEffects()
+                && config.includeStatusEffects()
                 && locationEnabled;
 
         boolean allEventsEnabled = connection.isIncludeLootEvents() && config.includeLootEvents()
@@ -294,9 +296,17 @@ public class HomeAssistUtils {
             if (!connection.isIncludeSlayerTask() || !config.includeSlayerTask()) {
                 player.remove("slayer");
             }
+            boolean statusEnabled = connection.isIncludeStatusEffects() && config.includeStatusEffects();
+            if (!statusEnabled) {
+                player.remove("status");
+            }
             if (!locationEnabled) {
                 player.remove("location");
                 player.remove("locationTrail");
+                // The wilderness level tells roughly where you are
+                if (statusEnabled && player.has("status") && player.get("status").isJsonObject()) {
+                    player.getAsJsonObject("status").remove("wilderness");
+                }
             }
         }
 

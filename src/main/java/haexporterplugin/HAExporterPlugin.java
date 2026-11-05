@@ -39,7 +39,7 @@ import net.runelite.client.util.ImageUtil;
 public class HAExporterPlugin extends Plugin
 {
 	// Sent to endpoints as X-Osrs-Exporter-Version. Must match `version` in build.gradle (checked by PluginVersionTest).
-	public static final String PLUGIN_VERSION = "1.6.3";
+	public static final String PLUGIN_VERSION = "1.6.4";
 
 	@Inject
 	private Client client;
@@ -59,6 +59,7 @@ public class HAExporterPlugin extends Plugin
 	private @Inject CombatTaskNotifier combatTaskNotifier;
 	private @Inject SuperiorNotifier superiorNotifier;
 	private @Inject SlayerNotifier slayerNotifier;
+	private @Inject StatusEffectsNotifier statusEffectsNotifier;
 	private @Inject LevelNotifier levelNotifier;
 	private @Inject ItemNotifier itemNotifier;
 	private @Inject LootNotifier lootNotifier;
@@ -136,6 +137,7 @@ public class HAExporterPlugin extends Plugin
 			locationNotifier.reset();
 			bankNotifier.reset();
 			slayerNotifier.reset();
+			statusEffectsNotifier.reset();
 		}
 		if (gameStateChanged.getGameState() == GameState.LOGIN_SCREEN)
 		{
@@ -146,6 +148,7 @@ public class HAExporterPlugin extends Plugin
 			locationNotifier.reset();
 			bankNotifier.reset();
 			slayerNotifier.reset();
+			statusEffectsNotifier.reset();
 		}
 	}
 
@@ -269,6 +272,7 @@ public class HAExporterPlugin extends Plugin
 		bankNotifier.onTick();
 		superiorNotifier.onGameTick();
 		slayerNotifier.onTick();
+		statusEffectsNotifier.onTick();
 
 		if (!initialized){
 			initialize();
